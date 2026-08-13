@@ -7,6 +7,9 @@ use crate::{DocStore, FunctionDoc, ScriptDoc, Storage, StoreError, StoreResult};
 use calc_core::Session;
 
 pub const HISTORY_SETTING: &str = "history";
+/// The user's language override (ADR-0008): detection is the default, this
+/// setting wins when set.
+pub const LANGUAGE_SETTING: &str = "language";
 
 /// The store directory for native frontends: `CALC_STORE_DIR` override, else
 /// `~/.calc` (falls back to `.calc`).
@@ -64,4 +67,15 @@ pub fn save_script<S: Storage>(store: &DocStore<S>, name: &str, source: &str) ->
         name: name.to_string(),
         source: source.to_string(),
     })
+}
+
+pub fn load_language<S: Storage>(store: &DocStore<S>) -> StoreResult<Option<String>> {
+    match store.get_setting(LANGUAGE_SETTING)? {
+        Some(value) => Ok(value.as_str().map(String::from)),
+        None => Ok(None),
+    }
+}
+
+pub fn save_language<S: Storage>(store: &DocStore<S>, language: &str) -> StoreResult<()> {
+    store.set_setting(LANGUAGE_SETTING, serde_json::json!(language))
 }

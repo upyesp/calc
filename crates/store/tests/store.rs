@@ -113,7 +113,9 @@ mod fs_tests {
 mod persist_tests {
     use super::*;
     use calc_core::Session;
-    use calc_store::persist::{load_session, save_function, save_history, save_script};
+    use calc_store::persist::{
+        load_language, load_session, save_function, save_history, save_language, save_script,
+    };
 
     #[test]
     fn load_session_restores_history_and_functions() {
@@ -134,5 +136,13 @@ mod persist_tests {
         save_history(&store, &["a  = 1".to_string(), "b  = 2".to_string()]).unwrap();
         let session: Session = load_session(&store).unwrap();
         assert_eq!(session.history(), &["a  = 1".to_string(), "b  = 2".to_string()]);
+    }
+
+    #[test]
+    fn language_setting_round_trips() {
+        let store = DocStore::new(MemoryStore::default());
+        assert_eq!(load_language(&store).unwrap(), None);
+        save_language(&store, "fr").unwrap();
+        assert_eq!(load_language(&store).unwrap(), Some("fr".to_string()));
     }
 }

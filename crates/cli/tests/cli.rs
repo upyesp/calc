@@ -78,3 +78,25 @@ fn repl_save_requires_a_definition_in_session() {
     );
     assert!(out.contains("no definition for nope"), "stdout was: {out}");
 }
+
+#[test]
+fn language_command_persists_the_setting() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().to_str().unwrap();
+    let out = repl_output(path, "language fr\nquit\n");
+    assert!(out.contains("language set to fr"), "stdout was: {out}");
+    // the preference is stored and reloaded on restart
+    assert!(dir.path().join("setting/language.json").exists());
+    let raw = std::fs::read_to_string(dir.path().join("setting/language.json")).unwrap();
+    assert!(raw.contains("\"fr\""), "setting file was: {raw}");
+
+    let out2 = repl_output(path, "quit\n");
+    assert!(out2.contains("calc>"), "stdout was: {out2}");
+}
+
+#[test]
+fn unsupported_language_is_rejected() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = repl_output(dir.path().to_str().unwrap(), "language xx\nquit\n");
+    assert!(out.contains("unsupported language xx"), "stdout was: {out}");
+}
