@@ -98,7 +98,12 @@
 </head>
 <body>
   <link data-trunk rel="rust" data-wasm-opt="z" />
-  <link data-trunk rel="copy-dir" href="public" />
+  <!-- copy-file (not copy-dir): the manifest/sw/icon must land at the dist
+       root, where index.html references them — copy-dir would bury them in
+       dist/public/ and break installability and the service worker. -->
+  <link data-trunk rel="copy-file" href="public/manifest.webmanifest" />
+  <link data-trunk rel="copy-file" href="public/sw.js" />
+  <link data-trunk rel="copy-file" href="public/icon.svg" />
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(function () {});

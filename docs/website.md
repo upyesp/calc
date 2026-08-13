@@ -11,6 +11,14 @@ Pages, built and deployed by the `pages` workflow (`.github/workflows/pages.yml`
 | `/calc/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
 | GitHub Releases | CLI/TUI/desktop binaries | built by `.github/workflows/release.yml` |
 
+The PWA dist is laid out by `crates/web/index.html`: `copy-file` puts the
+manifest/sw/icon at the dist root (a `copy-dir` would bury them in
+`dist/public/` and break installability), and `public_url = "./"` in
+`Trunk.toml` keeps every asset reference relative so the app works from any
+mount point. `public/sw.js` is network-first for navigations (so redeploys
+reach users) and runtime-caches assets for offline use; bump its `CACHE`
+constant when the strategy changes.
+
 The landing page links to release assets via
 `https://github.com/upyesp/calc/releases/latest/download/<asset>` so download
 links never need a version number.

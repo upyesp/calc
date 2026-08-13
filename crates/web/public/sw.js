@@ -1,7 +1,14 @@
-// Offline-first service worker: cache on install, serve cache-first with
-// network fallback and runtime caching (the app is designed to run fully
-// offline at runtime).
-const CACHE = "calc-v1";
+// Offline-first service worker for the Calc web app.
+//
+// Navigation requests are network-first (so new deploys reach users) with a
+// cache fallback when offline. Same-origin asset requests are runtime-cached
+// (cache-first after the first load), so the app is fully usable offline
+// once it has been loaded online — the shell (index.html + the hashed wasm
+// and js) is what the fetch handler sees on the first visit.
+//
+// Bump CACHE when the precache set or the caching strategy changes; the
+// activate handler clears older caches.
+const CACHE = "calc-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -22,13 +29,34 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  // Navigations: try the network first so updated builds propagate, then
+  // fall back to the cached shell for offline use.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((hit) => hit || caches.match("./index.html"))
+        )
+    );
+    return;
+  }
+
+  // Assets (wasm, js, icon): cache-first with runtime caching.
   event.respondWith(
-    caches.match(event.request).then((hit) => {
+    caches.match(request).then((hit) => {
       return (
         hit ||
-        fetch(event.request).then((response) => {
+        fetch(request).then((response) => {
           const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
           return response;
         })
       );
