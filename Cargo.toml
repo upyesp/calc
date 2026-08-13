@@ -7,6 +7,7 @@ members = [
     "crates/cli",
     "crates/tui",
     "crates/web",
+    "crates/tauri-app/src-tauri",
 ]
 # `calc-web` targets `wasm32-unknown-unknown`; keep it out of default native builds.
 default-members = [
