@@ -622,6 +622,13 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
     }
 }
 
+/// Evaluate source text as an expression with an empty environment — the CLI
+/// one-shot convenience (composition of `parse` + `eval`, not a seam).
+pub fn evaluate(text: &str) -> Result<Value, CalcError> {
+    let env = Env::default();
+    eval(&parse(text)?, &env)
+}
+
 /// Built-in constants (π, e), resolved when a name isn't in the environment.
 fn builtin_const(name: &str) -> Option<Value> {
     match name {

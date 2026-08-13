@@ -1,4 +1,4 @@
-use calc_core::{eval, parse, parse_script, run, Env, Value};
+use calc_core::{eval, evaluate, parse, parse_script, run, Env, Value};
 
 /// Evaluate source text with an empty environment — the common case in these
 /// tests (the CLI's future `evaluate(text)` convenience does the same).
@@ -138,4 +138,9 @@ fn user_function_recurses() {
             .expect("parse_script");
     let result = run(&script, &mut env).expect("run");
     assert_eq!(result, Value::float(120.0));
+}
+
+#[test]
+fn evaluate_convenience_adapter() {
+    assert_eq!(evaluate("2 + 3 * 4").expect("evaluate"), Value::float(14.0));
 }
