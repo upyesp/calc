@@ -156,6 +156,8 @@ pub enum CalcError {
     ZeroDivision,
     #[error("step limit exceeded")]
     StepLimit,
+    #[error("io error: {0}")]
+    Io(String),
 }
 
 /// Parse plain text into an [`Expression`] (the plain-text input seam).
