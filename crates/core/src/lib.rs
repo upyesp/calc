@@ -34,6 +34,25 @@ impl Value {
     }
 }
 
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Float(n) => write!(f, "{n}"),
+            Value::Rational(r) => {
+                if r.denom() == &num_bigint::BigInt::from(1) {
+                    write!(f, "{}", r.numer())
+                } else {
+                    write!(f, "{}/{}", r.numer(), r.denom())
+                }
+            }
+            Value::Decimal(d) => write!(f, "{d}"),
+            Value::Big(b) => write!(f, "{b}"),
+            Value::Complex(c) => write!(f, "{c}"),
+            Value::Bool(b) => write!(f, "{b}"),
+        }
+    }
+}
+
 /// Variable bindings available while evaluating an [`Expression`].
 #[derive(Debug, Clone, Default)]
 pub struct Env {

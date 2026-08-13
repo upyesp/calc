@@ -246,3 +246,18 @@ fn sampler_skips_points_where_eval_errors() {
     // x = -1, 0, 1 — the x = 0 point errors (division by zero) and is skipped
     assert_eq!(samples, vec![Sample { x: -1.0, y: -1.0 }, Sample { x: 1.0, y: 1.0 }]);
 }
+
+#[test]
+fn values_display_cleanly() {
+    assert_eq!(Value::float(5.0).to_string(), "5");
+    assert_eq!(Value::float(0.5).to_string(), "0.5");
+    assert_eq!(Value::Bool(true).to_string(), "true");
+    assert_eq!(
+        eval_str("frac(1, 3)").to_string(),
+        "1/3"
+    );
+    assert_eq!(
+        eval_str("dec(0.1) + dec(0.2)").to_string(),
+        "0.3"
+    );
+}
