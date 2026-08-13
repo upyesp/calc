@@ -107,6 +107,7 @@ pub enum CmpOp {
 pub enum Statement {
     Assign(String, Expression),
     FunctionDef(String, Vec<String>, Expression),
+    While(Expression, Box<Statement>),
     Expr(Expression),
 }
 
@@ -324,9 +325,16 @@ impl Parser {
         token
     }
 
-    /// A statement is `def name(params) = expr` (function definition),
-    /// `name = expr` (assignment), or `expr`.
+    /// A statement is `while cond do stmt` (loop), `def name(params) = expr`
+    /// (function definition), `name = expr` (assignment), or `expr`.
     fn parse_statement(&mut self) -> Result<Statement, CalcError> {
+        if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "while") {
+            self.next(); // consume 'while'
+            let cond = self.parse_expression()?;
+            self.expect_keyword("do")?;
+            let body = Box::new(self.parse_statement()?);
+            return Ok(Statement::While(cond, body));
+        }
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "def") {
             self.next(); // consume 'def'
             let name = self.expect_ident("function name")?;
@@ -725,9 +733,53 @@ pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
                 );
                 // a definition produces no value
             }
+            Statement::While(cond, body) => run_while(cond, body, env)?,
         }
     }
     result.ok_or_else(|| CalcError::Parse("script produced no value".into()))
+}
+
+/// Execute one statement for its effect (used by loop bodies; loops produce no
+/// value).
+fn execute_stmt(stmt: &Statement, env: &mut Env) -> Result<(), CalcError> {
+    match stmt {
+        Statement::Expr(expr) => {
+            eval(expr, env)?;
+            Ok(())
+        }
+        Statement::Assign(name, expr) => {
+            let value = eval(expr, env)?;
+            env.set(name.clone(), value);
+            Ok(())
+        }
+        Statement::FunctionDef(name, params, body) => {
+            env.set_function(
+                name.clone(),
+                Function {
+                    params: params.clone(),
+                    body: body.clone(),
+                },
+            );
+            Ok(())
+        }
+        Statement::While(cond, body) => run_while(cond, body, env),
+    }
+}
+
+/// Drive a while loop: evaluate the condition, run the body while it's true.
+fn run_while(cond: &Expression, body: &Statement, env: &mut Env) -> Result<(), CalcError> {
+    loop {
+        match eval(cond, env)? {
+            Value::Bool(true) => execute_stmt(body, env)?,
+            Value::Bool(false) => break,
+            other => {
+                return Err(CalcError::Type(format!(
+                    "while condition must be a boolean, got {other:?}"
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// A binary arithmetic operator, dispatched per number layer (ADR-0005).

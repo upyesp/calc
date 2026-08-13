@@ -161,3 +161,11 @@ fn float_promotes_to_rational_when_mixed() {
         Value::Rational(BigRational::new(1.into(), 1.into()))
     );
 }
+
+#[test]
+fn while_loop_repeats_until_condition_fails() {
+    let mut env = Env::default();
+    let script = parse_script("x = 0; while x < 3 do x = x + 1; x").expect("parse_script");
+    let result = run(&script, &mut env).expect("run");
+    assert_eq!(result, Value::float(3.0));
+}
