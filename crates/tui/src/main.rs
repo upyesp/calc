@@ -8,7 +8,8 @@
 use std::io;
 
 use calc_core::Session;
-use calc_store::persist::{default_store_dir, load_session, save_history};
+use calc_i18n::Localizer;
+use calc_store::persist::{default_store_dir, load_language, load_session, save_history};
 use calc_store::{DocStore, FsStore};
 use calc_tui::App;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
@@ -34,9 +35,12 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
             Session::new()
         }
     };
+    let preference = load_language(&store).unwrap_or(None);
+    let detected: Vec<String> = sys_locale::get_locales().collect();
+    let localizer = Localizer::resolve(preference.as_deref(), &detected);
     let mut app = App::with_session(session);
     loop {
-        terminal.draw(|frame| draw(frame, &app))?;
+        terminal.draw(|frame| draw(frame, &app, &localizer))?;
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
@@ -59,7 +63,7 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
     }
 }
 
-fn draw(frame: &mut Frame, app: &App) {
+fn draw(frame: &mut Frame, app: &App, localizer: &Localizer) {
     let layout = Layout::vertical([
         Constraint::Length(3), // input
         Constraint::Length(1), // result
@@ -68,7 +72,7 @@ fn draw(frame: &mut Frame, app: &App) {
     .split(frame.area());
 
     let input = Paragraph::new(app.input())
-        .block(Block::default().borders(Borders::ALL).title("Expression"));
+        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-expression")));
     frame.render_widget(input, layout[0]);
 
     let result = Paragraph::new(app.result())
@@ -81,6 +85,6 @@ fn draw(frame: &mut Frame, app: &App) {
         .map(|h| Line::from(h.as_str()))
         .collect();
     let history = Paragraph::new(history_lines)
-        .block(Block::default().borders(Borders::ALL).title("History"));
+        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-history")));
     frame.render_widget(history, layout[2]);
 }
