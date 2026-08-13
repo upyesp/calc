@@ -223,17 +223,17 @@ impl Parser {
 
     /// Multiplicative level: `*` and `/`, folded left-associatively.
     fn parse_term(&mut self) -> Result<Expression, CalcError> {
-        let mut left = self.parse_pow()?;
+        let mut left = self.parse_unary()?;
         loop {
             match self.peek() {
                 Some(Token::Star) => {
                     self.next();
-                    let right = self.parse_pow()?;
+                    let right = self.parse_unary()?;
                     left = Expression::Mul(Box::new(left), Box::new(right));
                 }
                 Some(Token::Slash) => {
                     self.next();
-                    let right = self.parse_pow()?;
+                    let right = self.parse_unary()?;
                     left = Expression::Div(Box::new(left), Box::new(right));
                 }
                 _ => break,
@@ -242,12 +242,24 @@ impl Parser {
         Ok(left)
     }
 
-    /// Power level: `^`, right-associative, binds tighter than `*` and `/`.
+    /// Unary level: `-` binds looser than `^` (math convention: `-2 ^ 2 = -4`).
+    fn parse_unary(&mut self) -> Result<Expression, CalcError> {
+        if matches!(self.peek(), Some(Token::Minus)) {
+            self.next();
+            let inner = self.parse_unary()?;
+            Ok(Expression::Neg(Box::new(inner)))
+        } else {
+            self.parse_pow()
+        }
+    }
+
+    /// Power level: `^`, right-associative, binds tighter than `*` and `/`; the
+    /// exponent may itself be a unary expression (`2 ^ -2`).
     fn parse_pow(&mut self) -> Result<Expression, CalcError> {
         let base = self.parse_factor()?;
         if matches!(self.peek(), Some(Token::Caret)) {
             self.next();
-            let exponent = self.parse_pow()?;
+            let exponent = self.parse_unary()?;
             Ok(Expression::Pow(Box::new(base), Box::new(exponent)))
         } else {
             Ok(base)
@@ -287,10 +299,6 @@ impl Parser {
                 } else {
                     Ok(Expression::Var(name))
                 }
-            }
-            Some(Token::Minus) => {
-                let inner = self.parse_factor()?;
-                Ok(Expression::Neg(Box::new(inner)))
             }
             Some(Token::LParen) => {
                 let expr = self.parse_expression()?;

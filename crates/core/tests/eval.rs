@@ -90,3 +90,9 @@ fn builtin_constants_pi_and_e() {
 fn builtin_function_with_two_arguments() {
     assert_eq!(eval_str("min(2, 3)"), Value::float(2.0));
 }
+
+#[test]
+fn unary_minus_binds_looser_than_power() {
+    assert_eq!(eval_str("-2 ^ 2"), Value::float(-4.0));
+    assert_eq!(eval_str("2 ^ -2"), Value::float(0.25));
+}
