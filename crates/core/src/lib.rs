@@ -66,6 +66,14 @@ pub enum Expression {
     Pow(Box<Expression>, Box<Expression>),
 }
 
+/// One statement of a [`Script`] — the unit of the script seam (CONTEXT.md).
+/// Assignment mutates the [`Env`]; plain expressions just evaluate.
+#[derive(Debug, Clone)]
+pub enum Statement {
+    Assign(String, Expression),
+    Expr(Expression),
+}
+
 /// Errors crossing the calc-core seams.
 #[derive(Debug, thiserror::Error)]
 pub enum CalcError {
@@ -95,6 +103,31 @@ pub fn parse(text: &str) -> Result<Expression, CalcError> {
     Ok(expr)
 }
 
+/// Parse a sequence of statements separated by `;` (the script seam).
+pub fn parse_script(text: &str) -> Result<Vec<Statement>, CalcError> {
+    let tokens = tokenize(text)?;
+    let mut parser = Parser { tokens, pos: 0 };
+    let mut statements = Vec::new();
+    loop {
+        if parser.peek().is_none() {
+            break;
+        }
+        let stmt = parser.parse_statement()?;
+        statements.push(stmt);
+        match parser.peek() {
+            Some(Token::Semicolon) => {
+                parser.next();
+                // trailing ';' is fine
+            }
+            None => break,
+            Some(_) => {
+                return Err(CalcError::Parse("expected ';' between statements".into()));
+            }
+        }
+    }
+    Ok(statements)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     Number(f64),
@@ -105,6 +138,8 @@ enum Token {
     Slash,
     Caret,
     Comma,
+    Equals,
+    Semicolon,
     LParen,
     RParen,
 }
@@ -139,6 +174,14 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             }
             ',' => {
                 tokens.push(Token::Comma);
+                chars.next();
+            }
+            '=' => {
+                tokens.push(Token::Equals);
+                chars.next();
+            }
+            ';' => {
+                tokens.push(Token::Semicolon);
                 chars.next();
             }
             '(' => {
@@ -198,6 +241,20 @@ impl Parser {
             self.pos += 1;
         }
         token
+    }
+
+    /// A statement is `name = expr` (assignment) or `expr`.
+    fn parse_statement(&mut self) -> Result<Statement, CalcError> {
+        if let Some(Token::Ident(name)) = self.peek().cloned() {
+            if matches!(self.tokens.get(self.pos + 1), Some(Token::Equals)) {
+                self.next(); // consume the identifier
+                self.next(); // consume '='
+                let expr = self.parse_expression()?;
+                return Ok(Statement::Assign(name, expr));
+            }
+        }
+        let expr = self.parse_expression()?;
+        Ok(Statement::Expr(expr))
     }
 
     /// Additive level: `+` and `-`, folded left-associatively.
@@ -403,6 +460,23 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         }
         _ => Err(CalcError::UnknownName(name.to_string())),
     }
+}
+
+/// Execute a script's statements in order against a mutable [`Env`], returning
+/// the last statement's value (the script seam).
+pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
+    let mut result = None;
+    for stmt in script {
+        result = Some(match stmt {
+            Statement::Expr(expr) => eval(expr, env)?,
+            Statement::Assign(name, expr) => {
+                let value = eval(expr, env)?;
+                env.set(name.clone(), value.clone());
+                value
+            }
+        });
+    }
+    result.ok_or_else(|| CalcError::Parse("empty script".into()))
 }
 
 /// Apply a float binary op to two [`Value`]s. Only the default `Float` path is

@@ -1,4 +1,4 @@
-use calc_core::{eval, parse, Env, Value};
+use calc_core::{eval, parse, parse_script, run, Env, Value};
 
 /// Evaluate source text with an empty environment — the common case in these
 /// tests (the CLI's future `evaluate(text)` convenience does the same).
@@ -95,4 +95,13 @@ fn builtin_function_with_two_arguments() {
 fn unary_minus_binds_looser_than_power() {
     assert_eq!(eval_str("-2 ^ 2"), Value::float(-4.0));
     assert_eq!(eval_str("2 ^ -2"), Value::float(0.25));
+}
+
+#[test]
+fn assignment_then_use_in_next_statement() {
+    let mut env = Env::default();
+    let script = parse_script("x = 5; x + 1").expect("parse_script");
+    let result = run(&script, &mut env).expect("run");
+    assert_eq!(result, Value::float(6.0));
+    assert_eq!(env.get("x"), Some(&Value::float(5.0)));
 }
