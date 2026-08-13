@@ -4,6 +4,8 @@
 //! (CLI/TUI). Stays pure: no I/O, no threads, no platform calls. Numerics per
 //! ADR-0005.
 
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use num_complex::Complex;
 use num_rational::BigRational;
@@ -29,6 +31,24 @@ impl Value {
     }
 }
 
+/// Variable bindings available while evaluating an [`Expression`].
+#[derive(Debug, Clone, Default)]
+pub struct Env {
+    bindings: HashMap<String, Value>,
+}
+
+impl Env {
+    /// Look up a name.
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        self.bindings.get(name)
+    }
+
+    /// Bind a name to a value.
+    pub fn set(&mut self, name: impl Into<String>, value: Value) {
+        self.bindings.insert(name.into(), value);
+    }
+}
+
 /// A parsed piece of mathematics that can be evaluated to a [`Value`] — a domain
 /// noun (see `CONTEXT.md`). Public so it can be produced by multiple input
 /// forms (plain text, LaTeX) and consumed by both [`eval`] and the graphing
@@ -36,6 +56,7 @@ impl Value {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Literal(f64),
+    Var(String),
     Neg(Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
@@ -51,6 +72,8 @@ pub enum CalcError {
     Parse(String),
     #[error("type error: {0}")]
     Type(String),
+    #[error("unknown name: {0}")]
+    UnknownName(String),
     #[error("division by zero")]
     ZeroDivision,
 }
@@ -72,6 +95,7 @@ pub fn parse(text: &str) -> Result<Expression, CalcError> {
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     Number(f64),
+    Ident(String),
     Plus,
     Minus,
     Star,
@@ -131,6 +155,18 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                     .parse()
                     .map_err(|_| CalcError::Parse(format!("invalid number: {num:?}")))?;
                 tokens.push(Token::Number(n));
+            }
+            c if c.is_alphabetic() => {
+                let mut ident = String::new();
+                while let Some(&c2) = chars.peek() {
+                    if c2.is_alphabetic() || c2 == '_' {
+                        ident.push(c2);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                tokens.push(Token::Ident(ident));
             }
             other => return Err(CalcError::Parse(format!("unexpected character: {other:?}"))),
         }
@@ -213,6 +249,7 @@ impl Parser {
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
+            Some(Token::Ident(name)) => Ok(Expression::Var(name)),
             Some(Token::Minus) => {
                 let inner = self.parse_factor()?;
                 Ok(Expression::Neg(Box::new(inner)))
@@ -233,20 +270,25 @@ impl Parser {
     }
 }
 
-/// Evaluate an [`Expression`] to a [`Value`] (the evaluation seam).
-pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
+/// Evaluate an [`Expression`] to a [`Value`] against an [`Env`] (the evaluation
+/// seam).
+pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
     match expr {
         Expression::Literal(n) => Ok(Value::float(*n)),
-        Expression::Neg(inner) => match eval(inner)? {
+        Expression::Var(name) => env
+            .get(name)
+            .cloned()
+            .ok_or_else(|| CalcError::UnknownName(name.clone())),
+        Expression::Neg(inner) => match eval(inner, env)? {
             Value::Float(n) => Ok(Value::Float(-n)),
             other => Err(CalcError::Type(format!("cannot negate {other:?}"))),
         },
-        Expression::Add(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a + b),
-        Expression::Sub(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a - b),
-        Expression::Mul(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a * b),
+        Expression::Add(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a + b),
+        Expression::Sub(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a - b),
+        Expression::Mul(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a * b),
         Expression::Div(lhs, rhs) => {
-            let l = eval(lhs)?;
-            let r = eval(rhs)?;
+            let l = eval(lhs, env)?;
+            let r = eval(rhs, env)?;
             if let Value::Float(b) = r {
                 if b == 0.0 {
                     return Err(CalcError::ZeroDivision);
@@ -254,7 +296,7 @@ pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
             }
             binop(l, r, |a, b| a / b)
         }
-        Expression::Pow(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a.powf(b)),
+        Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a.powf(b)),
     }
 }
 
