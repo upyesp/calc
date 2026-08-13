@@ -707,6 +707,22 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
                 ))),
             }
         }
+        "dec" => {
+            let [x] = args.as_slice() else {
+                return Err(CalcError::Type(format!(
+                    "dec expects 1 argument, got {}",
+                    args.len()
+                )));
+            };
+            match x {
+                Value::Float(n) => float_to_decimal(*n)
+                    .map(Value::Decimal)
+                    .ok_or_else(|| CalcError::Type(format!("cannot convert {n} to a decimal"))),
+                other => Err(CalcError::Type(format!(
+                    "dec expects a number, got {other:?}"
+                ))),
+            }
+        }
         _ => Err(CalcError::UnknownName(name.to_string())),
     }
 }
@@ -810,6 +826,19 @@ fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
                 .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a rational")))?;
             Ok(Value::Rational(rational_binop(op, a.clone(), b)?))
         }
+        (Value::Decimal(a), Value::Decimal(b)) => {
+            Ok(Value::Decimal(decimal_binop(op, a.clone(), b.clone())?))
+        }
+        (Value::Float(a), Value::Decimal(b)) => {
+            let a = float_to_decimal(*a)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to a decimal")))?;
+            Ok(Value::Decimal(decimal_binop(op, a, b.clone())?))
+        }
+        (Value::Decimal(a), Value::Float(b)) => {
+            let b = float_to_decimal(*b)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a decimal")))?;
+            Ok(Value::Decimal(decimal_binop(op, a.clone(), b)?))
+        }
         _ => Err(CalcError::Type(format!("cannot combine {lhs:?} and {rhs:?}"))),
     }
 }
@@ -846,4 +875,35 @@ fn rational_binop(op: BinOp, a: BigRational, b: BigRational) -> Result<BigRation
             "rational exponentiation is not supported yet".into(),
         )),
     }
+}
+
+fn decimal_binop(op: BinOp, a: Decimal, b: Decimal) -> Result<Decimal, CalcError> {
+    match op {
+        BinOp::Add => a
+            .checked_add(b)
+            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+        BinOp::Sub => a
+            .checked_sub(b)
+            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+        BinOp::Mul => a
+            .checked_mul(b)
+            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+        BinOp::Div => {
+            if b.is_zero() {
+                Err(CalcError::ZeroDivision)
+            } else {
+                a.checked_div(b)
+                    .ok_or_else(|| CalcError::Type("decimal division error".into()))
+            }
+        }
+        BinOp::Pow => Err(CalcError::Type(
+            "decimal exponentiation is not supported yet".into(),
+        )),
+    }
+}
+
+/// Convert a float to its clean decimal representation (the shortest
+/// round-trip string form), rejecting non-finite values.
+fn float_to_decimal(n: f64) -> Option<Decimal> {
+    n.to_string().parse().ok()
 }

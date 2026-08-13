@@ -1,5 +1,7 @@
 use calc_core::{eval, evaluate, parse, parse_script, run, Env, Value};
 use num_rational::BigRational;
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 /// Evaluate source text with an empty environment — the common case in these
 /// tests (the CLI's future `evaluate(text)` convenience does the same).
@@ -168,4 +170,20 @@ fn while_loop_repeats_until_condition_fails() {
     let script = parse_script("x = 0; while x < 3 do x = x + 1; x").expect("parse_script");
     let result = run(&script, &mut env).expect("run");
     assert_eq!(result, Value::float(3.0));
+}
+
+#[test]
+fn decimal_arithmetic_is_exact() {
+    assert_eq!(
+        eval_str("dec(0.1) + dec(0.2)"),
+        Value::Decimal(Decimal::from_str("0.3").unwrap())
+    );
+}
+
+#[test]
+fn float_promotes_to_decimal_when_mixed() {
+    assert_eq!(
+        eval_str("dec(0.5) * 2"),
+        Value::Decimal(Decimal::from_str("1.0").unwrap())
+    );
 }

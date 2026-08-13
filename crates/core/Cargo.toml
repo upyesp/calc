@@ -19,3 +19,4 @@ thiserror = { workspace = true }
 proptest = "1"
 num-rational = { workspace = true }
 num-bigint = { workspace = true }
+rust_decimal = { workspace = true }
