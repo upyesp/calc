@@ -85,3 +85,8 @@ fn builtin_constants_pi_and_e() {
     assert_eq!(eval_str("pi"), Value::float(3.141592653589793));
     assert_eq!(eval_str("e"), Value::float(2.718281828459045));
 }
+
+#[test]
+fn builtin_function_with_two_arguments() {
+    assert_eq!(eval_str("min(2, 3)"), Value::float(2.0));
+}

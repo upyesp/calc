@@ -379,6 +379,20 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
                 ))),
             }
         }
+        "min" => {
+            let [a, b] = args.as_slice() else {
+                return Err(CalcError::Type(format!(
+                    "min expects 2 arguments, got {}",
+                    args.len()
+                )));
+            };
+            match (a, b) {
+                (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.min(*y))),
+                _ => Err(CalcError::Type(format!(
+                    "min expects numbers, got {a:?} and {b:?}"
+                ))),
+            }
+        }
         _ => Err(CalcError::UnknownName(name.to_string())),
     }
 }
