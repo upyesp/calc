@@ -47,6 +47,22 @@ links never need a version number.
 2. Add the key to all six locale dictionaries in `site/app.js`.
 3. Keep the `docs/accessibility.md` checklist in mind (labels, language).
 
+## User guide
+
+`site/guide/<lang>.md` holds the user guide in each of the six languages
+(the master is `en.md`; translate it and keep the examples identical). The
+`pages` workflow converts them to HTML with
+`scripts/build-guide.mjs` (marked + a small template; heading ids, table of
+contents, RTL, themes, and the WCAG patterns come from the shared
+`styles.css`/`guide.css`). Output goes to `site/guide/<lang>/index.html`,
+which is gitignored and generated in CI — run `npm run build:guide`
+locally to preview. The landing page links to `guide/<lang>/` and the link
+follows the visitor's active language.
+
+Adding a guide language: add `<lang>.md`, add chrome strings in
+`build-guide.mjs`, add the landing page strings in `site/app.js`, and add
+the option to the `lang-select` in `site/index.html`.
+
 ## Releases
 
 Push a version tag and the `release` workflow builds and attaches everything:

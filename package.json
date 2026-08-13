@@ -1,0 +1,12 @@
+{
+  "name": "calc-site",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling for the calc.github.io landing page and user guides",
+  "scripts": {
+    "build:guide": "node scripts/build-guide.mjs"
+  },
+  "dependencies": {
+    "marked": "^12.0.2"
+  }
+}

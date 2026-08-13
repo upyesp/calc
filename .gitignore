@@ -15,3 +15,5 @@
 .vscode/
 *.swp
 /crates/web/dist
+site/guide/*/index.html
+node_modules/

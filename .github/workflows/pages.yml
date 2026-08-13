@@ -41,6 +41,12 @@ jobs:
         run: trunk build --release
         working-directory: crates/web
 
+      - name: Install site tooling
+        run: npm ci
+
+      - name: Build the user guide
+        run: npm run build:guide
+
       - name: Assemble site
         run: |
           mkdir -p _site/pwa

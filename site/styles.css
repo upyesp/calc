@@ -235,6 +235,14 @@ select {
   margin-top: 0.75rem;
 }
 
+.hero-cta {
+  margin-top: 1.5rem;
+}
+
+.hero-cta .btn {
+  display: inline-flex;
+}
+
 /* --- build cards --------------------------------------------------------- */
 
 .builds h2 {

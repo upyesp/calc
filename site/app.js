@@ -16,6 +16,8 @@ const MESSAGES = {
   en: {
     "skip-link": "Skip to content",
     "nav-label": "Main",
+    guide: "User guide",
+    "guide-cta": "Read the user guide",
     "source-link": "Source code",
     "theme-light": "Use light theme",
     "theme-dark": "Use dark theme",
@@ -54,6 +56,8 @@ const MESSAGES = {
   "zh-CN": {
     "skip-link": "跳到主要内容",
     "nav-label": "主导航",
+    guide: "用户指南",
+    "guide-cta": "阅读用户指南",
     "source-link": "源代码",
     "theme-light": "使用浅色主题",
     "theme-dark": "使用深色主题",
@@ -92,6 +96,8 @@ const MESSAGES = {
   hi: {
     "skip-link": "मुख्य सामग्री पर जाएँ",
     "nav-label": "मुख्य नेविगेशन",
+    guide: "उपयोगकर्ता गाइड",
+    "guide-cta": "उपयोगकर्ता गाइड पढ़ें",
     "source-link": "स्रोत कोड",
     "theme-light": "हल्की थीम का उपयोग करें",
     "theme-dark": "गहरी थीम का उपयोग करें",
@@ -130,6 +136,8 @@ const MESSAGES = {
   es: {
     "skip-link": "Saltar al contenido",
     "nav-label": "Principal",
+    guide: "Guía de usuario",
+    "guide-cta": "Leer la guía de usuario",
     "source-link": "Código fuente",
     "theme-light": "Usar tema claro",
     "theme-dark": "Usar tema oscuro",
@@ -168,6 +176,8 @@ const MESSAGES = {
   fr: {
     "skip-link": "Aller au contenu",
     "nav-label": "Navigation principale",
+    guide: "Guide de l'utilisateur",
+    "guide-cta": "Lire le guide de l'utilisateur",
     "source-link": "Code source",
     "theme-light": "Utiliser le thème clair",
     "theme-dark": "Utiliser le thème sombre",
@@ -206,6 +216,8 @@ const MESSAGES = {
   ar: {
     "skip-link": "تخطَّ إلى المحتوى",
     "nav-label": "التنقل الرئيسي",
+    guide: "دليل المستخدم",
+    "guide-cta": "اقرأ دليل المستخدم",
     "source-link": "الكود المصدري",
     "theme-light": "استخدام المظهر الفاتح",
     "theme-dark": "استخدام المظهر الداكن",
@@ -275,6 +287,10 @@ function applyLang(lang) {
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
     const key = el.getAttribute("data-i18n-aria");
     if (dict[key]) el.setAttribute("aria-label", dict[key]);
+  });
+  // links whose target depends on the active locale (the user guide)
+  document.querySelectorAll("[data-i18n-href]").forEach((el) => {
+    el.href = `guide/${lang}/`;
   });
   // WCAG 3.1.1: lang (and dir for Arabic) must track the active locale.
   document.documentElement.lang = lang;
