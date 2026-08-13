@@ -11,7 +11,7 @@ use calc_core::Session;
 use calc_i18n::Localizer;
 use calc_store::persist::{default_store_dir, load_language, load_session, save_history};
 use calc_store::{DocStore, FsStore};
-use calc_tui::App;
+use calc_tui::{render_ascii, App};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Color, Modifier, Style};
@@ -47,9 +47,14 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
                     KeyCode::Char(c) => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Enter => {
-                        app.submit();
-                        // best-effort persistence of history
-                        let _ = save_history(&store, app.history());
+                        let line = app.input().trim().to_string();
+                        if let Some(source) = line.strip_prefix("graph ") {
+                            let _ = app.submit_graph(source);
+                        } else {
+                            app.submit();
+                            // best-effort persistence of history
+                            let _ = save_history(&store, app.history());
+                        }
                     }
                     KeyCode::Esc => app.clear_input(),
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -65,9 +70,10 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
 
 fn draw(frame: &mut Frame, app: &App, localizer: &Localizer) {
     let layout = Layout::vertical([
-        Constraint::Length(3), // input
-        Constraint::Length(1), // result
-        Constraint::Min(0),    // history
+        Constraint::Length(3),  // input
+        Constraint::Length(1),  // result
+        Constraint::Min(0),     // history
+        Constraint::Length(20), // graph
     ])
     .split(frame.area());
 
@@ -87,4 +93,12 @@ fn draw(frame: &mut Frame, app: &App, localizer: &Localizer) {
     let history = Paragraph::new(history_lines)
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-history")));
     frame.render_widget(history, layout[2]);
+
+    let graph_text = app
+        .graph()
+        .map(|g| render_ascii(g, 60, 18))
+        .unwrap_or_default();
+    let graph = Paragraph::new(graph_text)
+        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-graph")));
+    frame.render_widget(graph, layout[3]);
 }
