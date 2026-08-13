@@ -50,6 +50,8 @@ pub enum CalcError {
     Parse(String),
     #[error("type error: {0}")]
     Type(String),
+    #[error("division by zero")]
+    ZeroDivision,
 }
 
 /// Parse plain text into an [`Expression`] (the plain-text input seam).
@@ -224,7 +226,16 @@ pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
         Expression::Add(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a + b),
         Expression::Sub(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a - b),
         Expression::Mul(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a * b),
-        Expression::Div(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a / b),
+        Expression::Div(lhs, rhs) => {
+            let l = eval(lhs)?;
+            let r = eval(rhs)?;
+            if let Value::Float(b) = r {
+                if b == 0.0 {
+                    return Err(CalcError::ZeroDivision);
+                }
+            }
+            binop(l, r, |a, b| a / b)
+        }
     }
 }
 

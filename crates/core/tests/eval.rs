@@ -48,3 +48,9 @@ fn unary_minus_negates_a_number() {
     let result = eval(&parse("-2 + 5").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(3.0));
 }
+
+#[test]
+fn division_by_zero_is_an_error() {
+    let result = eval(&parse("1 / 0").expect("parse"));
+    assert!(result.is_err());
+}
