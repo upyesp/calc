@@ -39,6 +39,7 @@ pub enum Expression {
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),
+    Div(Box<Expression>, Box<Expression>),
 }
 
 /// Errors crossing the calc-core seams.
@@ -70,6 +71,7 @@ enum Token {
     Plus,
     Minus,
     Star,
+    Slash,
 }
 
 fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
@@ -90,6 +92,10 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             }
             '*' => {
                 tokens.push(Token::Star);
+                chars.next();
+            }
+            '/' => {
+                tokens.push(Token::Slash);
                 chars.next();
             }
             c if c.is_ascii_digit() || c == '.' => {
@@ -152,7 +158,7 @@ impl Parser {
         Ok(left)
     }
 
-    /// Multiplicative level: `*`, folded left-associatively.
+    /// Multiplicative level: `*` and `/`, folded left-associatively.
     fn parse_term(&mut self) -> Result<Expression, CalcError> {
         let mut left = self.parse_factor()?;
         loop {
@@ -161,6 +167,11 @@ impl Parser {
                     self.next();
                     let right = self.parse_factor()?;
                     left = Expression::Mul(Box::new(left), Box::new(right));
+                }
+                Some(Token::Slash) => {
+                    self.next();
+                    let right = self.parse_factor()?;
+                    left = Expression::Div(Box::new(left), Box::new(right));
                 }
                 _ => break,
             }
@@ -184,6 +195,7 @@ pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
         Expression::Add(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a + b),
         Expression::Sub(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a - b),
         Expression::Mul(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a * b),
+        Expression::Div(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a / b),
     }
 }
 

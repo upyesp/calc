@@ -30,3 +30,9 @@ fn subtraction_is_left_associative() {
     let result = eval(&parse("5 - 2 - 1").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(2.0));
 }
+
+#[test]
+fn division_is_left_associative() {
+    let result = eval(&parse("8 / 4 / 2").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(1.0));
+}
