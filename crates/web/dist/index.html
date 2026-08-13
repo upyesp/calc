@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calc</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #1c1c1e;
+      --panel: #2c2c2e;
+      --text: #fff;
+      --accent: #ff9f0a;
+      --muted: #8e8e93;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+    .calc {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 600; }
+    form { display: flex; gap: 0.5rem; }
+    input {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      border: 1px solid var(--panel);
+      background: var(--panel);
+      color: var(--text);
+    }
+    button {
+      padding: 0.75rem 1.25rem;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+      min-width: 48px;
+      min-height: 48px;
+    }
+    .result {
+      font-size: 2rem;
+      font-weight: 300;
+      min-height: 3rem;
+      padding: 0.5rem 0;
+      overflow-wrap: anywhere;
+    }
+    .history {
+      list-style: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  </style>
+<link rel="modulepreload" href="/calc-web-82adc833ecdaf230.js" crossorigin="anonymous" integrity="sha384-uL358oswlnnQEmg0s+d9RiJ/nQi5N7PJU4GLDmElNVuH52uchemEJi1hNzZzzD1h"><link rel="preload" href="/calc-web-82adc833ecdaf230_bg.wasm" crossorigin="anonymous" integrity="sha384-CAVKETttXM7oKCcuNZlWH0q8Kkn3eDTlGjTgyik1hDsMCILhlcQw6oTV4rq+o+LB" as="fetch" type="application/wasm"></head>
+<body>
+  
+<script type="module">
+import init, * as bindings from '/calc-web-82adc833ecdaf230.js';
+const wasm = await init({ module_or_path: '/calc-web-82adc833ecdaf230_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  </script>
+</body>
+</html>
