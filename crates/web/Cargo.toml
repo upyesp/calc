@@ -1,0 +1,16 @@
+[package]
+name = "calc-web"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Yew frontend compiled to wasm32-unknown-unknown — shared by the PWA and the Tauri shell."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+calc-core = { path = "../core" }
+calc-store = { path = "../store" }
+calc-i18n = { path = "../i18n" }
+yew = "0.21"
+wasm-bindgen = "0.2"

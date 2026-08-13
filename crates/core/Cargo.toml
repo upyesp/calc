@@ -1,0 +1,19 @@
+[package]
+name = "calc-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "The single source of truth for calc's logic — pure, compiles to wasm and native."
+
+[dependencies]
+num-traits = { workspace = true }
+num-bigint = { workspace = true }
+num-rational = { workspace = true }
+num-complex = { workspace = true }
+rust_decimal = { workspace = true }
+bigdecimal = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"

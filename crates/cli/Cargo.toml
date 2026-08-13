@@ -1,0 +1,16 @@
+[package]
+name = "calc-cli"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Native command-line frontend — one-shot evaluation + REPL."
+
+[[bin]]
+name = "calc"
+path = "src/main.rs"
+
+[dependencies]
+calc-core = { path = "../core" }
+calc-store = { path = "../store" }
+calc-i18n = { path = "../i18n" }
+clap = { version = "4", features = ["derive"] }

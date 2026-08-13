@@ -1,0 +1,16 @@
+# Rust build artifacts
+/target
+**/target
+
+# Trunk / web build output
+/dist
+/web-dist
+
+# Tauri generated
+**/gen/schemas
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
