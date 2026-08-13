@@ -57,6 +57,7 @@ impl Env {
 pub enum Expression {
     Literal(f64),
     Var(String),
+    Call(String, Vec<Expression>),
     Neg(Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
@@ -74,6 +75,8 @@ pub enum CalcError {
     Type(String),
     #[error("unknown name: {0}")]
     UnknownName(String),
+    #[error("domain error: {0}")]
+    Domain(String),
     #[error("division by zero")]
     ZeroDivision,
 }
@@ -101,6 +104,7 @@ enum Token {
     Star,
     Slash,
     Caret,
+    Comma,
     LParen,
     RParen,
 }
@@ -131,6 +135,10 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             }
             '^' => {
                 tokens.push(Token::Caret);
+                chars.next();
+            }
+            ',' => {
+                tokens.push(Token::Comma);
                 chars.next();
             }
             '(' => {
@@ -249,7 +257,37 @@ impl Parser {
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
-            Some(Token::Ident(name)) => Ok(Expression::Var(name)),
+            Some(Token::Ident(name)) => {
+                if matches!(self.peek(), Some(Token::LParen)) {
+                    self.next(); // consume '(' — call syntax
+                    let mut args = Vec::new();
+                    if matches!(self.peek(), Some(Token::RParen)) {
+                        self.next(); // zero-argument call
+                    } else {
+                        loop {
+                            let arg = self.parse_expression()?;
+                            args.push(arg);
+                            match self.next() {
+                                Some(Token::Comma) => continue,
+                                Some(Token::RParen) => break,
+                                Some(other) => {
+                                    return Err(CalcError::Parse(format!(
+                                        "expected ',' or ')', found {other:?}"
+                                    )));
+                                }
+                                None => {
+                                    return Err(CalcError::Parse(
+                                        "unexpected end of input".into(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    Ok(Expression::Call(name, args))
+                } else {
+                    Ok(Expression::Var(name))
+                }
+            }
             Some(Token::Minus) => {
                 let inner = self.parse_factor()?;
                 Ok(Expression::Neg(Box::new(inner)))
@@ -297,6 +335,41 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             binop(l, r, |a, b| a / b)
         }
         Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a.powf(b)),
+        Expression::Call(name, args) => {
+            let mut values = Vec::with_capacity(args.len());
+            for arg in args {
+                values.push(eval(arg, env)?);
+            }
+            call_builtin(name, values)
+        }
+    }
+}
+
+/// Dispatch a builtin function call. User-defined functions (L2) will share
+/// this seam later.
+fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
+    match name {
+        "sqrt" => {
+            let [x] = args.as_slice() else {
+                return Err(CalcError::Type(format!(
+                    "sqrt expects 1 argument, got {}",
+                    args.len()
+                )));
+            };
+            match x {
+                Value::Float(n) => {
+                    if *n < 0.0 {
+                        Err(CalcError::Domain(format!("sqrt of negative number {n}")))
+                    } else {
+                        Ok(Value::Float(n.sqrt()))
+                    }
+                }
+                other => Err(CalcError::Type(format!(
+                    "sqrt expects a number, got {other:?}"
+                ))),
+            }
+        }
+        _ => Err(CalcError::UnknownName(name.to_string())),
     }
 }
 

@@ -69,3 +69,8 @@ fn variable_resolves_from_environment() {
 fn unknown_variable_is_an_error() {
     assert!(eval(&parse("q").expect("parse"), &Env::default()).is_err());
 }
+
+#[test]
+fn builtin_function_call() {
+    assert_eq!(eval_str("sqrt(16)"), Value::float(4.0));
+}
