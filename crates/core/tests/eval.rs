@@ -129,3 +129,13 @@ fn if_expression_picks_branch_by_condition() {
     assert_eq!(eval_str("if 2 > 1 then 10 else 20"), Value::float(10.0));
     assert_eq!(eval_str("if 2 < 1 then 10 else 20"), Value::float(20.0));
 }
+
+#[test]
+fn user_function_recurses() {
+    let mut env = Env::default();
+    let script =
+        parse_script("def fact(n) = if n <= 1 then 1 else n * fact(n - 1); fact(5)")
+            .expect("parse_script");
+    let result = run(&script, &mut env).expect("run");
+    assert_eq!(result, Value::float(120.0));
+}
