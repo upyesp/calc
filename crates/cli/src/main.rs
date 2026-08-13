@@ -12,6 +12,7 @@ use calc_core::Session;
 use calc_i18n::Localizer;
 use calc_store::persist::{
     default_store_dir, load_language, load_session, save_function, save_history, save_language,
+    save_script,
 };
 use calc_store::{DocStore, FsStore};
 use clap::Parser;
@@ -94,6 +95,26 @@ fn repl() -> Result<(), calc_core::CalcError> {
                         &[("code", code), ("supported", &calc_i18n::SUPPORTED_LOCALES.join(", "))]
                     ))
                 );
+            }
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("save script ") {
+            let name = rest.trim();
+            match session.last_line() {
+                Some(source)
+                    if !source.starts_with("save")
+                        && !source.starts_with("language")
+                        && !source.starts_with("quit") =>
+                {
+                    match save_script(&store, name, source) {
+                        Ok(()) => println!(
+                            "{}",
+                            strip(localizer.lookup_args("saved-script", &[("name", name)]))
+                        ),
+                        Err(e) => println!("error: {e}"),
+                    }
+                }
+                _ => println!("{}", strip(localizer.lookup("nothing-to-save"))),
             }
             continue;
         }

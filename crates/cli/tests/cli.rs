@@ -100,3 +100,28 @@ fn unsupported_language_is_rejected() {
     let out = repl_output(dir.path().to_str().unwrap(), "language xx\nquit\n");
     assert!(out.contains("unsupported language xx"), "stdout was: {out}");
 }
+
+#[test]
+fn save_script_persists_and_reloads_the_last_line() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().to_str().unwrap();
+
+    // session 1: run a script, save it
+    let out1 = repl_output(path, "x = 10; y = x + 5\nsave script setup\nquit\n");
+    assert!(out1.contains("saved script setup"), "stdout was: {out1}");
+    assert!(dir.path().join("script/setup.json").exists());
+
+    // session 2: the saved script ran at startup (y is defined)
+    let out2 = repl_output(path, "y\nquit\n");
+    assert!(out2.contains("= 15"), "stdout was: {out2}");
+}
+
+#[test]
+fn save_script_without_a_preceding_line_errors() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = repl_output(dir.path().to_str().unwrap(), "save script empty\nquit\n");
+    assert!(
+        out.contains("nothing to save"),
+        "stdout was: {out}"
+    );
+}

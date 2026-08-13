@@ -290,3 +290,11 @@ fn session_with_history_seeds_and_submit_appends() {
     assert_eq!(session.submit("1 + 1"), "= 2");
     assert_eq!(session.history().len(), 2);
 }
+
+#[test]
+fn session_tracks_last_submitted_line() {
+    let mut session = Session::new();
+    assert_eq!(session.last_line(), None);
+    session.submit("x = 1; y = x + 1");
+    assert_eq!(session.last_line(), Some("x = 1; y = x + 1"));
+}

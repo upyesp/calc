@@ -1061,6 +1061,7 @@ pub struct Session {
     env: Env,
     history: Vec<String>,
     defs: HashMap<String, String>,
+    last_line: Option<String>,
 }
 
 impl Session {
@@ -1098,13 +1099,14 @@ impl Session {
         } else {
             self.history.push(format!("{line}  {output}"));
         }
+        self.last_line = Some(line.clone());
         if let Some(name) = def_name(&line) {
             self.defs.insert(name, line);
         }
         output
     }
 
-    /// Run a line without recording it in history — used when restoring saved
+    /// The last interactive line submitted (for `save script`).
     /// data (functions/scripts) into the environment.
     pub fn submit_quiet(&mut self, line: &str) -> String {
         let line = line.trim().to_string();
@@ -1137,6 +1139,11 @@ impl Session {
     /// The source text of every `def` line submitted this session, by name.
     pub fn def_sources(&self) -> &HashMap<String, String> {
         &self.defs
+    }
+
+    /// The last interactive line submitted (used by `save script`).
+    pub fn last_line(&self) -> Option<&str> {
+        self.last_line.as_deref()
     }
 }
 

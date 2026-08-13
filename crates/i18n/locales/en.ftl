@@ -1,8 +1,11 @@
 app-name = Calc
 prompt = calc>
 saved = saved { $name }
+saved-script = saved script { $name }
+nothing-to-save = nothing to save (no preceding script line)
 no-definition = no definition for { $name } in this session
 language-set = language set to { $code }
 unsupported-language = unsupported language { $code } (supported: { $supported })
 tui-expression = Expression
 tui-history = History
+tui-graph = Graph
