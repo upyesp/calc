@@ -1104,6 +1104,27 @@ impl Session {
         output
     }
 
+    /// Run a line without recording it in history — used when restoring saved
+    /// data (functions/scripts) into the environment.
+    pub fn submit_quiet(&mut self, line: &str) -> String {
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            return String::new();
+        }
+        let output = match parse_script(&line) {
+            Ok(script) => match run(&script, &mut self.env) {
+                Ok(Some(value)) => format!("= {value}"),
+                Ok(None) => String::new(),
+                Err(e) => format!("error: {e}"),
+            },
+            Err(e) => format!("error: {e}"),
+        };
+        if let Some(name) = def_name(&line) {
+            self.defs.insert(name, line);
+        }
+        output
+    }
+
     pub fn history(&self) -> &[String] {
         &self.history
     }

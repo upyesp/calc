@@ -1,17 +1,34 @@
-//! calc-store — the Storage capability and persisted schema.
+//! calc-store — the Storage capability and persisted schema (ADR-0002,
+//! ADR-0003). One logical schema as JSON documents; physical backends differ
+//! per target — native filesystem (CLI/TUI/desktop), browser storage
+//! (web/PWA), and the File System Access bridge for the desktop PWA.
 //!
-//! One logical schema; physical backends differ per target — native filesystem
-//! (CLI/TUI/desktop), OPFS (web/PWA), and the File System Access API bridge for
-//! the desktop PWA (ADR-0002, ADR-0003). Writes are atomic with last-write-wins
-//! across co-running frontends.
+//! Writes are atomic and last-write-wins across co-running frontends.
 
-use std::error::Error;
+mod docs;
+mod memory;
+#[cfg(feature = "fs")]
+mod fs;
+pub mod persist;
 
-/// A Store operation result. Real backends are async; this is the seam.
-pub type StoreResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
+pub use docs::{Doc, DocStore, FunctionDoc, ScriptDoc, SettingDoc};
+pub use memory::MemoryStore;
+#[cfg(feature = "fs")]
+pub use fs::FsStore;
 
-/// Key-value Storage capability over raw bytes. Concrete entity shapes
-/// (Function, Script, Setting, History) layer on top as the schema firms up.
+/// A Store operation result.
+pub type StoreResult<T> = Result<T, StoreError>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum StoreError {
+    #[error("storage error: {0}")]
+    Storage(String),
+    #[error("serialization error: {0}")]
+    Serialize(String),
+}
+
+/// The Storage capability: raw key-value bytes. Backends: native filesystem
+/// (CLI/TUI/desktop), OPFS/IndexedDB (web/PWA), FSA bridge (desktop PWA).
 pub trait Storage {
     fn get(&self, key: &str) -> StoreResult<Option<Vec<u8>>>;
     fn put(&self, key: &str, value: &[u8]) -> StoreResult<()>;
