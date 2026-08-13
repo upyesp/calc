@@ -14,6 +14,13 @@ pub struct App {
 }
 
 impl App {
+    pub fn with_session(session: Session) -> Self {
+        Self {
+            input: String::new(),
+            result: String::new(),
+            session,
+        }
+    }
     pub fn set_input(&mut self, input: &str) {
         self.input = input.to_string();
     }

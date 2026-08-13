@@ -2,10 +2,14 @@
 //!
 //! A thin ratatui shell over the [`App`] seam. Type an expression/script,
 //! Enter evaluates against a persistent environment, Esc clears, Ctrl+C or q
-//! (with empty input) quits.
+//! (with empty input) quits. History and saved functions persist through the
+//! shared store (`CALC_STORE_DIR` override, default `~/.calc`).
 
 use std::io;
 
+use calc_core::Session;
+use calc_store::persist::{default_store_dir, load_session, save_history};
+use calc_store::{DocStore, FsStore};
 use calc_tui::App;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout};
@@ -22,7 +26,15 @@ fn main() -> io::Result<()> {
 }
 
 fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
-    let mut app = App::default();
+    let store = DocStore::new(FsStore::new(default_store_dir()));
+    let session = match load_session(&store) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("warning: could not load saved data ({e}); starting fresh");
+            Session::new()
+        }
+    };
+    let mut app = App::with_session(session);
     loop {
         terminal.draw(|frame| draw(frame, &app))?;
         if let Event::Key(key) = event::read()? {
@@ -30,7 +42,11 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
                 match key.code {
                     KeyCode::Char(c) => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
-                    KeyCode::Enter => app.submit(),
+                    KeyCode::Enter => {
+                        app.submit();
+                        // best-effort persistence of history
+                        let _ = save_history(&store, app.history());
+                    }
                     KeyCode::Esc => app.clear_input(),
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         return Ok(());
