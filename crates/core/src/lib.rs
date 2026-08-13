@@ -86,6 +86,7 @@ pub enum Expression {
     Div(Box<Expression>, Box<Expression>),
     Pow(Box<Expression>, Box<Expression>),
     Compare(CmpOp, Box<Expression>, Box<Expression>),
+    If(Box<Expression>, Box<Expression>, Box<Expression>),
 }
 
 /// A comparison operator.
@@ -379,9 +380,31 @@ impl Parser {
         }
     }
 
-    /// Top level: comparison; `if` joins here later.
+    /// Top level: `if cond then a else b` or a comparison.
     fn parse_expression(&mut self) -> Result<Expression, CalcError> {
-        self.parse_comparison()
+        if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "if") {
+            self.next(); // consume 'if'
+            let cond = self.parse_expression()?;
+            self.expect_keyword("then")?;
+            let then_expr = self.parse_expression()?;
+            self.expect_keyword("else")?;
+            let else_expr = self.parse_expression()?;
+            Ok(Expression::If(
+                Box::new(cond),
+                Box::new(then_expr),
+                Box::new(else_expr),
+            ))
+        } else {
+            self.parse_comparison()
+        }
+    }
+
+    fn expect_keyword(&mut self, kw: &str) -> Result<(), CalcError> {
+        match self.next() {
+            Some(Token::Ident(found)) if found == kw => Ok(()),
+            Some(other) => Err(CalcError::Parse(format!("expected '{kw}', found {other:?}"))),
+            None => Err(CalcError::Parse("unexpected end of input".into())),
+        }
     }
 
     /// Comparison level: `>` `<` `>=` `<=` `==` `!=`, non-chaining, with
@@ -568,6 +591,13 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
                 _ => Err(CalcError::Type(format!("cannot compare {l:?} and {r:?}"))),
             }
         }
+        Expression::If(cond, then_expr, else_expr) => match eval(cond, env)? {
+            Value::Bool(true) => eval(then_expr, env),
+            Value::Bool(false) => eval(else_expr, env),
+            other => Err(CalcError::Type(format!(
+                "if condition must be a boolean, got {other:?}"
+            ))),
+        },
         Expression::Call(name, args) => {
             let mut values = Vec::with_capacity(args.len());
             for arg in args {

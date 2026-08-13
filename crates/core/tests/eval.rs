@@ -123,3 +123,9 @@ fn comparison_operators_produce_booleans() {
     assert_eq!(eval_str("2 == 2"), Value::Bool(true));
     assert_eq!(eval_str("2 != 2"), Value::Bool(false));
 }
+
+#[test]
+fn if_expression_picks_branch_by_condition() {
+    assert_eq!(eval_str("if 2 > 1 then 10 else 20"), Value::float(10.0));
+    assert_eq!(eval_str("if 2 < 1 then 10 else 20"), Value::float(20.0));
+}
