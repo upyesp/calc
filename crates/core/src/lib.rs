@@ -10,7 +10,7 @@ use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use num_complex::Complex;
 use num_rational::BigRational;
-use num_traits::{FromPrimitive, Zero};
+use num_traits::Zero;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
