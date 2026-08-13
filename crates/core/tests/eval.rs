@@ -12,3 +12,9 @@ fn addition_of_two_numbers() {
     let result = eval(&parse("2 + 3").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(5.0));
 }
+
+#[test]
+fn multiplication_of_two_numbers() {
+    let result = eval(&parse("2 * 3").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(6.0));
+}
