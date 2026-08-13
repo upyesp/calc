@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!--
+  Calc landing page (served at /calc/ on GitHub Pages, see docs/website.md).
+  - Languages: en, zh-CN, hi, es, fr, ar — auto-detected, stored preference,
+    English fallback (mirrors the Localizer in crates/i18n; see app.js).
+  - Themes: light/dark, defaults to the device preference, toggle persisted.
+  - Accessibility: WCAG 2.2 AA — see docs/accessibility.md. The visible
+    (English) text is the noscript fallback; app.js swaps in the other
+    locales. lang/dir must match the active locale (3.1.1, RTL for ar).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calc</title>
+  <meta
+    name="description"
+    content="A programmable, scriptable calculator — command line, terminal UI, desktop app, and offline web app."
+  />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    // Apply the stored (or device-default) theme and the stored language
+    // before first paint, so there is no flash of the wrong theme/locale.
+    (function () {
+      try {
+        var theme = localStorage.getItem("calc-theme");
+        if (theme !== "light" && theme !== "dark") {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {
+        document.documentElement.dataset.theme = "light";
+      }
+      try {
+        var lang = localStorage.getItem("calc-lang");
+        if (lang) {
+          document.documentElement.lang = lang;
+          if (lang === "ar") document.documentElement.dir = "rtl";
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip-link">Skip to content</a>
+
+  <header class="site-header">
+    <p class="brand">
+      <img class="brand-icon" src="icon.svg" alt="" width="32" height="32" />
+      <span>Calc</span>
+    </p>
+    <nav class="header-actions" aria-label="Main" data-i18n-aria="nav-label">
+      <a class="gh-link" href="https://github.com/upyesp/calc" data-i18n="source-link">
+        Source code
+      </a>
+      <button type="button" id="theme-toggle" class="icon-btn" aria-pressed="false">
+        <!-- the visible label names the theme the button switches TO -->
+        <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" />
+        </svg>
+        <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4.5" />
+          <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" />
+        </svg>
+        <span class="visually-hidden" data-i18n="theme-dark">Use dark theme</span>
+      </button>
+      <label class="visually-hidden" for="lang-select" data-i18n="lang-label">Language</label>
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="zh-CN">中文</option>
+        <option value="hi">हिन्दी</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="ar">العربية</option>
+      </select>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="tagline">
+      <h1>Calc</h1>
+      <p class="tagline" id="tagline" data-i18n="tagline">
+        A programmable, scriptable calculator
+      </p>
+      <p class="lede" data-i18n="lede">
+        One calculation engine, four ways to use it. Type expressions, save
+        functions and scripts, graph your results, and keep everything across
+        sessions — in any of six languages.
+      </p>
+    </section>
+
+    <section class="builds" aria-labelledby="builds-title">
+      <h2 id="builds-title" data-i18n="builds">Get Calc</h2>
+      <div class="cards">
+        <article class="card">
+          <h3 data-i18n="cli-name">Command line</h3>
+          <p data-i18n="cli-desc">
+            One-shot expressions and an interactive REPL with saved functions,
+            scripts, and settings.
+          </p>
+          <p class="dl-title" data-i18n="downloads">Downloads</p>
+          <ul class="dl-list">
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-linux-x86_64.tar.gz"
+                data-i18n="cli-linux">Download Calc CLI for Linux</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-macos-aarch64.tar.gz"
+                data-i18n="cli-macos">Download Calc CLI for macOS</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-windows-x86_64.zip"
+                data-i18n="cli-windows">Download Calc CLI for Windows</a>
+            </li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3 data-i18n="tui-name">Terminal UI</h3>
+          <p data-i18n="tui-desc">
+            A full-screen terminal app with persistent history, saved
+            functions, and ASCII graphing.
+          </p>
+          <p class="dl-title" data-i18n="downloads">Downloads</p>
+          <ul class="dl-list">
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-linux-x86_64.tar.gz"
+                data-i18n="tui-linux">Download Calc TUI for Linux</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-macos-aarch64.tar.gz"
+                data-i18n="tui-macos">Download Calc TUI for macOS</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-windows-x86_64.zip"
+                data-i18n="tui-windows">Download Calc TUI for Windows</a>
+            </li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3 data-i18n="desktop-name">Desktop app</h3>
+          <p data-i18n="desktop-desc">
+            A native window around the same engine — installs like a regular
+            application.
+          </p>
+          <p class="dl-title" data-i18n="downloads">Downloads</p>
+          <ul class="dl-list">
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.deb"
+                data-i18n="desktop-deb">Download Calc Desktop for Linux (.deb)</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.rpm"
+                data-i18n="desktop-rpm">Download Calc Desktop for Linux (.rpm)</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.AppImage"
+                data-i18n="desktop-appimage">Download Calc Desktop for Linux (AppImage)</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-macos-aarch64.dmg"
+                data-i18n="desktop-macos">Download Calc Desktop for macOS</a>
+            </li>
+            <li>
+              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-windows-x86_64.exe"
+                data-i18n="desktop-windows">Download Calc Desktop for Windows</a>
+            </li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <h3 data-i18n="pwa-name">Web app</h3>
+          <p data-i18n="pwa-desc">
+            Runs in your browser, is installable, and works fully offline
+            after the first visit.
+          </p>
+          <p class="dl-title" data-i18n="get">Get it</p>
+          <ul class="dl-list">
+            <li>
+              <a class="btn" href="pwa/" data-i18n="pwa-launch">Launch the web app</a>
+            </li>
+          </ul>
+          <p class="note" data-i18n="offline-note">
+            Works fully offline once loaded — install it from your browser's
+            menu.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><a href="https://github.com/upyesp/calc" data-i18n="footer-source">Source code on GitHub</a></p>
+    <p data-i18n="footer-license">Calc is free and open source (MIT).</p>
+    <p class="muted" data-i18n="footer-release">
+      Downloads come from the latest GitHub release.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

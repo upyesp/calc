@@ -1,0 +1,150 @@
+# Build CLI/TUI/desktop binaries for every platform and attach them to a
+# GitHub Release. Triggered by pushing a tag:  git tag v0.1.0 && git push origin v0.1.0
+#
+# Asset names (stable — the landing page links to these):
+#   calc-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+#   calc-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+#   calc-desktop-linux-x86_64.{deb,rpm,AppImage}
+#   calc-desktop-macos-aarch64.dmg
+#   calc-desktop-windows-x86_64.exe
+# macOS and Windows builds are unsigned. The CLI archive contains a
+# binary named `calc` (the package is calc-cli; users get `calc` on PATH).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  cli-tui:
+    name: cli/tui (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: macos-latest
+            target: macos-aarch64
+          - os: windows-latest
+            target: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build CLI and TUI
+        run: cargo build --release -p calc-cli -p calc-tui
+
+      - name: Package binaries
+        shell: bash
+        run: |
+          set -e
+          mkdir -p artifacts
+          # the CLI package's [[bin]] is named "calc" (users get `calc` on
+          # PATH); the TUI binary is "calc-tui".
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cd target/release
+            7z a ../../artifacts/calc-cli-${{ matrix.target }}.zip calc.exe
+            7z a ../../artifacts/calc-tui-${{ matrix.target }}.zip calc-tui.exe
+          else
+            tar -C target/release -czf artifacts/calc-cli-${{ matrix.target }}.tar.gz calc
+            tar -C target/release -czf artifacts/calc-tui-${{ matrix.target }}.tar.gz calc-tui
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-tui-${{ matrix.target }}
+          path: artifacts
+          if-no-files-found: error
+
+  desktop:
+    name: desktop (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: macos-latest
+            target: macos-aarch64
+          - os: windows-latest
+            target: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: jetli/trunk-action@v0.5.0
+        with:
+          version: "0.21.14"
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+            libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version 2.11.4 --locked
+
+      - name: Build desktop bundles
+        run: cargo tauri build
+        working-directory: crates/tauri-app/src-tauri
+
+      - name: Package bundles
+        shell: bash
+        run: |
+          set -e
+          mkdir -p artifacts
+          BUNDLE="$GITHUB_WORKSPACE/target/release/bundle"
+          case "${{ runner.os }}" in
+            Linux)
+              cp "$BUNDLE"/deb/*.deb artifacts/calc-desktop-linux-x86_64.deb
+              cp "$BUNDLE"/rpm/*.rpm artifacts/calc-desktop-linux-x86_64.rpm
+              cp "$BUNDLE"/appimage/*.AppImage artifacts/calc-desktop-linux-x86_64.AppImage
+              ;;
+            macOS)
+              cp "$BUNDLE"/dmg/*.dmg artifacts/calc-desktop-macos-aarch64.dmg
+              ;;
+            Windows)
+              cp "$BUNDLE"/nsis/*-setup.exe artifacts/calc-desktop-windows-x86_64.exe
+              ;;
+          esac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.target }}
+          path: artifacts
+          if-no-files-found: error
+
+  release:
+    name: Attach assets to the release
+    needs: [cli-tui, desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*"
+          merge-multiple: true
+          path: assets
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          generate_release_notes: true
+          body: |
+            Calc ${{ github.ref_name }} — command line, terminal UI, desktop app, and web app.
+
+            - **CLI / TUI**: native binaries for Linux, macOS (Apple Silicon), and Windows.
+            - **Desktop**: Tauri bundles — Linux (deb/rpm/AppImage), macOS (dmg), Windows (installer).
+            - **Web app (PWA)**: https://upyesp.github.io/calc/pwa/ — works fully offline.
+
+            > Note: the macOS and Windows desktop builds are unsigned; your OS
+            > may warn on first launch.
