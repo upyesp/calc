@@ -28,3 +28,35 @@ impl Value {
         Value::Float(n)
     }
 }
+
+/// A parsed piece of mathematics that can be evaluated to a [`Value`] — a domain
+/// noun (see `CONTEXT.md`). Public so it can be produced by multiple input
+/// forms (plain text, LaTeX) and consumed by both [`eval`] and the graphing
+/// Sampler; treated opaquely by tests.
+#[derive(Debug, Clone)]
+pub enum Expression {
+    Literal(f64),
+}
+
+/// Errors crossing the calc-core seams.
+#[derive(Debug, thiserror::Error)]
+pub enum CalcError {
+    #[error("parse error: {0}")]
+    Parse(String),
+}
+
+/// Parse plain text into an [`Expression`] (the plain-text input seam).
+pub fn parse(text: &str) -> Result<Expression, CalcError> {
+    let n: f64 = text
+        .trim()
+        .parse()
+        .map_err(|_| CalcError::Parse(format!("invalid number: {text:?}")))?;
+    Ok(Expression::Literal(n))
+}
+
+/// Evaluate an [`Expression`] to a [`Value`] (the evaluation seam).
+pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
+    match expr {
+        Expression::Literal(n) => Ok(Value::float(*n)),
+    }
+}
