@@ -5,6 +5,26 @@ fn calc_bin() -> Command {
     Command::new(env!("CARGO_BIN_EXE_calc"))
 }
 
+/// Run a REPL session with piped stdin, returning its stdout.
+fn repl_output(store_dir: &str, input: &str) -> String {
+    let mut child = calc_bin()
+        .env("CALC_STORE_DIR", store_dir)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(input.as_bytes())
+        .unwrap();
+    let out = child.wait_with_output().unwrap();
+    assert!(out.status.success());
+    String::from_utf8_lossy(&out.stdout).to_string()
+}
+
 #[test]
 fn one_shot_evaluates_and_prints() {
     let out = calc_bin().arg("2 + 3 * 4").output().unwrap();
@@ -21,21 +41,40 @@ fn one_shot_errors_on_bad_input() {
 
 #[test]
 fn repl_runs_scripts_and_keeps_state() {
-    let mut child = calc_bin()
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child
-        .stdin
-        .as_mut()
-        .unwrap()
-        .write_all(b"x = 5; x + 1\ndef f(n) = n * 2\nf(x)\nquit\n")
-        .unwrap();
-    let out = child.wait_with_output().unwrap();
-    assert!(out.status.success());
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("6"), "stdout was: {stdout}");
-    assert!(stdout.contains("10"), "stdout was: {stdout}");
+    let dir = tempfile::tempdir().unwrap();
+    let out = repl_output(dir.path().to_str().unwrap(), "x = 5; x + 1\ndef f(n) = n * 2\nf(x)\nquit\n");
+    assert!(out.contains("6"), "stdout was: {out}");
+    assert!(out.contains("10"), "stdout was: {out}");
+    // the bare def produces no error line
+    assert!(!out.contains("error"), "stdout was: {out}");
+}
+
+#[test]
+fn repl_persists_functions_and_history_across_restarts() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().to_str().unwrap();
+
+    // session 1: define + save a function, evaluate, quit
+    let out1 = repl_output(path, "def f(x) = x ^ 2\nsave f\nf(3)\nquit\n");
+    assert!(out1.contains("saved f"), "stdout was: {out1}");
+    assert!(out1.contains("= 9"), "stdout was: {out1}");
+
+    // session 2: the saved function is loaded from the store
+    let out2 = repl_output(path, "f(4)\nquit\n");
+    assert!(out2.contains("= 16"), "stdout was: {out2}");
+
+    // history persisted too (visible as the definition line on load? no —
+    // history is display-only; check the store file exists)
+    assert!(dir.path().join("function/f.json").exists());
+    assert!(dir.path().join("setting/history.json").exists());
+}
+
+#[test]
+fn repl_save_requires_a_definition_in_session() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = repl_output(
+        dir.path().to_str().unwrap(),
+        "save nope\nquit\n",
+    );
+    assert!(out.contains("no definition for nope"), "stdout was: {out}");
 }

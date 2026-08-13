@@ -1,11 +1,15 @@
 //! calc-cli — native command-line frontend (ADR-0001).
 //!
 //! One-shot evaluation when given an expression; interactive REPL otherwise. No
-//! TUI/GUI is ever initiated from here.
+//! TUI/GUI is ever initiated from here. The REPL persists history and
+//! user-defined functions through the shared store (ADR-0002), honoring the
+//! `CALC_STORE_DIR` override (default `~/.calc`).
 
 use std::io::{self, BufRead, Write};
 
 use calc_core::Session;
+use calc_store::persist::{default_store_dir, load_session, save_function, save_history};
+use calc_store::{DocStore, FsStore};
 use clap::Parser;
 
 /// Calc: a programmable, scriptable calculator.
@@ -35,9 +39,18 @@ fn one_shot(expr: &str) -> Result<(), calc_core::CalcError> {
     Ok(())
 }
 
-/// Interactive REPL: scripts run against a persistent environment.
+/// Interactive REPL: scripts run against a persistent environment; history and
+/// saved functions survive restarts via the shared store.
 fn repl() -> Result<(), calc_core::CalcError> {
-    let mut session = Session::new();
+    let store = DocStore::new(FsStore::new(default_store_dir()));
+    let mut session = match load_session(&store) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("warning: could not load saved data ({e}); starting fresh");
+            Session::new()
+        }
+    };
+
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
     loop {
@@ -51,7 +64,23 @@ fn repl() -> Result<(), calc_core::CalcError> {
         if line == "quit" || line == "exit" {
             break;
         }
-        println!("{}", session.submit(&line));
+        if let Some(name) = line.strip_prefix("save ") {
+            let name = name.trim();
+            match session.def_sources().get(name) {
+                Some(source) => match save_function(&store, name, source) {
+                    Ok(()) => println!("saved {name}"),
+                    Err(e) => println!("error: {e}"),
+                },
+                None => println!("error: no definition for {name} in this session"),
+            }
+            continue;
+        }
+        let out = session.submit(&line);
+        if !out.is_empty() {
+            println!("{out}");
+        }
+        // best-effort persistence of history (atomic, last-write-wins)
+        let _ = save_history(&store, session.history());
     }
     Ok(())
 }

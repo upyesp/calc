@@ -11,6 +11,9 @@ path = "src/main.rs"
 
 [dependencies]
 calc-core = { path = "../core" }
-calc-store = { path = "../store" }
+calc-store = { path = "../store", features = ["fs"] }
 calc-i18n = { path = "../i18n" }
 clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3"
