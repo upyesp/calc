@@ -42,3 +42,9 @@ fn parentheses_group_expressions() {
     let result = eval(&parse("2 * (3 + 4)").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(14.0));
 }
+
+#[test]
+fn unary_minus_negates_a_number() {
+    let result = eval(&parse("-2 + 5").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(3.0));
+}

@@ -36,6 +36,7 @@ impl Value {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Literal(f64),
+    Neg(Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),
@@ -192,6 +193,10 @@ impl Parser {
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
+            Some(Token::Minus) => {
+                let inner = self.parse_factor()?;
+                Ok(Expression::Neg(Box::new(inner)))
+            }
             Some(Token::LParen) => {
                 let expr = self.parse_expression()?;
                 match self.next() {
@@ -212,6 +217,10 @@ impl Parser {
 pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
     match expr {
         Expression::Literal(n) => Ok(Value::float(*n)),
+        Expression::Neg(inner) => match eval(inner)? {
+            Value::Float(n) => Ok(Value::Float(-n)),
+            other => Err(CalcError::Type(format!("cannot negate {other:?}"))),
+        },
         Expression::Add(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a + b),
         Expression::Sub(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a - b),
         Expression::Mul(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a * b),
