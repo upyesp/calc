@@ -316,6 +316,7 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
         Expression::Var(name) => env
             .get(name)
             .cloned()
+            .or_else(|| builtin_const(name))
             .ok_or_else(|| CalcError::UnknownName(name.clone())),
         Expression::Neg(inner) => match eval(inner, env)? {
             Value::Float(n) => Ok(Value::Float(-n)),
@@ -342,6 +343,15 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             }
             call_builtin(name, values)
         }
+    }
+}
+
+/// Built-in constants (π, e), resolved when a name isn't in the environment.
+fn builtin_const(name: &str) -> Option<Value> {
+    match name {
+        "pi" => Some(Value::float(std::f64::consts::PI)),
+        "e" => Some(Value::float(std::f64::consts::E)),
+        _ => None,
     }
 }
 

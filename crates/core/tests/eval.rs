@@ -74,3 +74,14 @@ fn unknown_variable_is_an_error() {
 fn builtin_function_call() {
     assert_eq!(eval_str("sqrt(16)"), Value::float(4.0));
 }
+
+#[test]
+fn function_call_args_are_expressions() {
+    assert_eq!(eval_str("sqrt(9 + 7)"), Value::float(4.0));
+}
+
+#[test]
+fn builtin_constants_pi_and_e() {
+    assert_eq!(eval_str("pi"), Value::float(3.141592653589793));
+    assert_eq!(eval_str("e"), Value::float(2.718281828459045));
+}
