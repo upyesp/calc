@@ -13,11 +13,12 @@ use calc_store::persist::{default_store_dir, load_language, load_session, save_h
 use calc_store::{DocStore, FsStore};
 use calc_tui::{render_ascii, App};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Layout, Position};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
+use unicode_width::UnicodeWidthStr;
 
 fn main() -> io::Result<()> {
     let mut terminal = ratatui::init();
@@ -74,6 +75,7 @@ fn draw(frame: &mut Frame, app: &App, localizer: &Localizer) {
         Constraint::Length(1),  // result
         Constraint::Min(0),     // history
         Constraint::Length(20), // graph
+        Constraint::Length(1),  // hints
     ])
     .split(frame.area());
 
@@ -94,11 +96,39 @@ fn draw(frame: &mut Frame, app: &App, localizer: &Localizer) {
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-history")));
     frame.render_widget(history, layout[2]);
 
-    let graph_text = app
-        .graph()
-        .map(|g| render_ascii(g, 60, 18))
-        .unwrap_or_default();
+    let graph_text = match app.graph() {
+        Some(g) => {
+            // A text caption above the plot: terminal screen readers read it
+            // instead of raw ASCII art.
+            let caption = app
+                .graph_source()
+                .map(|s| format!("y = {s}"))
+                .unwrap_or_default();
+            let plot = render_ascii(g, 60, 18);
+            if caption.is_empty() {
+                plot
+            } else {
+                format!("{caption}\n{plot}")
+            }
+        }
+        None => String::new(),
+    };
     let graph = Paragraph::new(graph_text)
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-graph")));
     frame.render_widget(graph, layout[3]);
+
+    let hints = Paragraph::new(localizer.lookup("tui-hints"))
+        .style(Style::default().fg(Color::DarkGray));
+    frame.render_widget(hints, layout[4]);
+
+    // Focus visible: the terminal cursor must sit at the end of the input
+    // text, not wherever the shell left it.
+    let input_area = layout[0];
+    let text_width = UnicodeWidthStr::width(app.input());
+    let x = input_area
+        .x
+        .saturating_add(1)
+        .saturating_add(text_width as u16)
+        .min(input_area.right().saturating_sub(2));
+    frame.set_cursor_position(Position::new(x, input_area.y + 1));
 }

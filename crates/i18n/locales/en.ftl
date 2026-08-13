@@ -9,3 +9,4 @@ unsupported-language = unsupported language { $code } (supported: { $supported }
 tui-expression = Expression
 tui-history = History
 tui-graph = Graph
+tui-hints = Enter evaluate · Esc clear · Ctrl+C quit · q quit

@@ -2,6 +2,7 @@
   "name": "Calc",
   "short_name": "Calc",
   "description": "A programmable, scriptable calculator",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

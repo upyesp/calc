@@ -38,6 +38,8 @@ fn calc_app() -> Html {
         })
     };
 
+    let is_error = result.starts_with("error:");
+
     html! {
         <main class="calc">
             <h1>{ "Calc" }</h1>
@@ -49,10 +51,12 @@ fn calc_app() -> Html {
                     oninput={on_input}
                     autofocus={true}
                     aria-label="expression"
+                    aria-invalid={if is_error { "true" } else { "false" }}
+                    aria-describedby={if is_error { "calc-result" } else { "" }}
                 />
-                <button type="submit">{ "=" }</button>
+                <button type="submit" aria-label="Evaluate">{ "=" }</button>
             </form>
-            <div class="result" aria-live="polite">{ (*result).clone() }</div>
+            <div id="calc-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
             <ul class="history">
                 { for session.history().iter().map(|h| html! { <li>{ h.clone() }</li> }) }
             </ul>

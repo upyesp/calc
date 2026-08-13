@@ -59,6 +59,14 @@ fn graph_command_uses_session_functions() {
 }
 
 #[test]
+fn graph_command_records_source_for_caption() {
+    let mut app = App::default();
+    assert_eq!(app.graph_source(), None);
+    app.submit_graph("x ^ 2").expect("graph should sample");
+    assert_eq!(app.graph_source(), Some("x ^ 2"));
+}
+
+#[test]
 fn render_ascii_plots_a_diagonal() {
     let samples = vec![
         Sample { x: 0.0, y: 0.0 },

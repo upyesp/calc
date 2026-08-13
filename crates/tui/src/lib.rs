@@ -13,6 +13,7 @@ pub struct App {
     result: String,
     session: Session,
     graph: Option<Vec<Sample>>,
+    graph_source: Option<String>,
 }
 
 impl App {
@@ -22,6 +23,7 @@ impl App {
             result: String::new(),
             session,
             graph: None,
+            graph_source: None,
         }
     }
 
@@ -44,6 +46,13 @@ impl App {
     /// The sampled points of the current graph, if any.
     pub fn graph(&self) -> Option<&[Sample]> {
         self.graph.as_deref()
+    }
+
+    /// The source the current graph was sampled from — rendered as an
+    /// accessible caption above the plot (screen readers in terminals read
+    /// it instead of raw ASCII art).
+    pub fn graph_source(&self) -> Option<&str> {
+        self.graph_source.as_deref()
     }
 
     pub fn clear_input(&mut self) {
@@ -72,6 +81,7 @@ impl App {
         let samples = sample(&expr, -10.0, 10.0, 120, self.session.env())
             .map_err(|e| e.to_string())?;
         self.graph = Some(samples);
+        self.graph_source = Some(source.to_string());
         self.result = format!("graph: {source}");
         Ok(())
     }
