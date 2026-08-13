@@ -37,6 +37,7 @@ impl Value {
 pub enum Expression {
     Literal(f64),
     Add(Box<Expression>, Box<Expression>),
+    Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),
 }
 
@@ -51,41 +52,129 @@ pub enum CalcError {
 
 /// Parse plain text into an [`Expression`] (the plain-text input seam).
 ///
-/// Minimal recursive split parser: addition sits above multiplication so `*`
-/// binds tighter. Correct for `+` and `*` (both associative);
-/// left-associative operators will force a real tokenizer.
+/// Tokenizer + recursive-descent parser with precedence (additive below
+/// multiplicative) and left-associative operator folding.
 pub fn parse(text: &str) -> Result<Expression, CalcError> {
-    parse_add(text)
-}
-
-fn parse_add(text: &str) -> Result<Expression, CalcError> {
-    let text = text.trim();
-    if let Some((left, right)) = text.split_once('+') {
-        let lhs = parse_mul(left)?;
-        let rhs = parse_add(right)?;
-        Ok(Expression::Add(Box::new(lhs), Box::new(rhs)))
-    } else {
-        parse_mul(text)
+    let tokens = tokenize(text)?;
+    let mut parser = Parser { tokens, pos: 0 };
+    let expr = parser.parse_expression()?;
+    if parser.peek().is_some() {
+        return Err(CalcError::Parse("unexpected trailing input".into()));
     }
+    Ok(expr)
 }
 
-fn parse_mul(text: &str) -> Result<Expression, CalcError> {
-    let text = text.trim();
-    if let Some((left, right)) = text.split_once('*') {
-        let lhs = parse_factor(left)?;
-        let rhs = parse_mul(right)?;
-        Ok(Expression::Mul(Box::new(lhs), Box::new(rhs)))
-    } else {
-        parse_factor(text)
+#[derive(Debug, Clone, PartialEq)]
+enum Token {
+    Number(f64),
+    Plus,
+    Minus,
+    Star,
+}
+
+fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
+    let mut tokens = Vec::new();
+    let mut chars = text.chars().peekable();
+    while let Some(&c) = chars.peek() {
+        match c {
+            c if c.is_whitespace() => {
+                chars.next();
+            }
+            '+' => {
+                tokens.push(Token::Plus);
+                chars.next();
+            }
+            '-' => {
+                tokens.push(Token::Minus);
+                chars.next();
+            }
+            '*' => {
+                tokens.push(Token::Star);
+                chars.next();
+            }
+            c if c.is_ascii_digit() || c == '.' => {
+                let mut num = String::new();
+                while let Some(&c2) = chars.peek() {
+                    if c2.is_ascii_digit() || c2 == '.' {
+                        num.push(c2);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                let n: f64 = num
+                    .parse()
+                    .map_err(|_| CalcError::Parse(format!("invalid number: {num:?}")))?;
+                tokens.push(Token::Number(n));
+            }
+            other => return Err(CalcError::Parse(format!("unexpected character: {other:?}"))),
+        }
     }
+    Ok(tokens)
 }
 
-fn parse_factor(text: &str) -> Result<Expression, CalcError> {
-    let n: f64 = text
-        .trim()
-        .parse()
-        .map_err(|_| CalcError::Parse(format!("invalid number: {text:?}")))?;
-    Ok(Expression::Literal(n))
+struct Parser {
+    tokens: Vec<Token>,
+    pos: usize,
+}
+
+impl Parser {
+    fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.pos)
+    }
+
+    fn next(&mut self) -> Option<Token> {
+        let token = self.tokens.get(self.pos).cloned();
+        if token.is_some() {
+            self.pos += 1;
+        }
+        token
+    }
+
+    /// Additive level: `+` and `-`, folded left-associatively.
+    fn parse_expression(&mut self) -> Result<Expression, CalcError> {
+        let mut left = self.parse_term()?;
+        loop {
+            match self.peek() {
+                Some(Token::Plus) => {
+                    self.next();
+                    let right = self.parse_term()?;
+                    left = Expression::Add(Box::new(left), Box::new(right));
+                }
+                Some(Token::Minus) => {
+                    self.next();
+                    let right = self.parse_term()?;
+                    left = Expression::Sub(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    /// Multiplicative level: `*`, folded left-associatively.
+    fn parse_term(&mut self) -> Result<Expression, CalcError> {
+        let mut left = self.parse_factor()?;
+        loop {
+            match self.peek() {
+                Some(Token::Star) => {
+                    self.next();
+                    let right = self.parse_factor()?;
+                    left = Expression::Mul(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    fn parse_factor(&mut self) -> Result<Expression, CalcError> {
+        match self.next() {
+            Some(Token::Number(n)) => Ok(Expression::Literal(n)),
+            Some(other) => Err(CalcError::Parse(format!("expected a number, found {other:?}"))),
+            None => Err(CalcError::Parse("unexpected end of input".into())),
+        }
+    }
 }
 
 /// Evaluate an [`Expression`] to a [`Value`] (the evaluation seam).
@@ -93,6 +182,7 @@ pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
     match expr {
         Expression::Literal(n) => Ok(Value::float(*n)),
         Expression::Add(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a + b),
+        Expression::Sub(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a - b),
         Expression::Mul(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a * b),
     }
 }

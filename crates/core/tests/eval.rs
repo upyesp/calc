@@ -24,3 +24,9 @@ fn multiplication_binds_tighter_than_addition() {
     let result = eval(&parse("2 + 3 * 4").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(14.0));
 }
+
+#[test]
+fn subtraction_is_left_associative() {
+    let result = eval(&parse("5 - 2 - 1").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(2.0));
+}
