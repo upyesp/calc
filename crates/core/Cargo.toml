@@ -17,3 +17,5 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 proptest = "1"
+num-rational = { workspace = true }
+num-bigint = { workspace = true }

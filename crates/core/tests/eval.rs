@@ -1,4 +1,5 @@
 use calc_core::{eval, evaluate, parse, parse_script, run, Env, Value};
+use num_rational::BigRational;
 
 /// Evaluate source text with an empty environment — the common case in these
 /// tests (the CLI's future `evaluate(text)` convenience does the same).
@@ -143,4 +144,20 @@ fn user_function_recurses() {
 #[test]
 fn evaluate_convenience_adapter() {
     assert_eq!(evaluate("2 + 3 * 4").expect("evaluate"), Value::float(14.0));
+}
+
+#[test]
+fn exact_rational_arithmetic() {
+    assert_eq!(
+        eval_str("frac(1, 3) + frac(1, 3)"),
+        Value::Rational(BigRational::new(2.into(), 3.into()))
+    );
+}
+
+#[test]
+fn float_promotes_to_rational_when_mixed() {
+    assert_eq!(
+        eval_str("frac(1, 3) * 3"),
+        Value::Rational(BigRational::new(1.into(), 1.into()))
+    );
 }

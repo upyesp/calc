@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 
 use bigdecimal::BigDecimal;
+use num_bigint::BigInt;
 use num_complex::Complex;
 use num_rational::BigRational;
 use rust_decimal::Decimal;
@@ -559,20 +560,11 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             Value::Float(n) => Ok(Value::Float(-n)),
             other => Err(CalcError::Type(format!("cannot negate {other:?}"))),
         },
-        Expression::Add(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a + b),
-        Expression::Sub(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a - b),
-        Expression::Mul(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a * b),
-        Expression::Div(lhs, rhs) => {
-            let l = eval(lhs, env)?;
-            let r = eval(rhs, env)?;
-            if let Value::Float(b) = r {
-                if b == 0.0 {
-                    return Err(CalcError::ZeroDivision);
-                }
-            }
-            binop(l, r, |a, b| a / b)
-        }
-        Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a.powf(b)),
+        Expression::Add(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Add),
+        Expression::Sub(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Sub),
+        Expression::Mul(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Mul),
+        Expression::Div(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Div),
+        Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Pow),
         Expression::Compare(op, lhs, rhs) => {
             let l = eval(lhs, env)?;
             let r = eval(rhs, env)?;
@@ -676,6 +668,37 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
                 ))),
             }
         }
+        "frac" => {
+            let [n, d] = args.as_slice() else {
+                return Err(CalcError::Type(format!(
+                    "frac expects 2 arguments, got {}",
+                    args.len()
+                )));
+            };
+            match (n, d) {
+                (Value::Float(n), Value::Float(d)) => {
+                    let to_int = |x: f64| -> Option<BigInt> {
+                        if x.is_finite() && x.fract() == 0.0 && x.abs() <= i64::MAX as f64 {
+                            Some(BigInt::from(x as i64))
+                        } else {
+                            None
+                        }
+                    };
+                    let (Some(n), Some(d)) = (to_int(*n), to_int(*d)) else {
+                        return Err(CalcError::Type(format!(
+                            "frac expects integer arguments, got {n:?} and {d:?}"
+                        )));
+                    };
+                    if d == BigInt::from(0) {
+                        return Err(CalcError::ZeroDivision);
+                    }
+                    Ok(Value::Rational(BigRational::new(n, d)))
+                }
+                _ => Err(CalcError::Type(format!(
+                    "frac expects numbers, got {n:?} and {d:?}"
+                ))),
+            }
+        }
         _ => Err(CalcError::UnknownName(name.to_string())),
     }
 }
@@ -707,11 +730,68 @@ pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
     result.ok_or_else(|| CalcError::Parse("script produced no value".into()))
 }
 
-/// Apply a float binary op to two [`Value`]s. Only the default `Float` path is
-/// supported so far; other variants error until a test asks for them.
-fn binop(lhs: Value, rhs: Value, op: impl Fn(f64, f64) -> f64) -> Result<Value, CalcError> {
+/// A binary arithmetic operator, dispatched per number layer (ADR-0005).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Pow,
+}
+
+/// Apply a binary op to two [`Value`]s, promoting to a common number layer
+/// (Float → Rational → Decimal → Big) when operands differ (ADR-0005).
+fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
     match (&lhs, &rhs) {
-        (Value::Float(a), Value::Float(b)) => Ok(Value::Float(op(*a, *b))),
-        _ => Err(CalcError::Type(format!("cannot combine {:?} and {:?}", lhs, rhs))),
+        (Value::Float(a), Value::Float(b)) => Ok(Value::Float(float_binop(op, *a, *b)?)),
+        (Value::Rational(a), Value::Rational(b)) => {
+            Ok(Value::Rational(rational_binop(op, a.clone(), b.clone())?))
+        }
+        (Value::Float(a), Value::Rational(b)) => {
+            let a = BigRational::from_float(*a)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to a rational")))?;
+            Ok(Value::Rational(rational_binop(op, a, b.clone())?))
+        }
+        (Value::Rational(a), Value::Float(b)) => {
+            let b = BigRational::from_float(*b)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a rational")))?;
+            Ok(Value::Rational(rational_binop(op, a.clone(), b)?))
+        }
+        _ => Err(CalcError::Type(format!("cannot combine {lhs:?} and {rhs:?}"))),
+    }
+}
+
+fn float_binop(op: BinOp, a: f64, b: f64) -> Result<f64, CalcError> {
+    match op {
+        BinOp::Add => Ok(a + b),
+        BinOp::Sub => Ok(a - b),
+        BinOp::Mul => Ok(a * b),
+        BinOp::Div => {
+            if b == 0.0 {
+                Err(CalcError::ZeroDivision)
+            } else {
+                Ok(a / b)
+            }
+        }
+        BinOp::Pow => Ok(a.powf(b)),
+    }
+}
+
+fn rational_binop(op: BinOp, a: BigRational, b: BigRational) -> Result<BigRational, CalcError> {
+    match op {
+        BinOp::Add => Ok(a + b),
+        BinOp::Sub => Ok(a - b),
+        BinOp::Mul => Ok(a * b),
+        BinOp::Div => {
+            if b == BigRational::from_integer(0.into()) {
+                Err(CalcError::ZeroDivision)
+            } else {
+                Ok(a / b)
+            }
+        }
+        BinOp::Pow => Err(CalcError::Type(
+            "rational exponentiation is not supported yet".into(),
+        )),
     }
 }
