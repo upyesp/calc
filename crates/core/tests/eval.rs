@@ -1,4 +1,4 @@
-use calc_core::{eval, evaluate, parse, parse_script, run, Env, Value};
+use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, Env, Value};
 use bigdecimal::BigDecimal;
 use num_rational::BigRational;
 use rust_decimal::Decimal;
@@ -210,4 +210,15 @@ fn big_layer_arbitrary_precision() {
         eval_str("big(0.1) + big(0.2)"),
         Value::Big(BigDecimal::from_str("0.3").unwrap())
     );
+}
+
+#[test]
+fn latex_input_parses() {
+    let env = Env::default();
+    let frac = parse_latex(r"\frac{1}{2} + \frac{1}{2}").expect("parse_latex");
+    assert_eq!(eval(&frac, &env).expect("eval"), Value::float(1.0));
+    let sqrt = parse_latex(r"\sqrt{16}").expect("parse_latex");
+    assert_eq!(eval(&sqrt, &env).expect("eval"), Value::float(4.0));
+    let nested = parse_latex(r"\frac{\frac{1}{2}}{2}").expect("parse_latex");
+    assert_eq!(eval(&nested, &env).expect("eval"), Value::float(0.25));
 }

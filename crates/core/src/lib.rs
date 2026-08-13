@@ -153,6 +153,94 @@ pub fn parse(text: &str) -> Result<Expression, CalcError> {
     Ok(expr)
 }
 
+/// Parse LaTeX math into an [`Expression`] — the LaTeX input form (Q5). A
+/// translation layer rewrites LaTeX constructs into plain calc text, then the
+/// same grammar parses it: one grammar, two input forms.
+pub fn parse_latex(text: &str) -> Result<Expression, CalcError> {
+    parse(&translate_latex(text)?)
+}
+
+fn translate_latex(text: &str) -> Result<String, CalcError> {
+    let mut out = String::new();
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            let mut cmd = String::new();
+            while let Some(&c2) = chars.peek() {
+                if c2.is_ascii_alphabetic() {
+                    cmd.push(c2);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            match cmd.as_str() {
+                "frac" => {
+                    let num = translate_latex(&take_braced(&mut chars)?)?;
+                    let den = translate_latex(&take_braced(&mut chars)?)?;
+                    out.push_str(&format!("({num})/({den})"));
+                }
+                "sqrt" => {
+                    let inner = translate_latex(&take_braced(&mut chars)?)?;
+                    out.push_str(&format!("sqrt({inner})"));
+                }
+                "cdot" | "times" => out.push('*'),
+                "div" => out.push('/'),
+                "pi" => out.push_str("pi"),
+                "left" | "right" => {
+                    // \( \left( ... \right) \) — keep the delimiter char
+                    if let Some(&c2) = chars.peek() {
+                        out.push(c2);
+                        chars.next();
+                    }
+                }
+                _ => {
+                    return Err(CalcError::Parse(format!(
+                        "unsupported LaTeX command: \\{cmd}"
+                    )));
+                }
+            }
+        } else if c == '{' {
+            // bare grouping → parentheses
+            let inner = translate_latex(&take_braced(&mut chars)?)?;
+            out.push_str(&format!("({inner})"));
+        } else {
+            out.push(c);
+        }
+    }
+    Ok(out)
+}
+
+/// Take the contents of the next `{...}` group, tracking nested braces.
+fn take_braced(chars: &mut impl Iterator<Item = char>) -> Result<String, CalcError> {
+    match chars.next() {
+        Some('{') => {}
+        Some(other) => {
+            return Err(CalcError::Parse(format!("expected '{{', found {other}")));
+        }
+        None => return Err(CalcError::Parse("expected '{'".into())),
+    }
+    let mut depth = 1;
+    let mut inner = String::new();
+    while let Some(c) = chars.next() {
+        match c {
+            '{' => {
+                depth += 1;
+                inner.push(c);
+            }
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Ok(inner);
+                }
+                inner.push(c);
+            }
+            _ => inner.push(c),
+        }
+    }
+    Err(CalcError::Parse("unbalanced braces in LaTeX".into()))
+}
+
 /// Parse a sequence of statements separated by `;` (the script seam).
 pub fn parse_script(text: &str) -> Result<Vec<Statement>, CalcError> {
     let tokens = tokenize(text)?;
