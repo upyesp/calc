@@ -1,4 +1,7 @@
-use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, sample, Sample, Env, Session, Value};
+use calc_core::{
+    eval, evaluate, parse, parse_latex, parse_script, run, sample, sample_parametric,
+    sample_polar, Sample, Env, Session, Value,
+};
 use bigdecimal::BigDecimal;
 use num_rational::BigRational;
 use rust_decimal::Decimal;
@@ -245,6 +248,32 @@ fn sampler_skips_points_where_eval_errors() {
     let samples = sample(&expr, -1.0, 1.0, 3, &env).expect("sample");
     // x = -1, 0, 1 — the x = 0 point errors (division by zero) and is skipped
     assert_eq!(samples, vec![Sample { x: -1.0, y: -1.0 }, Sample { x: 1.0, y: 1.0 }]);
+}
+
+#[test]
+fn parametric_sampler_binds_t() {
+    let x = parse("t").expect("parse");
+    let y = parse("t ^ 2").expect("parse");
+    let samples = sample_parametric(&x, &y, 0.0, 2.0, 3, &Env::default()).expect("sample");
+    assert_eq!(
+        samples,
+        vec![
+            Sample { x: 0.0, y: 0.0 },
+            Sample { x: 1.0, y: 1.0 },
+            Sample { x: 2.0, y: 4.0 },
+        ]
+    );
+}
+
+#[test]
+fn polar_sampler_converts_to_xy() {
+    // r = 1 (unit circle): θ = 0 → (1, 0); θ = π/2 → (0, 1)
+    let r = parse("1").expect("parse");
+    let samples =
+        sample_polar(&r, 0.0, std::f64::consts::FRAC_PI_2, 2, &Env::default()).expect("sample");
+    assert_eq!(samples.len(), 2);
+    assert!((samples[0].x - 1.0).abs() < 1e-12 && samples[0].y.abs() < 1e-12);
+    assert!(samples[1].x.abs() < 1e-12 && (samples[1].y - 1.0).abs() < 1e-12);
 }
 
 #[test]

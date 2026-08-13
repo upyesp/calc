@@ -844,6 +844,66 @@ pub fn sample(
     Ok(out)
 }
 
+/// Sample a parametric curve `x(t), y(t)` over `t_min..=t_max` (ADR-0006).
+/// `t` is bound in a child environment for each point; erroring points are
+/// skipped.
+pub fn sample_parametric(
+    x_expr: &Expression,
+    y_expr: &Expression,
+    t_min: f64,
+    t_max: f64,
+    points: usize,
+    env: &Env,
+) -> Result<Vec<Sample>, CalcError> {
+    let mut child = Env::new_child(env);
+    let mut out = Vec::new();
+    for i in 0..points {
+        let t = if points == 1 {
+            0.0
+        } else {
+            i as f64 / (points - 1) as f64
+        };
+        let t = t_min + t * (t_max - t_min);
+        child.set("t", Value::float(t));
+        let (Ok(Value::Float(x)), Ok(Value::Float(y))) = (eval(x_expr, &child), eval(y_expr, &child))
+        else {
+            continue;
+        };
+        out.push(Sample { x, y });
+    }
+    Ok(out)
+}
+
+/// Sample a polar curve `r(θ)` over `θ_min..=θ_max`, converted to x/y
+/// (ADR-0006). `theta` is bound for each point; erroring points are skipped.
+pub fn sample_polar(
+    r_expr: &Expression,
+    theta_min: f64,
+    theta_max: f64,
+    points: usize,
+    env: &Env,
+) -> Result<Vec<Sample>, CalcError> {
+    let mut child = Env::new_child(env);
+    let mut out = Vec::new();
+    for i in 0..points {
+        let t = if points == 1 {
+            0.0
+        } else {
+            i as f64 / (points - 1) as f64
+        };
+        let theta = theta_min + t * (theta_max - theta_min);
+        child.set("theta", Value::float(theta));
+        let Ok(Value::Float(r)) = eval(r_expr, &child) else {
+            continue;
+        };
+        out.push(Sample {
+            x: r * theta.cos(),
+            y: r * theta.sin(),
+        });
+    }
+    Ok(out)
+}
+
 /// Built-in constants (π, e), resolved when a name isn't in the environment.
 fn builtin_const(name: &str) -> Option<Value> {
     match name {
