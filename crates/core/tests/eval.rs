@@ -113,3 +113,13 @@ fn user_defined_function() {
     let result = run(&script, &mut env).expect("run");
     assert_eq!(result, Value::float(9.0));
 }
+
+#[test]
+fn comparison_operators_produce_booleans() {
+    assert_eq!(eval_str("2 > 1"), Value::Bool(true));
+    assert_eq!(eval_str("2 < 1"), Value::Bool(false));
+    assert_eq!(eval_str("2 >= 2"), Value::Bool(true));
+    assert_eq!(eval_str("2 <= 1"), Value::Bool(false));
+    assert_eq!(eval_str("2 == 2"), Value::Bool(true));
+    assert_eq!(eval_str("2 != 2"), Value::Bool(false));
+}

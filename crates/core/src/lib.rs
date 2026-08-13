@@ -22,6 +22,7 @@ pub enum Value {
     Decimal(Decimal),
     Big(BigDecimal),
     Complex(Complex<f64>),
+    Bool(bool),
 }
 
 impl Value {
@@ -84,6 +85,18 @@ pub enum Expression {
     Mul(Box<Expression>, Box<Expression>),
     Div(Box<Expression>, Box<Expression>),
     Pow(Box<Expression>, Box<Expression>),
+    Compare(CmpOp, Box<Expression>, Box<Expression>),
+}
+
+/// A comparison operator.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CmpOp {
+    Gt,
+    Lt,
+    Ge,
+    Le,
+    Eq,
+    Ne,
 }
 
 /// One statement of a [`Script`] — the unit of the script seam (CONTEXT.md).
@@ -166,6 +179,12 @@ enum Token {
     Slash,
     Caret,
     Comma,
+    GreaterThan,
+    LessThan,
+    GreaterEqual,
+    LessEqual,
+    EqualEqual,
+    NotEqual,
     Equals,
     Semicolon,
     LParen,
@@ -204,9 +223,41 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                 tokens.push(Token::Comma);
                 chars.next();
             }
-            '=' => {
-                tokens.push(Token::Equals);
+            '>' => {
                 chars.next();
+                if matches!(chars.peek(), Some('=')) {
+                    chars.next();
+                    tokens.push(Token::GreaterEqual);
+                } else {
+                    tokens.push(Token::GreaterThan);
+                }
+            }
+            '<' => {
+                chars.next();
+                if matches!(chars.peek(), Some('=')) {
+                    chars.next();
+                    tokens.push(Token::LessEqual);
+                } else {
+                    tokens.push(Token::LessThan);
+                }
+            }
+            '=' => {
+                chars.next();
+                if matches!(chars.peek(), Some('=')) {
+                    chars.next();
+                    tokens.push(Token::EqualEqual);
+                } else {
+                    tokens.push(Token::Equals);
+                }
+            }
+            '!' => {
+                chars.next();
+                if matches!(chars.peek(), Some('=')) {
+                    chars.next();
+                    tokens.push(Token::NotEqual);
+                } else {
+                    return Err(CalcError::Parse("unexpected character: '!'".into()));
+                }
             }
             ';' => {
                 tokens.push(Token::Semicolon);
@@ -328,8 +379,35 @@ impl Parser {
         }
     }
 
-    /// Additive level: `+` and `-`, folded left-associatively.
+    /// Top level: comparison; `if` joins here later.
     fn parse_expression(&mut self) -> Result<Expression, CalcError> {
+        self.parse_comparison()
+    }
+
+    /// Comparison level: `>` `<` `>=` `<=` `==` `!=`, non-chaining, with
+    /// arithmetic binding tighter.
+    fn parse_comparison(&mut self) -> Result<Expression, CalcError> {
+        let left = self.parse_additive()?;
+        let op = match self.peek() {
+            Some(Token::GreaterThan) => Some(CmpOp::Gt),
+            Some(Token::LessThan) => Some(CmpOp::Lt),
+            Some(Token::GreaterEqual) => Some(CmpOp::Ge),
+            Some(Token::LessEqual) => Some(CmpOp::Le),
+            Some(Token::EqualEqual) => Some(CmpOp::Eq),
+            Some(Token::NotEqual) => Some(CmpOp::Ne),
+            _ => None,
+        };
+        if let Some(op) = op {
+            self.next();
+            let right = self.parse_additive()?;
+            Ok(Expression::Compare(op, Box::new(left), Box::new(right)))
+        } else {
+            Ok(left)
+        }
+    }
+
+    /// Additive level: `+` and `-`, folded left-associatively.
+    fn parse_additive(&mut self) -> Result<Expression, CalcError> {
         let mut left = self.parse_term()?;
         loop {
             match self.peek() {
@@ -472,6 +550,24 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             binop(l, r, |a, b| a / b)
         }
         Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, |a, b| a.powf(b)),
+        Expression::Compare(op, lhs, rhs) => {
+            let l = eval(lhs, env)?;
+            let r = eval(rhs, env)?;
+            match (&l, &r) {
+                (Value::Float(x), Value::Float(y)) => {
+                    let result = match op {
+                        CmpOp::Gt => x > y,
+                        CmpOp::Lt => x < y,
+                        CmpOp::Ge => x >= y,
+                        CmpOp::Le => x <= y,
+                        CmpOp::Eq => x == y,
+                        CmpOp::Ne => x != y,
+                    };
+                    Ok(Value::Bool(result))
+                }
+                _ => Err(CalcError::Type(format!("cannot compare {l:?} and {r:?}"))),
+            }
+        }
         Expression::Call(name, args) => {
             let mut values = Vec::with_capacity(args.len());
             for arg in args {
