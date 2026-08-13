@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calc</title>
+  <style>
+    :root {
+      --bg: #1c1c1e;
+      --display: #000;
+      --btn: #333335;
+      --btn-fn: #a5a5a5;
+      --btn-op: #ff9f0a;
+      --text: #fff;
+      --text-fn: #000;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .calculator {
+      width: 100%;
+      max-width: 320px;
+      background: var(--bg);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .display {
+      background: var(--display);
+      color: var(--text);
+      font-size: 4rem;
+      font-weight: 300;
+      text-align: right;
+      padding: 2rem 1.5rem 1.25rem;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      word-break: break-all;
+    }
+    .history { font-size: 1.25rem; opacity: 0.45; min-height: 1.5em; }
+    .current { font-size: 4rem; line-height: 1.1; }
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #2a2a2c;
+    }
+    button {
+      border: none;
+      padding: 1.25rem;
+      font-size: 1.6rem;
+      cursor: pointer;
+      transition: filter 0.1s ease;
+      background: var(--btn);
+      color: var(--text);
+      aspect-ratio: 1 / 1;
+    }
+    button:active { filter: brightness(1.5); }
+    .fn { background: var(--btn-fn); color: var(--text-fn); }
+    .op { background: var(--btn-op); color: var(--text); }
+    .wide { grid-column: span 2; aspect-ratio: auto; border-bottom-left-radius: 0; }
+  </style>
+</head>
+<body>
+  <main class="calculator" aria-label="Calculator">
+    <section class="display" aria-live="polite">
+      <div class="history" id="history"></div>
+      <div class="current" id="current">0</div>
+    </section>
+    <section class="keys">
+      <button class="fn" data-action="clear">AC</button>
+      <button class="fn" data-action="sign">+/&minus;</button>
+      <button class="fn" data-action="percent">%</button>
+      <button class="op" data-action="op" data-op="/">÷</button>
+
+      <button data-action="num" data-num="7">7</button>
+      <button data-action="num" data-num="8">8</button>
+      <button data-action="num" data-num="9">9</button>
+      <button class="op" data-action="op" data-op="*">×</button>
+
+      <button data-action="num" data-num="4">4</button>
+      <button data-action="num" data-num="5">5</button>
+      <button data-action="num" data-num="6">6</button>
+      <button class="op" data-action="op" data-op="-">&minus;</button>
+
+      <button data-action="num" data-num="1">1</button>
+      <button data-action="num" data-num="2">2</button>
+      <button data-action="num" data-num="3">3</button>
+      <button class="op" data-action="op" data-op="+">+</button>
+
+      <button class="wide" data-action="num" data-num="0">0</button>
+      <button data-action="dot">.</button>
+      <button class="op" data-action="equals">=</button>
+    </section>
+  </main>
+
+  <script>
+    const currentEl = document.getElementById('current');
+    const historyEl = document.getElementById('history');
+
+    let current = '0';
+    let previous = null;
+    let operator = null;
+    let justEvaluated = false;
+
+    const render = () => {
+      currentEl.textContent = formatNumber(current);
+      const opSym = { '+': '+', '-': '\u2212', '*': '\u00d7', '/': '\u00f7' }[operator] || '';
+      historyEl.textContent =
+        previous !== null && operator ? `${formatNumber(previous)} ${opSym}` : '';
+    };
+
+    const formatNumber = (n) => {
+      if (n === 'Error') return n;
+      const num = Number(n);
+      if (!isFinite(num)) return 'Error';
+      // Keep raw integer/decimal for long inputs; add grouping for short ones.
+      if (n.length > 12) return n;
+      const [intPart, decPart] = String(n).split('.');
+      const grouped = Number(intPart).toLocaleString('en-US', { maximumFractionDigits: 0 });
+      return decPart !== undefined ? `${grouped}.${decPart}` : grouped;
+    };
+
+    const inputNumber = (d) => {
+      if (current === 'Error') reset();
+      if (justEvaluated) { current = '0'; justEvaluated = false; }
+      if (current === '0') current = d;
+      else current += d;
+      render();
+    };
+
+    const inputDot = () => {
+      if (current === 'Error') reset();
+      if (justEvaluated) { current = '0'; justEvaluated = false; }
+      if (!current.includes('.')) current += '.';
+      render();
+    };
+
+    const compute = (a, b, op) => {
+      switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return b === 0 ? NaN : a / b;
+        default: return b;
+      }
+    };
+
+    const chooseOperator = (op) => {
+      if (current === 'Error') return;
+      if (operator && previous !== null && !justEvaluated) {
+        const result = compute(Number(previous), Number(current), operator);
+        previous = String(result);
+        current = previous;
+      } else {
+        previous = current;
+      }
+      operator = op;
+      justEvaluated = false;
+      current = previous;
+      // Next number input should replace the display.
+      justEvaluated = true;
+      render();
+    };
+
+    const evaluate = () => {
+      if (operator === null || previous === null) return;
+      const result = compute(Number(previous), Number(current), operator);
+      if (!isFinite(result)) {
+        current = 'Error';
+      } else {
+        current = String(Number(result.toFixed(10)));
+      }
+      previous = null;
+      operator = null;
+      justEvaluated = true;
+      render();
+    };
+
+    const clearAll = () => { reset(); render(); };
+    const reset = () => { current = '0'; previous = null; operator = null; justEvaluated = false; };
+
+    const toggleSign = () => {
+      if (current === 'Error') return;
+      if (current !== '0') current = current.startsWith('-') ? current.slice(1) : '-' + current;
+      render();
+    };
+
+    const percent = () => {
+      if (current === 'Error') return;
+      current = String(Number(current) / 100);
+      render();
+    };
+
+    document.querySelector('.keys').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      switch (btn.dataset.action) {
+        case 'num': inputNumber(btn.dataset.num); break;
+        case 'dot': inputDot(); break;
+        case 'op': chooseOperator(btn.dataset.op); break;
+        case 'equals': evaluate(); break;
+        case 'clear': clearAll(); break;
+        case 'sign': toggleSign(); break;
+        case 'percent': percent(); break;
+      }
+    });
+
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') inputNumber(e.key);
+      else if (e.key === '.') inputDot();
+      else if (['+', '-', '*', '/'].includes(e.key)) chooseOperator(e.key);
+      else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluate(); }
+      else if (e.key === 'Escape') clearAll();
+      else if (e.key === '%') percent();
+    });
+
+    render();
+  </script>
+</body>
+</html>
