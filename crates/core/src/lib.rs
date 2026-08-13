@@ -88,6 +88,9 @@ pub enum Expression {
     Pow(Box<Expression>, Box<Expression>),
     Compare(CmpOp, Box<Expression>, Box<Expression>),
     If(Box<Expression>, Box<Expression>, Box<Expression>),
+    And(Box<Expression>, Box<Expression>),
+    Or(Box<Expression>, Box<Expression>),
+    Not(Box<Expression>),
 }
 
 /// A comparison operator.
@@ -404,6 +407,40 @@ impl Parser {
                 Box::new(else_expr),
             ))
         } else {
+            self.parse_or()
+        }
+    }
+
+    /// Boolean `or` level.
+    fn parse_or(&mut self) -> Result<Expression, CalcError> {
+        let mut left = self.parse_and()?;
+        while matches!(self.peek(), Some(Token::Ident(kw)) if kw == "or") {
+            self.next();
+            let right = self.parse_and()?;
+            left = Expression::Or(Box::new(left), Box::new(right));
+        }
+        Ok(left)
+    }
+
+    /// Boolean `and` level.
+    fn parse_and(&mut self) -> Result<Expression, CalcError> {
+        let mut left = self.parse_not()?;
+        while matches!(self.peek(), Some(Token::Ident(kw)) if kw == "and") {
+            self.next();
+            let right = self.parse_not()?;
+            left = Expression::And(Box::new(left), Box::new(right));
+        }
+        Ok(left)
+    }
+
+    /// Boolean `not` level: binds looser than comparison (`not x > 3` is
+    /// `not (x > 3)`).
+    fn parse_not(&mut self) -> Result<Expression, CalcError> {
+        if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "not") {
+            self.next();
+            let inner = self.parse_not()?;
+            Ok(Expression::Not(Box::new(inner)))
+        } else {
             self.parse_comparison()
         }
     }
@@ -596,6 +633,36 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             Value::Bool(false) => eval(else_expr, env),
             other => Err(CalcError::Type(format!(
                 "if condition must be a boolean, got {other:?}"
+            ))),
+        },
+        Expression::And(lhs, rhs) => match eval(lhs, env)? {
+            Value::Bool(false) => Ok(Value::Bool(false)),
+            Value::Bool(true) => match eval(rhs, env)? {
+                Value::Bool(b) => Ok(Value::Bool(b)),
+                other => Err(CalcError::Type(format!(
+                    "and expects booleans, got {other:?}"
+                ))),
+            },
+            other => Err(CalcError::Type(format!(
+                "and expects booleans, got {other:?}"
+            ))),
+        },
+        Expression::Or(lhs, rhs) => match eval(lhs, env)? {
+            Value::Bool(true) => Ok(Value::Bool(true)),
+            Value::Bool(false) => match eval(rhs, env)? {
+                Value::Bool(b) => Ok(Value::Bool(b)),
+                other => Err(CalcError::Type(format!(
+                    "or expects booleans, got {other:?}"
+                ))),
+            },
+            other => Err(CalcError::Type(format!(
+                "or expects booleans, got {other:?}"
+            ))),
+        },
+        Expression::Not(inner) => match eval(inner, env)? {
+            Value::Bool(b) => Ok(Value::Bool(!b)),
+            other => Err(CalcError::Type(format!(
+                "not expects a boolean, got {other:?}"
             ))),
         },
         Expression::Call(name, args) => {

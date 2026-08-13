@@ -187,3 +187,11 @@ fn float_promotes_to_decimal_when_mixed() {
         Value::Decimal(Decimal::from_str("1.0").unwrap())
     );
 }
+
+#[test]
+fn boolean_operators() {
+    assert_eq!(eval_str("2 > 1 and 3 > 2"), Value::Bool(true));
+    assert_eq!(eval_str("2 > 1 or 3 < 2"), Value::Bool(true));
+    assert_eq!(eval_str("not 2 > 1"), Value::Bool(false));
+    assert_eq!(eval_str("not (2 > 3)"), Value::Bool(true));
+}
