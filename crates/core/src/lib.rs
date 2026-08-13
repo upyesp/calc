@@ -787,6 +787,42 @@ pub fn evaluate(text: &str) -> Result<Value, CalcError> {
     eval(&parse(text)?, &env)
 }
 
+/// A point on a sampled graph (ADR-0006: the core computes plot data, each
+/// frontend renders it).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Sample {
+    pub x: f64,
+    pub y: f64,
+}
+
+/// Sample an [`Expression`] as `y = f(x)` over `x_min..=x_max` at `points`
+/// evenly spaced values of `x`, which is bound in a child environment for each
+/// point. Points where evaluation errors (domain gaps, division by zero) are
+/// skipped so renderers can leave gaps.
+pub fn sample(
+    expr: &Expression,
+    x_min: f64,
+    x_max: f64,
+    points: usize,
+    env: &Env,
+) -> Result<Vec<Sample>, CalcError> {
+    let mut child = Env::new_child(env);
+    let mut out = Vec::new();
+    for i in 0..points {
+        let t = if points == 1 {
+            0.0
+        } else {
+            i as f64 / (points - 1) as f64
+        };
+        let x = x_min + t * (x_max - x_min);
+        child.set("x", Value::float(x));
+        if let Ok(Value::Float(y)) = eval(expr, &child) {
+            out.push(Sample { x, y });
+        }
+    }
+    Ok(out)
+}
+
 /// Built-in constants (π, e), resolved when a name isn't in the environment.
 fn builtin_const(name: &str) -> Option<Value> {
     match name {

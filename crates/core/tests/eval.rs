@@ -1,4 +1,4 @@
-use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, Env, Value};
+use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, sample, Sample, Env, Value};
 use bigdecimal::BigDecimal;
 use num_rational::BigRational;
 use rust_decimal::Decimal;
@@ -221,4 +221,28 @@ fn latex_input_parses() {
     assert_eq!(eval(&sqrt, &env).expect("eval"), Value::float(4.0));
     let nested = parse_latex(r"\frac{\frac{1}{2}}{2}").expect("parse_latex");
     assert_eq!(eval(&nested, &env).expect("eval"), Value::float(0.25));
+}
+
+#[test]
+fn sampler_binds_x_and_evaluates() {
+    let expr = parse("x ^ 2").expect("parse");
+    let env = Env::default();
+    let samples = sample(&expr, 0.0, 2.0, 3, &env).expect("sample");
+    assert_eq!(
+        samples,
+        vec![
+            Sample { x: 0.0, y: 0.0 },
+            Sample { x: 1.0, y: 1.0 },
+            Sample { x: 2.0, y: 4.0 },
+        ]
+    );
+}
+
+#[test]
+fn sampler_skips_points_where_eval_errors() {
+    let expr = parse("1 / x").expect("parse");
+    let env = Env::default();
+    let samples = sample(&expr, -1.0, 1.0, 3, &env).expect("sample");
+    // x = -1, 0, 1 — the x = 0 point errors (division by zero) and is skipped
+    assert_eq!(samples, vec![Sample { x: -1.0, y: -1.0 }, Sample { x: 1.0, y: 1.0 }]);
 }
