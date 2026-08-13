@@ -20,3 +20,4 @@ proptest = "1"
 num-rational = { workspace = true }
 num-bigint = { workspace = true }
 rust_decimal = { workspace = true }
+bigdecimal = { workspace = true }

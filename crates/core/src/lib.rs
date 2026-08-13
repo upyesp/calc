@@ -10,6 +10,7 @@ use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use num_complex::Complex;
 use num_rational::BigRational;
+use num_traits::{FromPrimitive, Zero};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -792,6 +793,22 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
                 ))),
             }
         }
+        "big" => {
+            let [x] = args.as_slice() else {
+                return Err(CalcError::Type(format!(
+                    "big expects 1 argument, got {}",
+                    args.len()
+                )));
+            };
+            match x {
+                Value::Float(n) => float_to_big(*n)
+                    .map(Value::Big)
+                    .ok_or_else(|| CalcError::Type(format!("cannot convert {n} to big"))),
+                other => Err(CalcError::Type(format!(
+                    "big expects a number, got {other:?}"
+                ))),
+            }
+        }
         _ => Err(CalcError::UnknownName(name.to_string())),
     }
 }
@@ -931,6 +948,17 @@ fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
                 .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a decimal")))?;
             Ok(Value::Decimal(decimal_binop(op, a.clone(), b)?))
         }
+        (Value::Big(a), Value::Big(b)) => Ok(Value::Big(big_binop(op, a.clone(), b.clone())?)),
+        (Value::Float(a), Value::Big(b)) => {
+            let a = float_to_big(*a)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to big")))?;
+            Ok(Value::Big(big_binop(op, a, b.clone())?))
+        }
+        (Value::Big(a), Value::Float(b)) => {
+            let b = float_to_big(*b)
+                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to big")))?;
+            Ok(Value::Big(big_binop(op, a.clone(), b)?))
+        }
         _ => Err(CalcError::Type(format!("cannot combine {lhs:?} and {rhs:?}"))),
     }
 }
@@ -998,4 +1026,28 @@ fn decimal_binop(op: BinOp, a: Decimal, b: Decimal) -> Result<Decimal, CalcError
 /// round-trip string form), rejecting non-finite values.
 fn float_to_decimal(n: f64) -> Option<Decimal> {
     n.to_string().parse().ok()
+}
+
+/// Convert a float to its clean decimal representation (shortest round-trip
+/// string form), rejecting non-finite values.
+fn float_to_big(n: f64) -> Option<BigDecimal> {
+    n.to_string().parse().ok()
+}
+
+fn big_binop(op: BinOp, a: BigDecimal, b: BigDecimal) -> Result<BigDecimal, CalcError> {
+    match op {
+        BinOp::Add => Ok(a + b),
+        BinOp::Sub => Ok(a - b),
+        BinOp::Mul => Ok(a * b),
+        BinOp::Div => {
+            if b.is_zero() {
+                Err(CalcError::ZeroDivision)
+            } else {
+                Ok(a / b)
+            }
+        }
+        BinOp::Pow => Err(CalcError::Type(
+            "big exponentiation is not supported yet".into(),
+        )),
+    }
 }
