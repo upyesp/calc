@@ -35,6 +35,7 @@ impl Value {
 #[derive(Debug, Clone, Default)]
 pub struct Env {
     bindings: HashMap<String, Value>,
+    functions: HashMap<String, Function>,
 }
 
 impl Env {
@@ -46,6 +47,25 @@ impl Env {
     /// Bind a name to a value.
     pub fn set(&mut self, name: impl Into<String>, value: Value) {
         self.bindings.insert(name.into(), value);
+    }
+
+    /// Look up a user-defined function.
+    pub fn function(&self, name: &str) -> Option<&Function> {
+        self.functions.get(name)
+    }
+
+    /// Define a user-defined function.
+    pub fn set_function(&mut self, name: impl Into<String>, function: Function) {
+        self.functions.insert(name.into(), function);
+    }
+
+    /// A child environment for a function call: the function table is visible
+    /// (so recursion works); the caller's bindings are not.
+    fn new_child(&self) -> Env {
+        Env {
+            bindings: HashMap::new(),
+            functions: self.functions.clone(),
+        }
     }
 }
 
@@ -71,7 +91,15 @@ pub enum Expression {
 #[derive(Debug, Clone)]
 pub enum Statement {
     Assign(String, Expression),
+    FunctionDef(String, Vec<String>, Expression),
     Expr(Expression),
+}
+
+/// A user-defined function: parameter names and a body expression.
+#[derive(Debug, Clone)]
+pub struct Function {
+    params: Vec<String>,
+    body: Expression,
 }
 
 /// Errors crossing the calc-core seams.
@@ -243,8 +271,35 @@ impl Parser {
         token
     }
 
-    /// A statement is `name = expr` (assignment) or `expr`.
+    /// A statement is `def name(params) = expr` (function definition),
+    /// `name = expr` (assignment), or `expr`.
     fn parse_statement(&mut self) -> Result<Statement, CalcError> {
+        if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "def") {
+            self.next(); // consume 'def'
+            let name = self.expect_ident("function name")?;
+            self.expect_token(Token::LParen, "'('")?;
+            let mut params = Vec::new();
+            if !matches!(self.peek(), Some(Token::RParen)) {
+                loop {
+                    params.push(self.expect_ident("parameter name")?);
+                    match self.next() {
+                        Some(Token::Comma) => continue,
+                        Some(Token::RParen) => break,
+                        Some(other) => {
+                            return Err(CalcError::Parse(format!(
+                                "expected ',' or ')', found {other:?}"
+                            )));
+                        }
+                        None => return Err(CalcError::Parse("unexpected end of input".into())),
+                    }
+                }
+            } else {
+                self.next(); // zero-parameter function
+            }
+            self.expect_token(Token::Equals, "'='")?;
+            let body = self.parse_expression()?;
+            return Ok(Statement::FunctionDef(name, params, body));
+        }
         if let Some(Token::Ident(name)) = self.peek().cloned() {
             if matches!(self.tokens.get(self.pos + 1), Some(Token::Equals)) {
                 self.next(); // consume the identifier
@@ -255,6 +310,22 @@ impl Parser {
         }
         let expr = self.parse_expression()?;
         Ok(Statement::Expr(expr))
+    }
+
+    fn expect_ident(&mut self, what: &str) -> Result<String, CalcError> {
+        match self.next() {
+            Some(Token::Ident(name)) => Ok(name),
+            Some(other) => Err(CalcError::Parse(format!("expected {what}, found {other:?}"))),
+            None => Err(CalcError::Parse("unexpected end of input".into())),
+        }
+    }
+
+    fn expect_token(&mut self, token: Token, what: &str) -> Result<(), CalcError> {
+        match self.next() {
+            Some(found) if found == token => Ok(()),
+            Some(other) => Err(CalcError::Parse(format!("expected {what}, found {other:?}"))),
+            None => Err(CalcError::Parse("unexpected end of input".into())),
+        }
     }
 
     /// Additive level: `+` and `-`, folded left-associatively.
@@ -406,6 +477,20 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             for arg in args {
                 values.push(eval(arg, env)?);
             }
+            if let Some(f) = env.function(name) {
+                if f.params.len() != values.len() {
+                    return Err(CalcError::Type(format!(
+                        "{name} expects {} arguments, got {}",
+                        f.params.len(),
+                        values.len()
+                    )));
+                }
+                let mut child = Env::new_child(env);
+                for (param, value) in f.params.iter().zip(values) {
+                    child.set(param.clone(), value);
+                }
+                return eval(&f.body, &child);
+            }
             call_builtin(name, values)
         }
     }
@@ -467,16 +552,26 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
 pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
     let mut result = None;
     for stmt in script {
-        result = Some(match stmt {
-            Statement::Expr(expr) => eval(expr, env)?,
+        match stmt {
+            Statement::Expr(expr) => result = Some(eval(expr, env)?),
             Statement::Assign(name, expr) => {
                 let value = eval(expr, env)?;
                 env.set(name.clone(), value.clone());
-                value
+                result = Some(value);
             }
-        });
+            Statement::FunctionDef(name, params, body) => {
+                env.set_function(
+                    name.clone(),
+                    Function {
+                        params: params.clone(),
+                        body: body.clone(),
+                    },
+                );
+                // a definition produces no value
+            }
+        }
     }
-    result.ok_or_else(|| CalcError::Parse("empty script".into()))
+    result.ok_or_else(|| CalcError::Parse("script produced no value".into()))
 }
 
 /// Apply a float binary op to two [`Value`]s. Only the default `Float` path is

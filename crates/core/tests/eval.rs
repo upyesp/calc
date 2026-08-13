@@ -105,3 +105,11 @@ fn assignment_then_use_in_next_statement() {
     assert_eq!(result, Value::float(6.0));
     assert_eq!(env.get("x"), Some(&Value::float(5.0)));
 }
+
+#[test]
+fn user_defined_function() {
+    let mut env = Env::default();
+    let script = parse_script("def f(x) = x ^ 2; f(3)").expect("parse_script");
+    let result = run(&script, &mut env).expect("run");
+    assert_eq!(result, Value::float(9.0));
+}
