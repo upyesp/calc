@@ -1,0 +1,8 @@
+# Trunk build config for calc-web.
+#
+# wasm-opt: Debian's binaryen 108 is too old to parse modern rustc wasm output,
+# so trunk downloads a newer prebuilt binaryen from the WebAssembly/binaryen
+# releases and runs it at level "z" (super size-focused) — see data-wasm-opt
+# in index.html.
+[tools]
+wasm_opt = "version_132"
