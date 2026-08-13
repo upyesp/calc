@@ -960,7 +960,7 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
 
 /// Execute a script's statements in order against a mutable [`Env`], returning
 /// the last statement's value (the script seam).
-pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
+pub fn run(script: &[Statement], env: &mut Env) -> Result<Option<Value>, CalcError> {
     let mut steps = STEP_LIMIT;
     run_inner(script, env, &mut steps)
 }
@@ -976,7 +976,7 @@ fn consume_step(steps: &mut u64) -> Result<(), CalcError> {
     Ok(())
 }
 
-fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Value, CalcError> {
+fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Option<Value>, CalcError> {
     let mut result = None;
     for stmt in script {
         consume_step(steps)?;
@@ -1000,7 +1000,7 @@ fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Val
             Statement::While(cond, body) => run_while(cond, body, env, steps)?,
         }
     }
-    result.ok_or_else(|| CalcError::Parse("script produced no value".into()))
+    Ok(result)
 }
 
 /// Execute one statement for its effect (used by loop bodies; loops produce no
@@ -1054,11 +1054,13 @@ fn run_while(
 
 /// An interactive session: a persistent [`Env`] plus history — the shared
 /// "submit a line" logic for the CLI REPL, TUI, and web frontends, so it
-/// exists once.
+/// exists once. Also records the source of each `def` line so frontends can
+/// save user-defined functions.
 #[derive(Debug, Clone, Default)]
 pub struct Session {
     env: Env,
     history: Vec<String>,
+    defs: HashMap<String, String>,
 }
 
 impl Session {
@@ -1066,9 +1068,18 @@ impl Session {
         Self::default()
     }
 
+    /// A session pre-seeded with history (e.g. loaded from the store).
+    pub fn with_history(history: Vec<String>) -> Self {
+        Self {
+            history,
+            ..Self::default()
+        }
+    }
+
     /// Submit a script line: run it against the environment, record it in
-    /// history, and return the display string (`= value` or `error: ...`). An
-    /// empty line does nothing.
+    /// history, and return the display string (`= value`, `error: ...`, or
+    /// empty for a line that produced no value, like a bare `def`). An empty
+    /// line does nothing.
     pub fn submit(&mut self, line: &str) -> String {
         let line = line.trim().to_string();
         if line.is_empty() {
@@ -1076,12 +1087,20 @@ impl Session {
         }
         let output = match parse_script(&line) {
             Ok(script) => match run(&script, &mut self.env) {
-                Ok(value) => format!("= {value}"),
+                Ok(Some(value)) => format!("= {value}"),
+                Ok(None) => String::new(),
                 Err(e) => format!("error: {e}"),
             },
             Err(e) => format!("error: {e}"),
         };
-        self.history.push(format!("{line}  {output}"));
+        if output.is_empty() {
+            self.history.push(line.clone());
+        } else {
+            self.history.push(format!("{line}  {output}"));
+        }
+        if let Some(name) = def_name(&line) {
+            self.defs.insert(name, line);
+        }
         output
     }
 
@@ -1092,6 +1111,22 @@ impl Session {
     /// The environment, for frontends that need it (e.g. graphing).
     pub fn env(&self) -> &Env {
         &self.env
+    }
+
+    /// The source text of every `def` line submitted this session, by name.
+    pub fn def_sources(&self) -> &HashMap<String, String> {
+        &self.defs
+    }
+}
+
+/// The name defined by a `def name(...) = ...` line, if any.
+fn def_name(line: &str) -> Option<String> {
+    let rest = line.trim().strip_prefix("def")?.trim_start();
+    let name: String = rest.chars().take_while(|c| c.is_alphabetic() || *c == '_').collect();
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
     }
 }
 

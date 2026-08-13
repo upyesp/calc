@@ -105,7 +105,7 @@ fn unary_minus_binds_looser_than_power() {
 fn assignment_then_use_in_next_statement() {
     let mut env = Env::default();
     let script = parse_script("x = 5; x + 1").expect("parse_script");
-    let result = run(&script, &mut env).expect("run");
+    let result = run(&script, &mut env).expect("run").expect("value");
     assert_eq!(result, Value::float(6.0));
     assert_eq!(env.get("x"), Some(&Value::float(5.0)));
 }
@@ -114,7 +114,7 @@ fn assignment_then_use_in_next_statement() {
 fn user_defined_function() {
     let mut env = Env::default();
     let script = parse_script("def f(x) = x ^ 2; f(3)").expect("parse_script");
-    let result = run(&script, &mut env).expect("run");
+    let result = run(&script, &mut env).expect("run").expect("value");
     assert_eq!(result, Value::float(9.0));
 }
 
@@ -140,7 +140,7 @@ fn user_function_recurses() {
     let script =
         parse_script("def fact(n) = if n <= 1 then 1 else n * fact(n - 1); fact(5)")
             .expect("parse_script");
-    let result = run(&script, &mut env).expect("run");
+    let result = run(&script, &mut env).expect("run").expect("value");
     assert_eq!(result, Value::float(120.0));
 }
 
@@ -169,7 +169,7 @@ fn float_promotes_to_rational_when_mixed() {
 fn while_loop_repeats_until_condition_fails() {
     let mut env = Env::default();
     let script = parse_script("x = 0; while x < 3 do x = x + 1; x").expect("parse_script");
-    let result = run(&script, &mut env).expect("run");
+    let result = run(&script, &mut env).expect("run").expect("value");
     assert_eq!(result, Value::float(3.0));
 }
 
@@ -269,5 +269,24 @@ fn session_submits_and_keeps_history() {
     assert_eq!(session.submit("x * 2"), "= 10");
     assert_eq!(session.history().len(), 2);
     assert_eq!(session.submit(""), "");
+    assert_eq!(session.history().len(), 2);
+}
+
+#[test]
+fn session_def_only_line_produces_no_output_and_records_source() {
+    let mut session = Session::new();
+    assert_eq!(session.submit("def f(x) = x ^ 2"), "");
+    assert!(!session.history().iter().any(|h| h.contains("error")));
+    assert_eq!(
+        session.def_sources().get("f").map(String::as_str),
+        Some("def f(x) = x ^ 2")
+    );
+}
+
+#[test]
+fn session_with_history_seeds_and_submit_appends() {
+    let mut session = Session::with_history(vec!["old  = 1".to_string()]);
+    assert_eq!(session.history().len(), 1);
+    assert_eq!(session.submit("1 + 1"), "= 2");
     assert_eq!(session.history().len(), 2);
 }
