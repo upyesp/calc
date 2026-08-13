@@ -195,3 +195,10 @@ fn boolean_operators() {
     assert_eq!(eval_str("not 2 > 1"), Value::Bool(false));
     assert_eq!(eval_str("not (2 > 3)"), Value::Bool(true));
 }
+
+#[test]
+fn runaway_loop_hits_the_step_limit() {
+    let mut env = Env::default();
+    let script = parse_script("x = 0; while x < 100001 do x = x + 1").expect("parse_script");
+    assert!(run(&script, &mut env).is_err());
+}

@@ -134,6 +134,8 @@ pub enum CalcError {
     Domain(String),
     #[error("division by zero")]
     ZeroDivision,
+    #[error("step limit exceeded")]
+    StepLimit,
 }
 
 /// Parse plain text into an [`Expression`] (the plain-text input seam).
@@ -797,8 +799,25 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
 /// Execute a script's statements in order against a mutable [`Env`], returning
 /// the last statement's value (the script seam).
 pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
+    let mut steps = STEP_LIMIT;
+    run_inner(script, env, &mut steps)
+}
+
+/// Maximum statement executions per `run` — protects against runaway loops.
+const STEP_LIMIT: u64 = 100_000;
+
+fn consume_step(steps: &mut u64) -> Result<(), CalcError> {
+    if *steps == 0 {
+        return Err(CalcError::StepLimit);
+    }
+    *steps -= 1;
+    Ok(())
+}
+
+fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Value, CalcError> {
     let mut result = None;
     for stmt in script {
+        consume_step(steps)?;
         match stmt {
             Statement::Expr(expr) => result = Some(eval(expr, env)?),
             Statement::Assign(name, expr) => {
@@ -816,7 +835,7 @@ pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
                 );
                 // a definition produces no value
             }
-            Statement::While(cond, body) => run_while(cond, body, env)?,
+            Statement::While(cond, body) => run_while(cond, body, env, steps)?,
         }
     }
     result.ok_or_else(|| CalcError::Parse("script produced no value".into()))
@@ -824,7 +843,8 @@ pub fn run(script: &[Statement], env: &mut Env) -> Result<Value, CalcError> {
 
 /// Execute one statement for its effect (used by loop bodies; loops produce no
 /// value).
-fn execute_stmt(stmt: &Statement, env: &mut Env) -> Result<(), CalcError> {
+fn execute_stmt(stmt: &Statement, env: &mut Env, steps: &mut u64) -> Result<(), CalcError> {
+    consume_step(steps)?;
     match stmt {
         Statement::Expr(expr) => {
             eval(expr, env)?;
@@ -845,15 +865,20 @@ fn execute_stmt(stmt: &Statement, env: &mut Env) -> Result<(), CalcError> {
             );
             Ok(())
         }
-        Statement::While(cond, body) => run_while(cond, body, env),
+        Statement::While(cond, body) => run_while(cond, body, env, steps),
     }
 }
 
 /// Drive a while loop: evaluate the condition, run the body while it's true.
-fn run_while(cond: &Expression, body: &Statement, env: &mut Env) -> Result<(), CalcError> {
+fn run_while(
+    cond: &Expression,
+    body: &Statement,
+    env: &mut Env,
+    steps: &mut u64,
+) -> Result<(), CalcError> {
     loop {
         match eval(cond, env)? {
-            Value::Bool(true) => execute_stmt(body, env)?,
+            Value::Bool(true) => execute_stmt(body, env, steps)?,
             Value::Bool(false) => break,
             other => {
                 return Err(CalcError::Type(format!(
