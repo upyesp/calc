@@ -35,7 +35,7 @@ jobs:
 
       - uses: jetli/trunk-action@v0.5.0
         with:
-          version: "0.21.14"
+          version: "v0.21.14"
 
       - name: Build the PWA
         run: trunk build --release
