@@ -1,17 +1,16 @@
 //! calc-tui — native full-screen terminal frontend (ADR-0001).
 //!
-//! The testable seam is [`App`] (input/result/history + a persistent [`Env`]);
-//! the ratatui event loop in `main.rs` is a thin shell over it.
+//! The testable seam is [`App`] (input/result + the shared [`Session`]); the
+//! ratatui event loop in `main.rs` is a thin shell over it.
 
-use calc_core::{parse_script, run, Env};
+use calc_core::Session;
 
 /// The TUI's application state — the testable seam. Rendering is thin.
 #[derive(Default)]
 pub struct App {
     input: String,
     result: String,
-    history: Vec<String>,
-    env: Env,
+    session: Session,
 }
 
 impl App {
@@ -28,7 +27,7 @@ impl App {
     }
 
     pub fn history(&self) -> &[String] {
-        &self.history
+        self.session.history()
     }
 
     pub fn clear_input(&mut self) {
@@ -43,22 +42,9 @@ impl App {
         self.input.pop();
     }
 
-    /// Evaluate the current input as a script against the persistent
-    /// environment, record it in history, and show the result.
+    /// Evaluate the current input via the shared [`Session`].
     pub fn submit(&mut self) {
-        let line = self.input.trim().to_string();
-        if line.is_empty() {
-            return;
-        }
-        let output = match parse_script(&line) {
-            Ok(script) => match run(&script, &mut self.env) {
-                Ok(value) => format!("= {value}"),
-                Err(e) => format!("error: {e}"),
-            },
-            Err(e) => format!("error: {e}"),
-        };
-        self.history.push(format!("{line}  {output}"));
-        self.result = output;
+        self.result = self.session.submit(&self.input);
         self.input.clear();
     }
 }

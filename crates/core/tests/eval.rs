@@ -1,4 +1,4 @@
-use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, sample, Sample, Env, Value};
+use calc_core::{eval, evaluate, parse, parse_latex, parse_script, run, sample, Sample, Env, Session, Value};
 use bigdecimal::BigDecimal;
 use num_rational::BigRational;
 use rust_decimal::Decimal;
@@ -260,4 +260,14 @@ fn values_display_cleanly() {
         eval_str("dec(0.1) + dec(0.2)").to_string(),
         "0.3"
     );
+}
+
+#[test]
+fn session_submits_and_keeps_history() {
+    let mut session = Session::new();
+    assert_eq!(session.submit("x = 5; x + 1"), "= 6");
+    assert_eq!(session.submit("x * 2"), "= 10");
+    assert_eq!(session.history().len(), 2);
+    assert_eq!(session.submit(""), "");
+    assert_eq!(session.history().len(), 2);
 }

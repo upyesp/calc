@@ -5,7 +5,7 @@
 
 use std::io::{self, BufRead, Write};
 
-use calc_core::{parse_script, run, Env};
+use calc_core::Session;
 use clap::Parser;
 
 /// Calc: a programmable, scriptable calculator.
@@ -37,7 +37,7 @@ fn one_shot(expr: &str) -> Result<(), calc_core::CalcError> {
 
 /// Interactive REPL: scripts run against a persistent environment.
 fn repl() -> Result<(), calc_core::CalcError> {
-    let mut env = Env::default();
+    let mut session = Session::new();
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
     loop {
@@ -51,13 +51,7 @@ fn repl() -> Result<(), calc_core::CalcError> {
         if line == "quit" || line == "exit" {
             break;
         }
-        match parse_script(&line) {
-            Ok(script) => match run(&script, &mut env) {
-                Ok(value) => println!("= {value}"),
-                Err(e) => println!("error: {e}"),
-            },
-            Err(e) => println!("error: {e}"),
-        }
+        println!("{}", session.submit(&line));
     }
     Ok(())
 }

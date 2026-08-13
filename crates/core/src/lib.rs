@@ -1052,6 +1052,49 @@ fn run_while(
     Ok(())
 }
 
+/// An interactive session: a persistent [`Env`] plus history — the shared
+/// "submit a line" logic for the CLI REPL, TUI, and web frontends, so it
+/// exists once.
+#[derive(Debug, Clone, Default)]
+pub struct Session {
+    env: Env,
+    history: Vec<String>,
+}
+
+impl Session {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Submit a script line: run it against the environment, record it in
+    /// history, and return the display string (`= value` or `error: ...`). An
+    /// empty line does nothing.
+    pub fn submit(&mut self, line: &str) -> String {
+        let line = line.trim().to_string();
+        if line.is_empty() {
+            return String::new();
+        }
+        let output = match parse_script(&line) {
+            Ok(script) => match run(&script, &mut self.env) {
+                Ok(value) => format!("= {value}"),
+                Err(e) => format!("error: {e}"),
+            },
+            Err(e) => format!("error: {e}"),
+        };
+        self.history.push(format!("{line}  {output}"));
+        output
+    }
+
+    pub fn history(&self) -> &[String] {
+        &self.history
+    }
+
+    /// The environment, for frontends that need it (e.g. graphing).
+    pub fn env(&self) -> &Env {
+        &self.env
+    }
+}
+
 /// A binary arithmetic operator, dispatched per number layer (ADR-0005).
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum BinOp {
