@@ -36,3 +36,9 @@ fn division_is_left_associative() {
     let result = eval(&parse("8 / 4 / 2").expect("parse")).expect("eval");
     assert_eq!(result, Value::float(1.0));
 }
+
+#[test]
+fn parentheses_group_expressions() {
+    let result = eval(&parse("2 * (3 + 4)").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(14.0));
+}

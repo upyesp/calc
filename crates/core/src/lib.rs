@@ -72,6 +72,8 @@ enum Token {
     Minus,
     Star,
     Slash,
+    LParen,
+    RParen,
 }
 
 fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
@@ -96,6 +98,14 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             }
             '/' => {
                 tokens.push(Token::Slash);
+                chars.next();
+            }
+            '(' => {
+                tokens.push(Token::LParen);
+                chars.next();
+            }
+            ')' => {
+                tokens.push(Token::RParen);
                 chars.next();
             }
             c if c.is_ascii_digit() || c == '.' => {
@@ -182,6 +192,16 @@ impl Parser {
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
+            Some(Token::LParen) => {
+                let expr = self.parse_expression()?;
+                match self.next() {
+                    Some(Token::RParen) => Ok(expr),
+                    Some(other) => {
+                        Err(CalcError::Parse(format!("expected ')', found {other:?}")))
+                    }
+                    None => Err(CalcError::Parse("unexpected end of input".into())),
+                }
+            }
             Some(other) => Err(CalcError::Parse(format!("expected a number, found {other:?}"))),
             None => Err(CalcError::Parse("unexpected end of input".into())),
         }
