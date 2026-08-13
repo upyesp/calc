@@ -54,3 +54,9 @@ fn division_by_zero_is_an_error() {
     let result = eval(&parse("1 / 0").expect("parse"));
     assert!(result.is_err());
 }
+
+#[test]
+fn exponentiation_is_right_associative() {
+    let result = eval(&parse("2 ^ 3 ^ 2").expect("parse")).expect("eval");
+    assert_eq!(result, Value::float(512.0));
+}

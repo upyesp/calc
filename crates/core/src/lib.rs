@@ -41,6 +41,7 @@ pub enum Expression {
     Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),
     Div(Box<Expression>, Box<Expression>),
+    Pow(Box<Expression>, Box<Expression>),
 }
 
 /// Errors crossing the calc-core seams.
@@ -75,6 +76,7 @@ enum Token {
     Minus,
     Star,
     Slash,
+    Caret,
     LParen,
     RParen,
 }
@@ -101,6 +103,10 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             }
             '/' => {
                 tokens.push(Token::Slash);
+                chars.next();
+            }
+            '^' => {
+                tokens.push(Token::Caret);
                 chars.next();
             }
             '(' => {
@@ -173,23 +179,35 @@ impl Parser {
 
     /// Multiplicative level: `*` and `/`, folded left-associatively.
     fn parse_term(&mut self) -> Result<Expression, CalcError> {
-        let mut left = self.parse_factor()?;
+        let mut left = self.parse_pow()?;
         loop {
             match self.peek() {
                 Some(Token::Star) => {
                     self.next();
-                    let right = self.parse_factor()?;
+                    let right = self.parse_pow()?;
                     left = Expression::Mul(Box::new(left), Box::new(right));
                 }
                 Some(Token::Slash) => {
                     self.next();
-                    let right = self.parse_factor()?;
+                    let right = self.parse_pow()?;
                     left = Expression::Div(Box::new(left), Box::new(right));
                 }
                 _ => break,
             }
         }
         Ok(left)
+    }
+
+    /// Power level: `^`, right-associative, binds tighter than `*` and `/`.
+    fn parse_pow(&mut self) -> Result<Expression, CalcError> {
+        let base = self.parse_factor()?;
+        if matches!(self.peek(), Some(Token::Caret)) {
+            self.next();
+            let exponent = self.parse_pow()?;
+            Ok(Expression::Pow(Box::new(base), Box::new(exponent)))
+        } else {
+            Ok(base)
+        }
     }
 
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
@@ -236,6 +254,7 @@ pub fn eval(expr: &Expression) -> Result<Value, CalcError> {
             }
             binop(l, r, |a, b| a / b)
         }
+        Expression::Pow(lhs, rhs) => binop(eval(lhs)?, eval(rhs)?, |a, b| a.powf(b)),
     }
 }
 
