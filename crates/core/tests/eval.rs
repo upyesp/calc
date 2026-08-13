@@ -64,3 +64,8 @@ fn variable_resolves_from_environment() {
     let result = eval(&parse("x + 2").expect("parse"), &env).expect("eval");
     assert_eq!(result, Value::float(5.0));
 }
+
+#[test]
+fn unknown_variable_is_an_error() {
+    assert!(eval(&parse("q").expect("parse"), &Env::default()).is_err());
+}
