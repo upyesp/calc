@@ -425,6 +425,7 @@ version = "0.1.0"
 dependencies = [
  "calc-core",
  "calc-i18n",
+ "calc-shell",
  "calc-store",
  "clap",
  "sys-locale",
@@ -453,6 +454,15 @@ dependencies = [
  "fluent",
  "fluent-langneg 0.14.2",
  "unic-langid",
+]
+
+[[package]]
+name = "calc-shell"
+version = "0.1.0"
+dependencies = [
+ "calc-core",
+ "calc-i18n",
+ "calc-store",
 ]
 
 [[package]]

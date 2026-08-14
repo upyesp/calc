@@ -10,10 +10,8 @@ use std::io::{self, BufRead, Write};
 
 use calc_core::Session;
 use calc_i18n::Localizer;
-use calc_store::persist::{
-    default_store_dir, load_language, load_session, save_function, save_history, save_language,
-    save_script,
-};
+use calc_shell::{plain, run_command};
+use calc_store::persist::{default_store_dir, load_language, load_session, save_history};
 use calc_store::{DocStore, FsStore};
 use clap::Parser;
 
@@ -74,61 +72,11 @@ fn repl() -> Result<(), calc_core::CalcError> {
         if line == "quit" || line == "exit" {
             break;
         }
-        if let Some(code) = line.strip_prefix("language ") {
-            let code = code.trim();
-            if calc_i18n::SUPPORTED_LOCALES.contains(&code) {
-                match save_language(&store, code) {
-                    Ok(()) => {
-                        localizer = Localizer::resolve(Some(code), &[]);
-                        println!(
-                            "{}",
-                            strip(localizer.lookup_args("language-set", &[("code", code)]))
-                        );
-                    }
-                    Err(e) => println!("error: {e}"),
-                }
-            } else {
-                println!(
-                    "{}",
-                    strip(localizer.lookup_args(
-                        "unsupported-language",
-                        &[("code", code), ("supported", &calc_i18n::SUPPORTED_LOCALES.join(", "))]
-                    ))
-                );
-            }
-            continue;
-        }
-        if let Some(rest) = line.strip_prefix("save script ") {
-            let name = rest.trim();
-            match session.last_line() {
-                Some(source)
-                    if !source.starts_with("save")
-                        && !source.starts_with("language")
-                        && !source.starts_with("quit") =>
-                {
-                    match save_script(&store, name, source) {
-                        Ok(()) => println!(
-                            "{}",
-                            strip(localizer.lookup_args("saved-script", &[("name", name)]))
-                        ),
-                        Err(e) => println!("error: {e}"),
-                    }
-                }
-                _ => println!("{}", strip(localizer.lookup("nothing-to-save"))),
-            }
-            continue;
-        }
-        if let Some(name) = line.strip_prefix("save ") {
-            let name = name.trim();
-            match session.def_sources().get(name) {
-                Some(source) => match save_function(&store, name, source) {
-                    Ok(()) => println!("{}", strip(localizer.lookup_args("saved", &[("name", name)]))),
-                    Err(e) => println!("error: {e}"),
-                },
-                None => println!(
-                    "{}",
-                    strip(localizer.lookup_args("no-definition", &[("name", name)]))
-                ),
+        if let Some(cmd) = calc_shell::classify(&line) {
+            let handled = run_command(&cmd, &mut session, &store, &localizer);
+            println!("{}", plain(handled.message));
+            if let Some(code) = handled.language {
+                localizer = Localizer::resolve(Some(&code), &[]);
             }
             continue;
         }
@@ -140,11 +88,4 @@ fn repl() -> Result<(), calc_core::CalcError> {
         let _ = save_history(&store, session.history());
     }
     Ok(())
-}
-
-/// Fluent wraps interpolated values in bidi isolating characters for RTL
-/// safety; strip them for terminal display (terminals don't need the
-/// protection and the isolates render as invisible-but-annoying gaps).
-fn strip(s: String) -> String {
-    s.chars().filter(|c| *c != '\u{2068}' && *c != '\u{2069}').collect()
 }

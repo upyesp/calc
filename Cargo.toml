@@ -4,6 +4,7 @@ members = [
     "crates/core",
     "crates/store",
     "crates/i18n",
+    "crates/shell",
     "crates/cli",
     "crates/tui",
     "crates/web",
@@ -14,6 +15,7 @@ default-members = [
     "crates/core",
     "crates/store",
     "crates/i18n",
+    "crates/shell",
     "crates/cli",
     "crates/tui",
 ]
