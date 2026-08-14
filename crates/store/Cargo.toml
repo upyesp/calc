@@ -1,6 +1,6 @@
 [package]
 name = "calc-store"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "The Storage capability and persisted schema — one schema, per-target backends."

@@ -517,7 +517,27 @@ Cada cálculo se añade a la lista de historial debajo del resultado, para que
 puedas desplazarte hacia atrás y ver lo que hiciste. El historial se
 conserva mientras la página está abierta.
 
-### 2.4 Instalarla y usarla sin conexión
+### 2.4 Gráficas
+
+Escribe `graph` seguido de una expresión y pulsa **Intro**:
+
+```text
+graph x ^ 2
+```
+
+Calc dibuja la curva y = f(x) desde x = −10 hasta x = 10 debajo del
+campo de entrada, con un rótulo que muestra lo representado. Puedes
+graficar cualquier expresión, incluidas tus propias funciones:
+
+```text
+def f(x) = x ^ 3
+graph f(x)
+```
+
+Los puntos donde la expresión no tiene valor (una división por cero, por
+ejemplo) se omiten, dejando un hueco en la curva.
+
+### 2.5 Instalarla y usarla sin conexión
 
 La aplicación web es una *progressive web app*: después de una visita
 funciona completamente sin conexión y puedes instalarla como una app normal.
@@ -533,7 +553,7 @@ funciona completamente sin conexión y puedes instalarla como una app normal.
 Una vez instalada, ábrela desde tu pantalla de inicio o lista de apps — se
 abre al instante, incluso sin conexión a internet.
 
-### 2.5 Lo que la aplicación web no hace
+### 2.6 Lo que la aplicación web no hace
 
 La aplicación web es intencionadamente simple: evalúa expresiones y guarda
 un historial de sesión. Los comandos **save**, **save script** y
@@ -581,8 +601,9 @@ chmod +x calc-desktop-linux-x86_64.AppImage
 
 Inicia Calc como cualquier otra aplicación. Obtienes una ventana con la misma
 interfaz que la aplicación web: escribe una expresión, pulsa **Intro** o
-haz clic en **=**, y lee el resultado. La ventana se puede redimensionar
-libremente.
+haz clic en **=**, y lee el resultado. Las gráficas también funcionan aquí
+— `graph x ^ 2` dibuja en la ventana (capítulo 2.4). La ventana se puede
+redimensionar libremente.
 
 ### 3.3 Almacenamiento: un mismo almacén con la CLI y la TUI
 
@@ -605,7 +626,7 @@ definidas por scripts guardados. Los comandos `save`, `save script` y
 `language` del capítulo 4 funcionan exactamente igual aquí.
 
 > La aplicación web en el navegador es la única versión que no usa este
-> almacenamiento: cada sesión vive aparte (capítulo 2.5).
+> almacenamiento: cada sesión vive aparte (capítulo 2.6).
 
 ## 4. La línea de comandos (CLI)
 

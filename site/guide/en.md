@@ -514,7 +514,27 @@ Every calculation is added to the history list beneath the result, so you
 can scroll back and see what you did. The history is kept while the page is
 open.
 
-### 2.4 Installing it and using it offline
+### 2.4 Graphing
+
+Type `graph` followed by an expression and press **Enter**:
+
+```text
+graph x ^ 2
+```
+
+Calc draws the curve y = f(x) from x = −10 to x = 10 beneath the input,
+with a caption showing what was plotted. You can graph any expression,
+including your own functions:
+
+```text
+def f(x) = x ^ 3
+graph f(x)
+```
+
+Points where the expression has no value (a division by zero, for example)
+are skipped, leaving a gap in the curve.
+
+### 2.5 Installing it and using it offline
 
 The web app is a *progressive web app*: after one visit it works fully
 offline, and you can install it like a normal app.
@@ -527,7 +547,7 @@ offline, and you can install it like a normal app.
 Once installed, launch it from your home screen or app list — it opens
 instantly, even with no internet connection.
 
-### 2.5 What the web app does not do
+### 2.6 What the web app does not do
 
 The web app is intentionally simple: it evaluates expressions and keeps a
 session history. The **save**, **save script**, and **language** commands
@@ -572,7 +592,8 @@ chmod +x calc-desktop-linux-x86_64.AppImage
 
 Launch Calc like any other application. You get a window with the same
 interface as the web app: type an expression, press **Enter** or click
-**=**, and read the result. The window can be resized freely.
+**=**, and read the result. Graphing works here too — `graph x ^ 2` draws
+in the window (chapter 2.4). The window can be resized freely.
 
 ### 3.3 Storage: one store with the CLI and TUI
 
@@ -594,7 +615,7 @@ window opens, including variables set by saved scripts. The `save`,
 same here.
 
 > The web app in the browser is the one version that does not use this
-> storage — it keeps each session to itself (chapter 2.5).
+> storage — it keeps each session to itself (chapter 2.6).
 
 ## 4. The command line (CLI)
 

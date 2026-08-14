@@ -94,6 +94,28 @@
       flex-direction: column;
       gap: 0.25rem;
     }
+    .graph {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    /* The visible text alternative for the plot (WCAG 1.1.1): what is
+       plotted, readable by everyone. --muted is 5.22:1 on --bg (1.4.3). */
+    .graph-caption {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    /* The curve is currentColor = --accent (8.28:1 on --bg); the axes
+       blend toward the background at opacity 0.4 to ~3.9:1 — both clear
+       the 3:1 graphics threshold (WCAG 1.4.11). */
+    .graph svg { color: var(--accent); }
+    .graph svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+    }
   </style>
 </head>
 <body>

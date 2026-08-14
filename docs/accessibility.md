@@ -15,14 +15,14 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 
 | Criterion | Status | Evidence / notes |
 |---|---|---|
-| 1.1.1 Non-text content | PASS | Icon is a favicon (no alt needed). Button has text content plus `aria-label="Evaluate"` (2.4.6). |
+| 1.1.1 Non-text content | PASS | Icon is a favicon (no alt needed). Button has text content plus `aria-label="Evaluate"` (2.4.6). The graph SVG is `role="img"` with a `title` and an `aria-label` naming the plotted expression, and a visible caption (`y = <source>`) sits above it — the TUI pattern, ported (ADR-0009). |
 | 1.3.1 Info & relationships | PASS | Native `form`/`input`/`button`, `ul` history, single `h1`. |
 | 1.3.2 Meaningful sequence | PASS | Single-column flex. |
 | 1.4.1 Use of color | PASS | No color-only information (result is text; errors are text). |
 | 1.4.3 Contrast (AA) | PASS | `--text` on `--bg` 17.0:1; result 17.0:1; input text on `--panel` 13.9:1; `--muted` history on `--bg` 5.2:1; button `#000` on `--accent` 10.2:1; placeholder `#a1a1a6` on `--panel` 5.4:1. |
 | 1.4.4 Resize text 200% | PASS | Flex column, no fixed heights, `overflow-wrap: anywhere` on results. |
 | 1.4.10 Reflow | PASS | Single column, no horizontal scroll at 320px. |
-| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Border is now `--border: #76767a` — 3.8:1 vs `--bg`, 3.1:1 vs `--panel`. Focus indicators: see 2.4.7. |
+| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Border is now `--border: #76767a` — 3.8:1 vs `--bg`, 3.1:1 vs `--panel`. Focus indicators: see 2.4.7. Graph curve `--accent` on `--bg` is 8.3:1; the axes blend to ~3.9:1 at opacity 0.4 — both ≥ 3:1. |
 | 1.4.12 Text spacing | PASS | No fixed line-heights that would clip. |
 | 1.4.13 Content on hover | N/A | No hover-triggered content. |
 

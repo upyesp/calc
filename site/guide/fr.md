@@ -522,7 +522,28 @@ Chaque calcul est ajouté à la liste d'historique sous le résultat, pour que
 vous puissiez remonter et voir ce que vous avez fait. L'historique est
 conservé tant que la page est ouverte.
 
-### 2.4 L'installer et l'utiliser hors ligne
+### 2.4 Les graphiques
+
+Tapez `graph` suivi d'une expression et appuyez sur **Entrée** :
+
+```text
+graph x ^ 2
+```
+
+Calc échantillonne la courbe y = f(x) de x = −10 à x = 10 et la dessine
+sous le champ de saisie, avec une légende indiquant ce qui est tracé. Vous
+pouvez tracer n'importe quelle expression, y compris vos propres
+fonctions :
+
+```text
+def f(x) = x ^ 3
+graph f(x)
+```
+
+Les points où l'expression n'a pas de valeur (une division par zéro, par
+exemple) sont simplement ignorés, laissant un vide dans la courbe.
+
+### 2.5 L'installer et l'utiliser hors ligne
 
 L'application web est une *progressive web app* : après une visite elle
 fonctionne entièrement hors ligne, et vous pouvez l'installer comme une
@@ -539,7 +560,7 @@ application normale.
 Une fois installée, lancez-la depuis votre écran d'accueil ou votre liste
 d'applications — elle s'ouvre instantanément, même sans connexion internet.
 
-### 2.5 Ce que l'application web ne fait pas
+### 2.6 Ce que l'application web ne fait pas
 
 L'application web est volontairement simple : elle évalue des expressions et
 garde un historique de session. Les commandes **save**, **save script** et
@@ -590,8 +611,9 @@ chmod +x calc-desktop-linux-x86_64.AppImage
 
 Lancez Calc comme n'importe quelle application. Vous obtenez une fenêtre
 avec la même interface que l'application web : tapez une expression,
-appuyez sur **Entrée** ou cliquez sur **=**, et lisez le résultat. La
-fenêtre se redimensionne librement.
+appuyez sur **Entrée** ou cliquez sur **=**, et lisez le résultat. Les
+graphiques fonctionnent aussi ici — `graph x ^ 2` dessine dans la fenêtre
+(chapitre 2.4). La fenêtre se redimensionne librement.
 
 ### 3.3 Stockage : un seul magasin partagé avec la CLI et la TUI
 
@@ -614,7 +636,7 @@ définies par des scripts enregistrés. Les commandes `save`, `save script`
 et `language` du chapitre 4 fonctionnent exactement pareil ici.
 
 > L'application web dans le navigateur est la seule version qui n'utilise
-> pas ce stockage : chaque session vit isolée (chapitre 2.5).
+> pas ce stockage : chaque session vit isolée (chapitre 2.6).
 
 ## 4. La ligne de commande (CLI)
 

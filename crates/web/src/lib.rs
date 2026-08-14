@@ -8,9 +8,10 @@
 //! whole state.
 
 mod bridge;
+pub mod graph;
 
 use bridge::{Bridge, InitState};
-use calc_core::Session;
+use calc_core::{parse, sample, Sample, Session};
 use calc_i18n::Localizer;
 use calc_shell::{classify, message, prepare};
 use wasm_bindgen::prelude::*;
@@ -25,6 +26,7 @@ fn calc_app() -> Html {
     let input = use_state(String::new);
     let result = use_state(String::new);
     let localizer = use_state(|| Localizer::resolve(None, &[]));
+    let graph = use_state(|| Option::<(Vec<Sample>, String)>::None);
     let bridge = Bridge::detect();
 
     // Inside the desktop shell: rebuild the session from the native store —
@@ -80,9 +82,28 @@ fn calc_app() -> Html {
         let input = input.clone();
         let result = result.clone();
         let localizer = localizer.clone();
+        let graph = graph.clone();
         Callback::from(move |e: SubmitEvent| {
             e.prevent_default();
             let line = (*input).trim().to_string();
+
+            // Graphing (ADR-0006: the core samples, the frontend renders).
+            // Same command and domain as the TUI; history is untouched.
+            if let Some(source) = line.strip_prefix("graph ") {
+                let source = source.trim();
+                match (|| {
+                    let expr = parse(source)?;
+                    sample(&expr, -10.0, 10.0, 120, (*session).env())
+                })() {
+                    Ok(samples) => {
+                        graph.set(Some((samples, source.to_string())));
+                        result.set(format!("graph: {source}"));
+                    }
+                    Err(e) => result.set(format!("error: {e}")),
+                }
+                input.set(String::new());
+                return;
+            }
 
             // Shell commands (calc-shell policy): persist through the
             // bridge in the desktop shell; explain the web app's limits
@@ -145,6 +166,21 @@ fn calc_app() -> Html {
                 <button type="submit" aria-label="Evaluate">{ "=" }</button>
             </form>
             <div id="calc-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
+            {
+                match (*graph).clone() {
+                    Some((samples, source)) => {
+                        let caption = format!("y = {source}");
+                        // The visible text alternative: what is plotted.
+                        html! {
+                            <section class="graph">
+                                <p class="graph-caption">{ caption }</p>
+                                { graph::graph_html(&samples, &source) }
+                            </section>
+                        }
+                    }
+                    None => html! {},
+                }
+            }
             <ul class="history">
                 { for session.history().iter().map(|h| html! { <li>{ h.clone() } </li> }) }
             </ul>
