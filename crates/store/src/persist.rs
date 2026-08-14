@@ -23,16 +23,27 @@ pub fn default_store_dir() -> std::path::PathBuf {
         })
 }
 
+/// The saved lines to replay at startup, in load order: functions first,
+/// then scripts (the recipe [`load_session`] applies natively; the desktop
+/// webview replays them into its own Session — ADR-0010).
+pub fn replay_lines<S: Storage>(store: &DocStore<S>) -> StoreResult<Vec<String>> {
+    let mut lines = Vec::new();
+    for doc in store.list_functions()? {
+        lines.push(doc.source);
+    }
+    for doc in store.list_scripts()? {
+        lines.push(doc.source);
+    }
+    Ok(lines)
+}
+
 /// Rebuild a session from the store: history plus saved functions and scripts
 /// (re-run as definitions).
 pub fn load_session<S: Storage>(store: &DocStore<S>) -> StoreResult<Session> {
     let history = history(store)?;
     let mut session = Session::with_history(history);
-    for doc in store.list_functions()? {
-        session.submit_quiet(&doc.source);
-    }
-    for doc in store.list_scripts()? {
-        session.submit_quiet(&doc.source);
+    for line in replay_lines(store)? {
+        session.submit_quiet(&line);
     }
     Ok(session)
 }

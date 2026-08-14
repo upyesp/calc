@@ -146,3 +146,12 @@ mod persist_tests {
         assert_eq!(load_language(&store).unwrap(), Some("fr".to_string()));
     }
 }
+
+#[test]
+fn replay_lines_lists_functions_then_scripts_in_load_order() {
+    let store = DocStore::new(MemoryStore::default());
+    calc_store::persist::save_script(&store, "later", "x = 2").unwrap();
+    calc_store::persist::save_function(&store, "first", "def first() = 1").unwrap();
+    let lines = calc_store::persist::replay_lines(&store).unwrap();
+    assert_eq!(lines, vec!["def first() = 1".to_string(), "x = 2".to_string()]);
+}
