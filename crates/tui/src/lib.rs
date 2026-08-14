@@ -5,6 +5,10 @@
 //! The ratatui event loop in `main.rs` is a thin shell over both.
 
 use calc_core::{parse, sample, Sample, Session};
+use calc_i18n::Localizer;
+use calc_shell::{classify, plain, run_command};
+use calc_store::persist::save_history;
+use calc_store::{DocStore, FsStore};
 
 /// The TUI's application state — the testable seam. Rendering is thin.
 #[derive(Default)]
@@ -71,6 +75,34 @@ impl App {
     pub fn submit(&mut self) {
         self.result = self.session.submit(&self.input);
         self.input.clear();
+    }
+
+    /// Handle one submitted line the way the event loop does: shell commands
+    /// dispatch through the shared kernel (calc-shell), `graph ` samples,
+    /// anything else evaluates — and history persists. Returns the new
+    /// language preference when a `language` command changed it, so the
+    /// caller can re-resolve its Localizer.
+    pub fn submit_line(
+        &mut self,
+        line: &str,
+        store: &DocStore<FsStore>,
+        localizer: &Localizer,
+    ) -> Option<String> {
+        let line = line.trim();
+        if let Some(source) = line.strip_prefix("graph ") {
+            let _ = self.submit_graph(source);
+            return None;
+        }
+        if let Some(cmd) = classify(line) {
+            let handled = run_command(&cmd, &mut self.session, store, localizer);
+            self.result = plain(handled.message);
+            self.input.clear();
+            return handled.language;
+        }
+        self.input = line.to_string();
+        self.submit();
+        let _ = save_history(store, self.history());
+        None
     }
 
     /// Parse `source` as `y = f(x)` and sample it over [-10, 10] against the

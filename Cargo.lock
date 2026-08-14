@@ -482,10 +482,12 @@ version = "0.1.0"
 dependencies = [
  "calc-core",
  "calc-i18n",
+ "calc-shell",
  "calc-store",
  "crossterm",
  "ratatui",
  "sys-locale",
+ "tempfile",
  "unicode-width 0.2.0",
 ]
 

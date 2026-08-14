@@ -9,7 +9,7 @@ use std::io;
 
 use calc_core::Session;
 use calc_i18n::Localizer;
-use calc_store::persist::{default_store_dir, load_language, load_session, save_history};
+use calc_store::persist::{default_store_dir, load_language, load_session};
 use calc_store::{DocStore, FsStore};
 use calc_tui::{render_ascii, App};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
@@ -38,7 +38,7 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
     };
     let preference = load_language(&store).unwrap_or(None);
     let detected: Vec<String> = sys_locale::get_locales().collect();
-    let localizer = Localizer::resolve(preference.as_deref(), &detected);
+    let mut localizer = Localizer::resolve(preference.as_deref(), &detected);
     let mut app = App::with_session(session);
     loop {
         terminal.draw(|frame| draw(frame, &app, &localizer))?;
@@ -49,12 +49,8 @@ fn run_app(terminal: &mut DefaultTerminal) -> io::Result<()> {
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Enter => {
                         let line = app.input().trim().to_string();
-                        if let Some(source) = line.strip_prefix("graph ") {
-                            let _ = app.submit_graph(source);
-                        } else {
-                            app.submit();
-                            // best-effort persistence of history
-                            let _ = save_history(&store, app.history());
+                        if let Some(code) = app.submit_line(&line, &store, &localizer) {
+                            localizer = Localizer::resolve(Some(&code), &[]);
                         }
                     }
                     KeyCode::Esc => app.clear_input(),

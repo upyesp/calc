@@ -88,3 +88,61 @@ fn render_ascii_handles_empty_and_non_finite() {
     assert!(out.contains('o'));
     assert!(!out.contains("NaN"));
 }
+
+// --- shell commands through the App seam (ADR-0010) ---
+
+use calc_i18n::Localizer;
+use calc_shell::plain;
+use calc_store::persist::{history as load_history, load_language};
+use calc_store::{DocStore, FsStore};
+
+fn scratch_store() -> (DocStore<FsStore>, tempfile::TempDir) {
+    let dir = tempfile::tempdir().unwrap();
+    let store = DocStore::new(FsStore::new(dir.path()));
+    (store, dir)
+}
+
+#[test]
+fn submit_line_dispatches_save_and_persists() {
+    let (store, _keep) = scratch_store();
+    let mut app = App::default();
+    app.set_input("def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)");
+    app.submit();
+    app.set_input("save fib");
+    app.submit_line(&app.input().to_string(), &store, &Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.result(), "saved fib");
+    assert_eq!(store.list_functions().unwrap().len(), 1);
+    // commands must not enter history
+    assert_eq!(app.history().len(), 1);
+    assert!(app.input().is_empty());
+}
+
+#[test]
+fn submit_line_evaluates_and_persists_history() {
+    let (store, _keep) = scratch_store();
+    let mut app = App::default();
+    app.set_input("2 + 3");
+    app.submit_line("2 + 3", &store, &Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.result(), "= 5");
+    assert_eq!(load_history(&store).unwrap(), vec!["2 + 3  = 5".to_string()]);
+}
+
+#[test]
+fn submit_line_reports_the_new_language() {
+    let (store, _keep) = scratch_store();
+    let mut app = App::default();
+    let new_lang = app.submit_line("language fr", &store, &Localizer::resolve(Some("en"), &[]));
+    assert_eq!(new_lang, Some("fr".to_string()));
+    assert_eq!(plain(app.result().to_string()), "language set to fr");
+    assert_eq!(load_language(&store).unwrap(), Some("fr".to_string()));
+}
+
+#[test]
+fn submit_line_keeps_graph_special_case() {
+    let mut app = App::default();
+    let (store, _keep) = scratch_store();
+    app.submit_line("graph x ^ 2", &store, &Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.result(), "graph: x ^ 2");
+    assert!(app.graph().is_some());
+    assert!(app.history().is_empty());
+}
