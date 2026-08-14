@@ -44,6 +44,12 @@ The Store instance reachable by frontends that have host filesystem access
 on a single device.
 _Avoid_: local store, disk store
 
+**Bridge**:
+The web frontend's storage seam: `Tauri` (the Native Store over IPC inside
+the desktop shell) or `None` (the session-only PWA until the Web Store
+lands).
+_Avoid_: sync, backend, connector
+
 **Web Store**:
 The Store instance inside the browser/PWA sandbox, physically separate from
 the Native Store but sharing the same logical schema.

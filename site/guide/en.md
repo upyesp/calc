@@ -531,8 +531,9 @@ instantly, even with no internet connection.
 
 The web app is intentionally simple: it evaluates expressions and keeps a
 session history. The **save**, **save script**, and **language** commands
-exist in the command line and terminal versions (chapters 4 and 5). The
-history is not saved between visits.
+work in the desktop, command line, and terminal versions (chapters 3, 4,
+and 5) — in the web app they answer with a note that saving works there.
+The history is not saved between visits.
 
 ## 3. The desktop app
 
@@ -572,6 +573,28 @@ chmod +x calc-desktop-linux-x86_64.AppImage
 Launch Calc like any other application. You get a window with the same
 interface as the web app: type an expression, press **Enter** or click
 **=**, and read the result. The window can be resized freely.
+
+### 3.3 Storage: one store with the CLI and TUI
+
+The desktop app shares its storage with the command line and terminal
+versions. Functions, scripts, history, and the language preference live in
+one place — `~/.calc` on your computer (or `CALC_STORE_DIR`, chapter
+4.5) — and everything saved in one version is available in the others:
+
+```text
+def area(w, h) = w * h
+save area
+```
+
+Define `area` in the desktop app, `save` it, close the window — then open
+the CLI and `area(3, 4)` just works. It works the other way too: functions
+and scripts you saved in the CLI or TUI are already there when the desktop
+window opens, including variables set by saved scripts. The `save`,
+`save script`, and `language` commands from chapter 4 work exactly the
+same here.
+
+> The web app in the browser is the one version that does not use this
+> storage — it keeps each session to itself (chapter 2.5).
 
 ## 4. The command line (CLI)
 
@@ -774,7 +797,9 @@ preference live in `~/.calc` (chapter 4.5), and the same `save`,
 - The **web app** keeps nothing on disk: history lasts only while the page
   is open. The web app can work offline because the page itself is stored by
   your browser.
-- The **desktop app** is the web app in a window; it also keeps no data.
+- The **desktop app** stores functions, scripts, history, and the language
+  choice locally in `~/.calc` (or `CALC_STORE_DIR`), the same store as the
+  CLI and TUI. Nothing leaves your computer.
 
 All four versions run the calculation entirely on your device — nothing is
 sent anywhere.

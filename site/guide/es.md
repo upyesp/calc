@@ -537,8 +537,10 @@ abre al instante, incluso sin conexión a internet.
 
 La aplicación web es intencionadamente simple: evalúa expresiones y guarda
 un historial de sesión. Los comandos **save**, **save script** y
-**language** existen en la línea de comandos y en la versión de terminal
-(capítulos 4 y 5). El historial no se guarda entre visitas.
+**language** funcionan en las versiones de escritorio, línea de comandos y
+terminal (capítulos 3, 4 y 5) — en la aplicación web responden con una
+nota de que guardar funciona allí. El historial no se guarda entre
+visitas.
 
 ## 3. La aplicación de escritorio
 
@@ -581,6 +583,29 @@ Inicia Calc como cualquier otra aplicación. Obtienes una ventana con la misma
 interfaz que la aplicación web: escribe una expresión, pulsa **Intro** o
 haz clic en **=**, y lee el resultado. La ventana se puede redimensionar
 libremente.
+
+### 3.3 Almacenamiento: un mismo almacén con la CLI y la TUI
+
+La aplicación de escritorio comparte su almacenamiento con las versiones
+de línea de comandos y terminal. Funciones, scripts, historial y la
+preferencia de idioma viven en un solo lugar — `~/.calc` en tu equipo (o
+`CALC_STORE_DIR`, capítulo 4.5) — y todo lo guardado en una versión está
+disponible en las demás:
+
+```text
+def area(w, h) = w * h
+save area
+```
+
+Define `area` en la aplicación de escritorio, `save` la, cierra la
+ventana — luego abre la CLI y `area(3, 4)` simplemente funciona. También
+funciona al revés: las funciones y scripts guardados en la CLI o la TUI ya
+están ahí cuando se abre la ventana de escritorio, incluidas las variables
+definidas por scripts guardados. Los comandos `save`, `save script` y
+`language` del capítulo 4 funcionan exactamente igual aquí.
+
+> La aplicación web en el navegador es la única versión que no usa este
+> almacenamiento: cada sesión vive aparte (capítulo 2.5).
 
 ## 4. La línea de comandos (CLI)
 
@@ -788,8 +813,9 @@ idioma viven en `~/.calc` (capítulo 4.5), y los mismos comandos `save`,
 - La **aplicación web** no guarda nada en disco: el historial dura solo
   mientras la página está abierta. La aplicación web puede funcionar sin
   conexión porque la propia página la guarda tu navegador.
-- La **aplicación de escritorio** es la aplicación web en una ventana;
-  tampoco guarda datos.
+- La **aplicación de escritorio** guarda funciones, scripts, historial y la
+  preferencia de idioma localmente en `~/.calc` (o `CALC_STORE_DIR`), el
+  mismo almacén que la CLI y la TUI. Nada sale de tu equipo.
 
 Las cuatro versiones ejecutan el cálculo íntegramente en tu dispositivo —
 nada se envía a ningún sitio.

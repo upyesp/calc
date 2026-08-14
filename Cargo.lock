@@ -139,7 +139,7 @@ checksum = "d301b3b94cb4b2f23d7917810addbbaff90738e0ca2be692bd027e70d7e0330c"
 
 [[package]]
 name = "app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-store",
  "log",
@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "calc-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-core",
  "calc-i18n",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "calc-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bigdecimal",
  "num-bigint",
@@ -451,7 +451,7 @@ dependencies = [
 
 [[package]]
 name = "calc-i18n"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "fluent",
  "fluent-langneg 0.14.2",
@@ -460,7 +460,7 @@ dependencies = [
 
 [[package]]
 name = "calc-shell"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-core",
  "calc-i18n",
@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "calc-store"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-core",
  "serde",
@@ -480,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "calc-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-core",
  "calc-i18n",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "calc-web"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "calc-core",
  "calc-i18n",

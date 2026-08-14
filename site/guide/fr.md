@@ -543,8 +543,10 @@ d'applications — elle s'ouvre instantanément, même sans connexion internet.
 
 L'application web est volontairement simple : elle évalue des expressions et
 garde un historique de session. Les commandes **save**, **save script** et
-**language** existent dans les versions ligne de commande et terminal
-(chapitres 4 et 5). L'historique n'est pas conservé entre les visites.
+**language** fonctionnent dans les versions bureau, ligne de commande et
+terminal (chapitres 3, 4 et 5) — dans l'application web, elles répondent
+par une note expliquant que l'enregistrement y est possible. L'historique
+n'est pas conservé entre les visites.
 
 ## 3. L'application de bureau
 
@@ -590,6 +592,29 @@ Lancez Calc comme n'importe quelle application. Vous obtenez une fenêtre
 avec la même interface que l'application web : tapez une expression,
 appuyez sur **Entrée** ou cliquez sur **=**, et lisez le résultat. La
 fenêtre se redimensionne librement.
+
+### 3.3 Stockage : un seul magasin partagé avec la CLI et la TUI
+
+L'application de bureau partage son stockage avec les versions ligne de
+commande et terminal. Fonctions, scripts, historique et préférence de
+langue vivent au même endroit — `~/.calc` sur votre ordinateur (ou
+`CALC_STORE_DIR`, chapitre 4.5) — et tout ce qui est enregistré dans une
+version est disponible dans les autres :
+
+```text
+def area(w, h) = w * h
+save area
+```
+
+Définissez `area` dans l'application de bureau, `save`ez-la, fermez la
+fenêtre — puis ouvrez la CLI et `area(3, 4)` fonctionne. Ça marche aussi
+dans l'autre sens : les fonctions et scripts enregistrés dans la CLI ou la
+TUI sont déjà là à l'ouverture de la fenêtre, y compris les variables
+définies par des scripts enregistrés. Les commandes `save`, `save script`
+et `language` du chapitre 4 fonctionnent exactement pareil ici.
+
+> L'application web dans le navigateur est la seule version qui n'utilise
+> pas ce stockage : chaque session vit isolée (chapitre 2.5).
 
 ## 4. La ligne de commande (CLI)
 
@@ -797,8 +822,9 @@ commandes `save`, `save script` et `language` fonctionnent ici.
 - L'**application web** ne stocke rien sur le disque : l'historique ne dure
   que tant que la page est ouverte. L'application web peut fonctionner hors
   ligne parce que c'est votre navigateur qui stocke la page elle-même.
-- L'**application de bureau** est l'application web dans une fenêtre ; elle
-  non plus ne stocke aucune donnée.
+- L'**application de bureau** enregistre fonctions, scripts, historique et
+  choix de langue localement dans `~/.calc` (ou `CALC_STORE_DIR`), le même
+  magasin que la CLI et la TUI. Rien ne quitte votre ordinateur.
 
 Les quatre versions exécutent le calcul entièrement sur votre appareil —
 rien n'est envoyé nulle part.
