@@ -14,6 +14,12 @@ rust-version = "1.77.2"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# The desktop binary users see in target/release and /usr/bin — not the
+# package-name default `app`.
+[[bin]]
+name = "calc-desktop"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 

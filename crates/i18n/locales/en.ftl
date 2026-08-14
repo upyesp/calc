@@ -10,3 +10,4 @@ tui-expression = Expression
 tui-history = History
 tui-graph = Graph
 tui-hints = Enter evaluate · Esc clear · Ctrl+C quit · q quit
+web-session-only = the web app keeps work in this session only; saving works in the desktop, command-line, and terminal versions
