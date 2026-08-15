@@ -194,6 +194,11 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
                 match key.code {
+                    // Guarded arms must precede the generic `Char` arm — the
+                    // catch-all would swallow Ctrl+C and type a 'c' instead.
+                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        return Ok(());
+                    }
                     KeyCode::Char(c) => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Enter => {
@@ -203,9 +208,6 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                         }
                     }
                     KeyCode::Esc => app.clear_input(),
-                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                        return Ok(());
-                    }
                     KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
                     _ => {}
                 }
