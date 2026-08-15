@@ -280,5 +280,5 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
         .saturating_add(1)
         .saturating_add(text_width as u16)
         .min(input_area.right().saturating_sub(2));
-    frame.set_cursor_position(ratatui::layout::Position::new(x, input_area.y + 1));
+    frame.set_cursor_position(Position::new(x, input_area.y + 1));
 }
