@@ -601,3 +601,25 @@ fn postfix_factorial_operator() {
     assert!(eval_err("(-1)!").contains("domain"));
     assert!(eval_err("3.5!").contains("expects integers"));
 }
+
+#[test]
+fn scientific_notation_literals() {
+    assert_close(eval_number("1e3"), 1000.0);
+    assert_close(eval_number("2E3"), 2000.0);
+    assert_close(eval_number("1e-5"), 0.00001);
+    assert_close(eval_number("2.5E-2"), 0.025);
+    assert_close(eval_number("6.02e23"), 6.02e23);
+    assert_close(eval_number("1e3 + 1"), 1001.0);
+    assert_close(eval_number("1e2 * 2"), 200.0);
+    // a bare e is still Euler's number, and 2e without an exponent is
+    // still two separate tokens (an error)
+    assert_close(eval_number("e"), std::f64::consts::E);
+    assert!(eval_str_checked("2e").is_err());
+    assert!(eval_str_checked("2eggs").is_err());
+}
+
+/// Parse+eval returning a Result, for error-path tests.
+fn eval_str_checked(src: &str) -> Result<Value, calc_core::CalcError> {
+    let env = Env::default();
+    eval(&parse(src)?, &env)
+}

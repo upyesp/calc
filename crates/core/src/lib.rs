@@ -401,6 +401,33 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                         break;
                     }
                 }
+                // scientific notation: an e/E exponent with an optional sign
+                // and at least one digit (looked ahead so `2e` and `2eggs`
+                // still tokenize as 2 followed by a name)
+                if matches!(chars.peek(), Some('e') | Some('E')) {
+                    let mut rest = chars.clone();
+                    rest.next(); // the e
+                    let signed = matches!(rest.peek(), Some('+') | Some('-'));
+                    if signed {
+                        rest.next();
+                    }
+                    if matches!(rest.peek(), Some(c3) if c3.is_ascii_digit()) {
+                        num.push(*chars.peek().expect("checked above"));
+                        chars.next();
+                        if signed {
+                            num.push(*chars.peek().expect("checked above"));
+                            chars.next();
+                        }
+                        while let Some(&c2) = chars.peek() {
+                            if c2.is_ascii_digit() {
+                                num.push(c2);
+                                chars.next();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
                 let n: f64 = num
                     .parse()
                     .map_err(|_| CalcError::Parse(format!("invalid number: {num:?}")))?;
