@@ -15,6 +15,10 @@
 #   epher-linux-x86_64.rpm          Fedora/RHEL and derivatives
 #   epher-linux-x86_64.AppImage     everything else, incl. Arch — runs as-is
 # macOS and Windows builds are unsigned; your OS may warn on first launch.
+#
+# The Linux leg pins ubuntu-22.04 (glibc 2.35) so the shipped binary runs
+# on Debian 12, Ubuntu 22.04+, and every newer distro — building on
+# ubuntu-latest would require glibc 2.39 and break those systems.
 name: release
 
 on:
@@ -46,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: linux-x86_64
           - os: macos-latest
             target: macos-aarch64

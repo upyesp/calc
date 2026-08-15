@@ -92,7 +92,8 @@ epher-linux-x86_64.{deb,rpm,AppImage}
 - macOS: unsigned dmg; the app's "Install the epher command" button
   symlinks `/usr/local/bin/epher` (osascript fallback for admin rights).
 - Linux: deb/rpm install `epher` into `/usr/bin`; the AppImage covers Arch
-  and every other distro.
+  and every other distro. The Linux leg builds on ubuntu-22.04 (glibc
+  2.35) so the binary runs on Debian 12 and Ubuntu 22.04 or newer.
 
 macOS and Windows builds are unsigned. If the landing page's download
 links need to change (e.g. a new platform), change the names here and in
