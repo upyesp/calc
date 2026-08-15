@@ -67,7 +67,7 @@ jobs:
           version: "v0.21.14"
 
       - name: Install Linux system dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
