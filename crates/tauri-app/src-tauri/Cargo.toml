@@ -1,10 +1,10 @@
 [package]
 name = "app"
 version = "0.2.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "epher: a programmable, scriptable calculator — the unified desktop binary"
+authors = ["upyesp"]
+license = "MIT"
+repository = "https://github.com/upyesp/epher"
 edition = "2021"
 rust-version = "1.77.2"
 
@@ -14,17 +14,21 @@ rust-version = "1.77.2"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
-# The desktop binary users see in target/release and /usr/bin — not the
-# package-name default `app`.
+# The unified binary users install on every platform (`epher` on PATH,
+# epher.exe on Windows). It hosts every frontend (ADR-0011).
 [[bin]]
-name = "epher-desktop"
+name = "epher"
 path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
+epher-core = { path = "../../../crates/core" }
+epher-cli = { path = "../../../crates/cli" }
+epher-tui = { path = "../../../crates/tui" }
 epher-store = { path = "../../../crates/store", features = ["fs"] }
+clap = { version = "4", features = ["derive"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"

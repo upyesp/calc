@@ -141,7 +141,11 @@ checksum = "d301b3b94cb4b2f23d7917810addbbaff90738e0ca2be692bd027e70d7e0330c"
 name = "app"
 version = "0.2.0"
 dependencies = [
+ "clap",
+ "epher-cli",
+ "epher-core",
  "epher-store",
+ "epher-tui",
  "log",
  "serde",
  "serde_json",

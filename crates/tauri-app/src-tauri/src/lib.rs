@@ -8,6 +8,7 @@
 
 use std::path::PathBuf;
 
+use clap::Parser;
 use epher_store::persist;
 use epher_store::{DocStore, FsStore};
 use serde::Serialize;
@@ -82,11 +83,17 @@ fn save_history(state: State<DesktopStore>, history: Vec<String>) -> Result<(), 
     state.save_history(&history).map_err(|e| e.to_string())
 }
 
+pub mod dispatch;
+
 #[tauri::command]
 fn save_language(state: State<DesktopStore>, code: String) -> Result<(), String> {
     state.save_language(&code).map_err(|e| e.to_string())
 }
 
+/// Run the desktop GUI (the Tauri event loop). On Windows this is called
+/// via [`launch_gui`] after the detach dance; on macOS/Linux it runs
+/// in-process in the foreground, like any GUI binary launched from a
+/// terminal.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -110,6 +117,70 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// The unified-binary entry point (ADR-0011): parse arguments with
+/// [`dispatch`], then run the chosen frontend — every mode is a thin call
+/// into the frontend's own library entry point, so behavior is defined
+/// once (CLI/REPL/stdin: epher-cli; TUI: epher-tui; GUI: this crate).
+/// Errors print as `error: …` and exit 1, exactly like the CLI.
+pub fn run_with_args<I>(args: I)
+where
+    I: IntoIterator,
+    I::Item: Into<std::ffi::OsString> + Clone,
+{
+    let parsed = dispatch::Args::try_parse_from(args).unwrap_or_else(|e| e.exit());
+    let result = match dispatch::action_from(&parsed) {
+        dispatch::Action::OneShot(expr) => epher_cli::run_one_shot(&expr),
+        dispatch::Action::Stdin => epher_cli::run_stdin(),
+        dispatch::Action::Repl => epher_cli::run_repl(),
+        dispatch::Action::Tui => {
+            epher_tui::run().map_err(|e| epher_core::EpherError::Io(e.to_string()))
+        }
+        dispatch::Action::Gui => {
+            launch_gui();
+            return;
+        }
+    };
+    if let Err(e) = result {
+        eprintln!("error: {e}");
+        std::process::exit(1);
+    }
+}
+
+/// Launch the desktop GUI.
+///
+/// The unified binary is a *console* application (so `epher "2 + 2"` can
+/// print and pipe from CMD/PowerShell). The cost on Windows: launching the
+/// GUI from a double-click would leave a console window open for the app's
+/// whole lifetime. The standard cure is a detach dance: the process
+/// re-spawns itself with `EPHER_GUI_CHILD` set as a detached process (no
+/// console at all) and exits immediately — the double-click console
+/// flashes for a few dozen milliseconds, and a terminal prompt returns
+/// right away while the GUI window appears. On macOS/Linux the GUI runs
+/// in-process in the foreground, like any GUI binary run from a terminal.
+fn launch_gui() {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const DETACHED_PROCESS: u32 = 0x0000_0008;
+        if std::env::var_os("EPHER_GUI_CHILD").is_none() {
+            if let Ok(exe) = std::env::current_exe() {
+                let spawned = std::process::Command::new(exe)
+                    .env("EPHER_GUI_CHILD", "1")
+                    .creation_flags(DETACHED_PROCESS)
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .spawn();
+                if spawned.is_ok() {
+                    std::process::exit(0);
+                }
+                // Spawn failed (rare): fall through and run in-process.
+            }
+        }
+    }
+    run();
 }
 
 #[cfg(test)]

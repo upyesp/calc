@@ -2,7 +2,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn epher_bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_epher"))
+    Command::new(env!("CARGO_BIN_EXE_epher-cli"))
 }
 
 /// Run a REPL session with piped stdin, returning its stdout.
