@@ -1011,6 +1011,61 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             let (y, x) = two_floats(name, &args)?;
             Ok(Value::Float(y.atan2(x)))
         }
+        "exp" => Ok(Value::Float(one_float(name, &args)?.exp())),
+        "ln" => {
+            let x = one_float(name, &args)?;
+            if x <= 0.0 {
+                return Err(domain_error(format!("ln of non-positive number {x}")));
+            }
+            Ok(Value::Float(x.ln()))
+        }
+        // calculator convention: log is base 10 (the LOG key), ln is natural
+        "log" => {
+            let x = one_float(name, &args)?;
+            if x <= 0.0 {
+                return Err(domain_error(format!("log of non-positive number {x}")));
+            }
+            Ok(Value::Float(x.log10()))
+        }
+        "log2" => {
+            let x = one_float(name, &args)?;
+            if x <= 0.0 {
+                return Err(domain_error(format!("log2 of non-positive number {x}")));
+            }
+            Ok(Value::Float(x.log2()))
+        }
+        "logb" => {
+            let (base, x) = two_floats(name, &args)?;
+            if x <= 0.0 {
+                return Err(domain_error(format!(
+                    "logb of non-positive number {x}"
+                )));
+            }
+            if base <= 0.0 || base == 1.0 {
+                return Err(domain_error(format!("logb base {base} must be positive and not 1")));
+            }
+            Ok(Value::Float(x.log(base)))
+        }
+        "cbrt" => Ok(Value::Float(one_float(name, &args)?.cbrt())),
+        "root" => {
+            // root(n, x): the real nth root; odd roots of negatives are negative
+            let (n, x) = two_floats(name, &args)?;
+            if n == 0.0 || n.fract() != 0.0 {
+                return Err(domain_error(format!("root order {n} must be a non-zero integer")));
+            }
+            if x < 0.0 && n % 2.0 == 0.0 {
+                return Err(domain_error(format!("even root of negative number {x}")));
+            }
+            if x < 0.0 {
+                Ok(Value::Float(-((-x).powf(1.0 / n))))
+            } else {
+                Ok(Value::Float(x.powf(1.0 / n)))
+            }
+        }
+        "hypot" => {
+            let (a, b) = two_floats(name, &args)?;
+            Ok(Value::Float(a.hypot(b)))
+        }
         "sqrt" => {
             let x = one_float(name, &args)?;
             if x < 0.0 {

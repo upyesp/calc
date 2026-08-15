@@ -439,3 +439,46 @@ fn min_and_max_take_any_number_of_arguments() {
     assert_close(eval_number("max(7)"), 7.0);
     assert!(eval_err("min()").contains("expects"));
 }
+
+#[test]
+fn exponential_and_natural_logarithm() {
+    assert_close(eval_number("exp(0)"), 1.0);
+    assert_close(eval_number("exp(1)"), std::f64::consts::E);
+    assert_close(eval_number("ln(1)"), 0.0);
+    assert_close(eval_number("ln(e)"), 1.0);
+    assert!(eval_err("ln(0)").contains("domain"));
+    assert!(eval_err("ln(-1)").contains("domain"));
+}
+
+#[test]
+fn logarithms_in_common_bases() {
+    // calculator convention: log is base 10 (the LOG key), ln is natural
+    assert_close(eval_number("log(100)"), 2.0);
+    assert_close(eval_number("log(1)"), 0.0);
+    assert_close(eval_number("log2(8)"), 3.0);
+    assert_close(eval_number("log2(1)"), 0.0);
+    assert_close(eval_number("logb(2, 8)"), 3.0);
+    assert_close(eval_number("logb(10, 1000)"), 3.0);
+    assert!(eval_err("log(0)").contains("domain"));
+    assert!(eval_err("log(-5)").contains("domain"));
+    assert!(eval_err("log2(0)").contains("domain"));
+    assert!(eval_err("logb(1, 5)").contains("domain"));
+    assert!(eval_err("logb(-2, 8)").contains("domain"));
+}
+
+#[test]
+fn cbrt_and_nth_root() {
+    assert_close(eval_number("cbrt(27)"), 3.0);
+    assert_close(eval_number("cbrt(-27)"), -3.0);
+    assert_close(eval_number("root(3, 8)"), 2.0);
+    assert_close(eval_number("root(2, 16)"), 4.0);
+    assert_close(eval_number("root(3, -27)"), -3.0);
+    assert!(eval_err("root(2, -4)").contains("domain"));
+    assert!(eval_err("root(0, 8)").contains("domain"));
+}
+
+#[test]
+fn hypot_computes_the_hypotenuse() {
+    assert_close(eval_number("hypot(3, 4)"), 5.0);
+    assert_close(eval_number("hypot(5, 12)"), 13.0);
+}
