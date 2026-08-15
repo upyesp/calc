@@ -2,8 +2,8 @@
 //! frontend renders). SVG as a string so the tests run natively — no browser
 //! needed.
 
-use calc_core::Sample;
-use calc_web::graph::{graph_html, graph_svg, plot_data};
+use epher_core::Sample;
+use epher_web::graph::{graph_html, graph_svg, plot_data};
 
 fn samples_of(ys: &[f64]) -> Vec<Sample> {
     ys.iter()

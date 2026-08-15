@@ -1,6 +1,6 @@
 # Build a custom DSL instead of embedding a language engine
 
-Calc's scripting language is a custom domain-specific language with its own
+epher's scripting language is a custom domain-specific language with its own
 lexer, parser, and evaluator — not an embedded engine (Rhai, Lua, or JS).
 
 We chose to own the language so that LaTeX input, the layered numerics

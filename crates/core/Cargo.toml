@@ -1,9 +1,9 @@
 [package]
-name = "calc-core"
-version = "0.1.3"
+name = "epher-core"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
-description = "The single source of truth for calc's logic — pure, compiles to wasm and native."
+description = "The single source of truth for epher's logic — pure, compiles to wasm and native."
 
 [dependencies]
 num-traits = { workspace = true }

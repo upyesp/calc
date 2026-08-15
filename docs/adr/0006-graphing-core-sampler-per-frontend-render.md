@@ -1,6 +1,6 @@
 # Graphing splits into a core Sampler and per-frontend renderers
 
-Graphing is divided into compute and render. `calc-core` owns a `Sampler` that
+Graphing is divided into compute and render. `epher-core` owns a `Sampler` that
 turns an Expression and a domain into plottable data (sampling, domain and
 discontinuity handling); each frontend renders that data its own way — vector
 for the GUI and PWA, ASCII/blocks for the TUI, none for the CLI.

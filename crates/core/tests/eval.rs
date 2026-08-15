@@ -1,4 +1,4 @@
-use calc_core::{
+use epher_core::{
     eval, evaluate, parse, parse_latex, parse_script, run, sample, sample_parametric,
     sample_polar, Sample, Env, Session, Value,
 };
@@ -619,7 +619,7 @@ fn scientific_notation_literals() {
 }
 
 /// Parse+eval returning a Result, for error-path tests.
-fn eval_str_checked(src: &str) -> Result<Value, calc_core::CalcError> {
+fn eval_str_checked(src: &str) -> Result<Value, epher_core::EpherError> {
     let env = Env::default();
     eval(&parse(src)?, &env)
 }

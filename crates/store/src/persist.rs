@@ -4,22 +4,22 @@
 //! backend.
 
 use crate::{DocStore, FunctionDoc, ScriptDoc, Storage, StoreError, StoreResult};
-use calc_core::Session;
+use epher_core::Session;
 
 pub const HISTORY_SETTING: &str = "history";
 /// The user's language override (ADR-0008): detection is the default, this
 /// setting wins when set.
 pub const LANGUAGE_SETTING: &str = "language";
 
-/// The store directory for native frontends: `CALC_STORE_DIR` override, else
-/// `~/.calc` (falls back to `.calc`).
+/// The store directory for native frontends: `EPHER_STORE_DIR` override, else
+/// `~/.epher` (falls back to `.epher`).
 pub fn default_store_dir() -> std::path::PathBuf {
-    std::env::var_os("CALC_STORE_DIR")
+    std::env::var_os("EPHER_STORE_DIR")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| {
             std::env::var_os("HOME")
-                .map(|h| std::path::PathBuf::from(h).join(".calc"))
-                .unwrap_or_else(|| std::path::PathBuf::from(".calc"))
+                .map(|h| std::path::PathBuf::from(h).join(".epher"))
+                .unwrap_or_else(|| std::path::PathBuf::from(".epher"))
         })
 }
 

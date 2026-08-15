@@ -1,1 +1,1 @@
-app-name = Calculadora
+app-name = epher

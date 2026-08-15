@@ -1,6 +1,6 @@
 # Accessibility (WCAG 2.2 AA) — audit and fixes
 
-Living audit of Calc against WCAG 2.2. Target: **Level AA** for the web/PWA
+Living audit of epher against WCAG 2.2. Target: **Level AA** for the web/PWA
 (and the Tauri shell, which wraps the same page). The TUI and CLI live in
 terminals, so the applicable criteria are the keyboard-operability,
 understandability, and theme-respect ones; the terminal emulator owns the rest
@@ -33,7 +33,7 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 | 2.1.1 Keyboard | PASS | Native input + submit button; Enter activates from the field, Enter/Space on the button. |
 | 2.1.2 No keyboard trap | PASS | Two elements, nothing traps. |
 | 2.4.1 Bypass blocks | N/A | Single view; nothing to skip. |
-| 2.4.2 Page titled | PASS | `<title>Calc</title>`. |
+| 2.4.2 Page titled | PASS | `<title>epher</title>`. |
 | 2.4.3 Focus order | PASS | Input → button (document order). |
 | 2.4.4 Link purpose | N/A | No links. |
 | 2.4.6 Headings & labels | **FIXED** | Input has `aria-label`; button's bare `=` name replaced with `aria-label="Evaluate"`. |
@@ -47,7 +47,7 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 |---|---|---|
 | 3.1.1 Language of page | PASS* | `lang="en"` matches the (currently English-only) UI. *Must track the resolved locale when `navigator.languages` detection lands, and set `dir="rtl"` for Arabic — noted in `index.html` and ADR-0008. |
 | 3.2.1/3.2.2 On focus/input | PASS | Focus lands in the field on load (intentional: it is the whole app); submit only updates the result region. |
-| 3.3.1 Error identification | **FIXED** | Errors already appear as text (announced); now also `aria-invalid="true"` + `aria-describedby="calc-result"` on the input while an error is showing. |
+| 3.3.1 Error identification | **FIXED** | Errors already appear as text (announced); now also `aria-invalid="true"` + `aria-describedby="epher-result"` on the input while an error is showing. |
 | 3.3.2 Labels | PASS | `aria-label` on the input; placeholder is a hint only. |
 | 3.3.3 Error suggestion | PASS | Core error strings are descriptive ("division by zero", "unknown name …"). |
 | 3.3.7 Redundant entry | N/A | Single step; history shows prior entries. |

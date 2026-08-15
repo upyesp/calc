@@ -1,10 +1,10 @@
-# Calc 用户指南
+# epher 用户指南
 
-欢迎！Calc 是一款可编程、可脚本化的计算器。你可以用它做快速计算，也可以构建自己的函数和小程序——并且所有功能都支持六种语言。
+欢迎！epher 是一款可编程、可脚本化的计算器。你可以用它做快速计算，也可以构建自己的函数和小程序——并且所有功能都支持六种语言。
 
-本指南面向完全初学者。它从最简单的计算开始，逐步深入到语言的完整功能。每个示例都显示你输入的内容以及 Calc 的回应。
+本指南面向完全初学者。它从最简单的计算开始，逐步深入到语言的完整功能。每个示例都显示你输入的内容以及 epher 的回应。
 
-Calc 有四种使用方式——选择最适合你的那一种：
+epher 有四种使用方式——选择最适合你的那一种：
 
 | 版本 | 是什么 | 何时选用 |
 |---|---|---|
@@ -15,9 +15,9 @@ Calc 有四种使用方式——选择最适合你的那一种：
 
 四个版本理解完全相同的语言。学会一次，随处可用。
 
-## 1. Calc 语言
+## 1. epher 语言
 
-本章讲解所有 Calc 版本共享的语言。在网页应用或桌面应用中，输入表达式并按**回车**（或点击 **=** 按钮）。在 CLI 中，在 `calc>` 提示符后输入。在 TUI 中，直接输入并按**回车**。在 CLI 中你也可以输入 `calc "表达式"` 直接计算一个表达式。
+本章讲解所有 epher 版本共享的语言。在网页应用或桌面应用中，输入表达式并按**回车**（或点击 **=** 按钮）。在 CLI 中，在 `epher>` 提示符后输入。在 TUI 中，直接输入并按**回车**。在 CLI 中你也可以输入 `epher "表达式"` 直接计算一个表达式。
 
 ### 1.1 你的第一个计算
 
@@ -27,7 +27,7 @@ Calc 有四种使用方式——选择最适合你的那一种：
 2 + 3 * 4
 ```
 
-Calc 回答：
+epher 回答：
 
 ```text
 14
@@ -199,7 +199,7 @@ x = 5
 5
 ```
 
-Calc 会把值重复给你。从现在起，`x` 可以随处使用：
+epher 会把值重复给你。从现在起，`x` 可以随处使用：
 
 ```text
 x ^ 2
@@ -246,7 +246,7 @@ if price > 50 then 2 else 1
 2
 ```
 
-> Calc 没有文本值——`if` 的两个分支必须是数字（或比较的结果）。
+> epher 没有文本值——`if` 的两个分支必须是数字（或比较的结果）。
 
 ### 1.7 用 while 循环
 
@@ -262,7 +262,7 @@ x = 0; while x < 5 do x = x + 1; x
 
 把这个脚本读作：*x 从 0 开始；当 x 小于 5 时，给 x 加 1；然后显示 x。*结果是 5，因为循环执行了五次。
 
-> **安全网：** Calc 会在 100 000 步之后停止任何循环并显示 `error: step limit exceeded`。这能保护你免受永不结束的循环的困扰。如果看到这个错误，说明你的条件可能永远不会变成假。
+> **安全网：** epher 会在 100 000 步之后停止任何循环并显示 `error: step limit exceeded`。这能保护你免受永不结束的循环的困扰。如果看到这个错误，说明你的条件可能永远不会变成假。
 
 ### 1.8 用 def 定义自己的函数
 
@@ -340,7 +340,7 @@ x = 10; y = x + 5; x + y
 
 ### 1.11 精确结果：frac、dec 和 big
 
-通常 Calc 像袖珍计算器一样用小数计算。有些数字用精确形式更好看。
+通常 epher 像袖珍计算器一样用小数计算。有些数字用精确形式更好看。
 
 **frac(n, d)** 生成精确分数：
 
@@ -402,7 +402,7 @@ big(10 ^ 20)
 
 ### 1.12 内置函数
 
-Calc 拥有科学计算器的全部函数，按家族分组。
+epher 拥有科学计算器的全部函数，按家族分组。
 
 三角函数使用弧度——用 `deg` 和 `rad` 转换：
 
@@ -475,7 +475,7 @@ min(sqrt(16), 5)
 
 ### 1.13 读懂错误
 
-出问题时，Calc 会告诉你，而不是猜测：
+出问题时，epher 会告诉你，而不是猜测：
 
 ```text
 1 / 0
@@ -509,7 +509,7 @@ foo(1)
 error: unknown name: foo
 ```
 
-最后一个示例很重要：Calc 会准确告诉你它不认识哪个名称，方便你修正表达式。
+最后一个示例很重要：epher 会准确告诉你它不认识哪个名称，方便你修正表达式。
 
 ### 1.14 快速参考
 
@@ -539,7 +539,7 @@ error: unknown name: foo
 网页应用位于：
 
 ```text
-https://upyesp.github.io/calc/pwa/
+https://upyesp.github.io/epher/pwa/
 ```
 
 无需安装——它在任何现代浏览器中都能运行，无论是电脑、手机还是平板。
@@ -564,7 +564,7 @@ https://upyesp.github.io/calc/pwa/
 graph x ^ 2
 ```
 
-Calc 会从 x = −10 到 x = 10 对曲线 y = f(x) 取样，并将其绘制在输入框下方，附有说明文字显示所绘内容。你可以绘制任何表达式，包括自己的函数：
+epher 会从 x = −10 到 x = 10 对曲线 y = f(x) 取样，并将其绘制在输入框下方，附有说明文字显示所绘内容。你可以绘制任何表达式，包括自己的函数：
 
 ```text
 def f(x) = x ^ 3
@@ -593,37 +593,37 @@ graph f(x)
 
 ### 3.1 安装
 
-从 Calc 网站为你的系统下载桌面应用：
+从 epher 网站为你的系统下载桌面应用：
 
 - **Linux（Debian/Ubuntu）：** `.deb` 包
 
 ```text
-sudo apt install ./calc-desktop-linux-x86_64.deb
+sudo apt install ./epher-desktop-linux-x86_64.deb
 ```
 
 - **Linux（Fedora/RHEL）：** `.rpm` 包
 
 ```text
-sudo dnf install ./calc-desktop-linux-x86_64.rpm
+sudo dnf install ./epher-desktop-linux-x86_64.rpm
 ```
 
 - **Linux（任何发行版）：** AppImage——赋予执行权限并运行：
 
 ```text
-chmod +x calc-desktop-linux-x86_64.AppImage
-./calc-desktop-linux-x86_64.AppImage
+chmod +x epher-desktop-linux-x86_64.AppImage
+./epher-desktop-linux-x86_64.AppImage
 ```
 
-- **macOS：** 打开 `.dmg` 并把 Calc 拖入应用程序文件夹。由于构建未签名，首次启动需要右键 → **打开**。
+- **macOS：** 打开 `.dmg` 并把 epher 拖入应用程序文件夹。由于构建未签名，首次启动需要右键 → **打开**。
 - **Windows：** 运行安装程序。由于构建未签名，首次启动请选择*更多信息* → *仍要运行*。
 
 ### 3.2 使用
 
-像启动其他任何应用一样启动 Calc。你会看到一个与网页应用界面相同的窗口：输入表达式，按**回车**或点击 **=**，然后阅读结果。绘图在这里同样有效——`graph x ^ 2` 会在窗口中绘制（第 2.4 节）。窗口可以自由调整大小。
+像启动其他任何应用一样启动 epher。你会看到一个与网页应用界面相同的窗口：输入表达式，按**回车**或点击 **=**，然后阅读结果。绘图在这里同样有效——`graph x ^ 2` 会在窗口中绘制（第 2.4 节）。窗口可以自由调整大小。
 
 ### 3.3 存储：与 CLI 和 TUI 共用同一个存储
 
-桌面应用与命令行和终端版本共用存储。函数、脚本、历史记录和语言偏好存放在同一个地方——你电脑上的 `~/.calc`（或 `CALC_STORE_DIR`，见第 4.5 节）——在一个版本中保存的所有内容都可以在其他版本中使用：
+桌面应用与命令行和终端版本共用存储。函数、脚本、历史记录和语言偏好存放在同一个地方——你电脑上的 `~/.epher`（或 `epher_STORE_DIR`，见第 4.5 节）——在一个版本中保存的所有内容都可以在其他版本中使用：
 
 ```text
 def area(w, h) = w * h
@@ -636,14 +636,14 @@ save area
 
 ## 4. 命令行（CLI）
 
-CLI 是 Calc 的文本版本。它有两种模式：用于快速结果的单次模式，和用于较长时间工作的交互式会话。
+CLI 是 epher 的文本版本。它有两种模式：用于快速结果的单次模式，和用于较长时间工作的交互式会话。
 
 ### 4.1 单次计算
 
 把表达式作为参数传入：
 
 ```text
-calc "2 + 3 * 4"
+epher "2 + 3 * 4"
 ```
 
 ```text
@@ -653,7 +653,7 @@ calc "2 + 3 * 4"
 第 1 章中任何单一表达式都可以：
 
 ```text
-calc "if 3 > 2 then 10 else 20"
+epher "if 3 > 2 then 10 else 20"
 ```
 
 ```text
@@ -663,7 +663,7 @@ calc "if 3 > 2 then 10 else 20"
 如果表达式以减号开头，用 `--` 告诉 CLI 表达式从哪里开始：
 
 ```text
-calc -- "-2 + 5"
+epher -- "-2 + 5"
 ```
 
 ```text
@@ -677,66 +677,66 @@ calc -- "-2 + 5"
 不带参数启动会话：
 
 ```text
-calc
+epher
 ```
 
-Calc 显示提示符并等待：
+epher 显示提示符并等待：
 
 ```text
-calc>
+epher>
 ```
 
 现在逐行输入第 1 章中的任何内容。变量在行与行之间保持值：
 
 ```text
-calc> x = 5
+epher> x = 5
 = 5
-calc> x ^ 2
+epher> x ^ 2
 = 25
 ```
 
 每个答案显示为 `= 结果`。输入 `quit`（或 `exit`）退出：
 
 ```text
-calc> quit
+epher> quit
 ```
 
-你的历史记录会被记住：下次启动 `calc` 时，上一次会话的输入仍然在。
+你的历史记录会被记住：下次启动 `epher` 时，上一次会话的输入仍然在。
 
 ### 4.3 保存函数和脚本
 
 定义一个函数，然后保存它：
 
 ```text
-calc> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
-calc> save fib
+epher> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
+epher> save fib
 saved fib
 ```
 
-`save fib` 命令把函数存到磁盘。下次启动 `calc` 时，`fib` 已经定义好了：
+`save fib` 命令把函数存到磁盘。下次启动 `epher` 时，`fib` 已经定义好了：
 
 ```text
-calc> fib(10)
+epher> fib(10)
 = 55
 ```
 
 要保存整个脚本（你输入的最后一行），使用 `save script`：
 
 ```text
-calc> x = 0; while x < 5 do x = x + 1; x
+epher> x = 0; while x < 5 do x = x + 1; x
 = 5
-calc> save script count_to_five
+epher> save script count_to_five
 saved script count_to_five
 ```
 
-保存的脚本会在 Calc 启动时自动运行，所以它们定义的一切都为你准备好了。
+保存的脚本会在 epher 启动时自动运行，所以它们定义的一切都为你准备好了。
 
 ### 4.4 更改界面语言
 
 界面语言取自你设备上设置的语言。要覆盖它，输入 `language` 加下列之一：`en`、`zh-CN`、`hi`、`es`、`fr`、`ar`：
 
 ```text
-calc> language fr
+epher> language fr
 language set to fr
 ```
 
@@ -747,13 +747,13 @@ language set to fr
 函数、脚本、历史记录和语言选择存放在你电脑上的一个文件夹中：
 
 ```text
-~/.calc
+~/.epher
 ```
 
-删除该文件夹即可完全重新开始。要使用其他位置，请在启动 Calc 前设置环境变量 `CALC_STORE_DIR`：
+删除该文件夹即可完全重新开始。要使用其他位置，请在启动 epher 前设置环境变量 `epher_STORE_DIR`：
 
 ```text
-CALC_STORE_DIR=/tmp/my-calc calc
+epher_STORE_DIR=/tmp/my-epher epher
 ```
 
 ## 5. 终端界面（TUI）
@@ -761,7 +761,7 @@ CALC_STORE_DIR=/tmp/my-calc calc
 TUI 是交互式会话的全屏版本，运行在终端内。用以下命令启动：
 
 ```text
-calc-tui
+epher-tui
 ```
 
 ### 5.1 屏幕
@@ -792,7 +792,7 @@ calc-tui
 graph x ^ 2
 ```
 
-Calc 在 x = −10 到 x = 10 之间取样曲线，并以 ASCII 图形绘制在 Graph 面板中。图形上方的说明文字显示绘制内容：`y = x ^ 2`。
+epher 在 x = −10 到 x = 10 之间取样曲线，并以 ASCII 图形绘制在 Graph 面板中。图形上方的说明文字显示绘制内容：`y = x ^ 2`。
 
 你可以绘制任何表达式，包括自己的函数——先定义一个，再绘制它：
 
@@ -805,12 +805,12 @@ graph f(x)
 
 ### 5.4 保存与持久化
 
-TUI 与 CLI 共享存储：在其中一个保存的内容在另一个中同样可用。函数、脚本、历史记录和语言偏好存放在 `~/.calc`（第 4.5 节），`save`、`save script` 和 `language` 命令在这里同样有效。
+TUI 与 CLI 共享存储：在其中一个保存的内容在另一个中同样可用。函数、脚本、历史记录和语言偏好存放在 `~/.epher`（第 4.5 节），`save`、`save script` 和 `language` 命令在这里同样有效。
 
 ## 6. 你的数据与隐私
 
-- **CLI 和 TUI** 把函数、脚本、历史记录和语言选择本地存放在 `~/.calc`（或 `CALC_STORE_DIR`）。不会离开你的电脑。
+- **CLI 和 TUI** 把函数、脚本、历史记录和语言选择本地存放在 `~/.epher`（或 `epher_STORE_DIR`）。不会离开你的电脑。
 - **网页应用** 不往磁盘写任何东西：历史记录只在页面打开期间有效。网页应用可以离线运行，因为页面本身由你的浏览器存储。
-- **桌面应用** 将函数、脚本、历史记录和语言选择保存在本地的 `~/.calc`（或 `CALC_STORE_DIR`）中，与 CLI 和 TUI 使用同一个存储。不会向你的电脑之外发送任何内容。
+- **桌面应用** 将函数、脚本、历史记录和语言选择保存在本地的 `~/.epher`（或 `epher_STORE_DIR`）中，与 CLI 和 TUI 使用同一个存储。不会向你的电脑之外发送任何内容。
 
 四个版本都在你的设备上完成全部计算——不会向任何地方发送任何内容。

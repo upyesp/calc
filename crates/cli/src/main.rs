@@ -1,23 +1,23 @@
-//! calc-cli — native command-line frontend (ADR-0001).
+//! epher-cli — native command-line frontend (ADR-0001).
 //!
 //! One-shot evaluation when given an expression; interactive REPL otherwise. No
 //! TUI/GUI is ever initiated from here. The REPL persists history,
 //! user-defined functions, and the language preference through the shared
-//! store (ADR-0002, ADR-0008), honoring the `CALC_STORE_DIR` override (default
-//! `~/.calc`).
+//! store (ADR-0002, ADR-0008), honoring the `EPHER_STORE_DIR` override (default
+//! `~/.epher`).
 
 use std::io::{self, BufRead, Write};
 
-use calc_core::Session;
-use calc_i18n::Localizer;
-use calc_shell::{plain, run_command};
-use calc_store::persist::{default_store_dir, load_language, load_session, save_history};
-use calc_store::{DocStore, FsStore};
+use epher_core::Session;
+use epher_i18n::Localizer;
+use epher_shell::{plain, run_command};
+use epher_store::persist::{default_store_dir, load_language, load_session, save_history};
+use epher_store::{DocStore, FsStore};
 use clap::Parser;
 
-/// Calc: a programmable, scriptable calculator.
+/// epher: a programmable, scriptable calculator.
 #[derive(Parser, Debug)]
-#[command(name = "calc", version, about)]
+#[command(name = "epher", version, about)]
 struct Cli {
     /// An expression to evaluate. If omitted, starts an interactive REPL.
     expression: Option<String>,
@@ -36,8 +36,8 @@ fn main() {
 }
 
 /// Evaluate a single expression and print the result (no UI).
-fn one_shot(expr: &str) -> Result<(), calc_core::CalcError> {
-    let value = calc_core::evaluate(expr)?;
+fn one_shot(expr: &str) -> Result<(), epher_core::EpherError> {
+    let value = epher_core::evaluate(expr)?;
     println!("{value}");
     Ok(())
 }
@@ -46,7 +46,7 @@ fn one_shot(expr: &str) -> Result<(), calc_core::CalcError> {
 /// saved functions, and the language preference survive restarts via the
 /// shared store. The UI language is the store preference if set, else the
 /// detected device locales (ADR-0008).
-fn repl() -> Result<(), calc_core::CalcError> {
+fn repl() -> Result<(), epher_core::EpherError> {
     let store = DocStore::new(FsStore::new(default_store_dir()));
     let mut session = match load_session(&store) {
         Ok(s) => s,
@@ -63,16 +63,16 @@ fn repl() -> Result<(), calc_core::CalcError> {
     let mut lines = stdin.lock().lines();
     loop {
         print!("{} ", localizer.lookup("prompt"));
-        io::stdout().flush().map_err(|e| calc_core::CalcError::Io(e.to_string()))?;
+        io::stdout().flush().map_err(|e| epher_core::EpherError::Io(e.to_string()))?;
         let Some(line) = lines.next() else { break }; // EOF
-        let line = line.map_err(|e| calc_core::CalcError::Io(e.to_string()))?.trim().to_string();
+        let line = line.map_err(|e| epher_core::EpherError::Io(e.to_string()))?.trim().to_string();
         if line.is_empty() {
             continue;
         }
         if line == "quit" || line == "exit" {
             break;
         }
-        if let Some(cmd) = calc_shell::classify(&line) {
+        if let Some(cmd) = epher_shell::classify(&line) {
             let handled = run_command(&cmd, &mut session, &store, &localizer);
             println!("{}", plain(handled.message));
             if let Some(code) = handled.language {

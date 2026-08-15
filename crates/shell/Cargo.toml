@@ -1,11 +1,11 @@
 [package]
-name = "calc-shell"
-version = "0.1.3"
+name = "epher-shell"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "The interactive-shell kernel shared by the CLI, TUI, and web frontends: line classification and command policy (ADR-0010)."
 
 [dependencies]
-calc-core = { path = "../core" }
-calc-store = { path = "../store" }
-calc-i18n = { path = "../i18n" }
+epher-core = { path = "../core" }
+epher-store = { path = "../store" }
+epher-i18n = { path = "../i18n" }

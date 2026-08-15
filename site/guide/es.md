@@ -1,14 +1,14 @@
-# Guía de usuario de Calc
+# Guía de usuario de epher
 
-¡Bienvenido! Calc es una calculadora programable y con scripts. Puedes usarla
+¡Bienvenido! epher es una calculadora programable y con scripts. Puedes usarla
 para un cálculo rápido o para construir tus propias funciones y pequeños
 programas, y todo está disponible en seis idiomas.
 
 Esta guía es para principiantes absolutos. Empieza con el cálculo más simple
 posible y llega hasta todo el poder del lenguaje. Cada ejemplo muestra lo que
-escribes y lo que Calc responde.
+escribes y lo que epher responde.
 
-Hay cuatro formas de usar Calc — elige la que más te convenga:
+Hay cuatro formas de usar epher — elige la que más te convenga:
 
 | Versión | Qué es | Cuándo conviene |
 |---|---|---|
@@ -20,13 +20,13 @@ Hay cuatro formas de usar Calc — elige la que más te convenga:
 Las cuatro versiones entienden exactamente el mismo lenguaje. Apréndelo una
 vez, úsalo en cualquier parte.
 
-## 1. El lenguaje de Calc
+## 1. El lenguaje de epher
 
-Este capítulo enseña el lenguaje compartido por todas las versiones de Calc.
+Este capítulo enseña el lenguaje compartido por todas las versiones de epher.
 En la aplicación web o de escritorio, escribe una expresión y pulsa
 **Intro** (o haz clic en el botón **=**). En la CLI, escríbela después del
-prompt `calc>`. En la TUI, solo escribe y pulsa **Intro**. En la CLI también
-puedes escribir `calc "expresión"` para evaluar una expresión directamente.
+prompt `epher>`. En la TUI, solo escribe y pulsa **Intro**. En la CLI también
+puedes escribir `epher "expresión"` para evaluar una expresión directamente.
 
 ### 1.1 Tu primer cálculo
 
@@ -36,7 +36,7 @@ Escribe esto:
 2 + 3 * 4
 ```
 
-Calc responde:
+epher responde:
 
 ```text
 14
@@ -210,7 +210,7 @@ x = 5
 5
 ```
 
-Calc te repite el valor. Desde ahora, `x` se puede usar en cualquier parte:
+epher te repite el valor. Desde ahora, `x` se puede usar en cualquier parte:
 
 ```text
 x ^ 2
@@ -260,7 +260,7 @@ if price > 50 then 2 else 1
 2
 ```
 
-> Calc no tiene valores de texto — ambas ramas de un `if` deben ser números
+> epher no tiene valores de texto — ambas ramas de un `if` deben ser números
 > (o resultados de comparaciones).
 
 ### 1.7 Bucles con while
@@ -278,7 +278,7 @@ x = 0; while x < 5 do x = x + 1; x
 Lee ese script así: *empieza x en 0; mientras x sea menor que 5, suma 1 a x;
 luego muestra x.* El resultado es 5 porque el bucle se ejecutó cinco veces.
 
-> **Red de seguridad:** Calc detiene cualquier bucle después de 100 000
+> **Red de seguridad:** epher detiene cualquier bucle después de 100 000
 > pasos y muestra `error: step limit exceeded`. Eso te protege de bucles que
 > nunca terminarían. Si lo ves, tu condición probablemente nunca se volvió
 > falsa.
@@ -364,7 +364,7 @@ variables, haz bucles y muestra un resultado final.
 
 ### 1.11 Resultados exactos: frac, dec y big
 
-Normalmente Calc calcula con números decimales como una calculadora de
+Normalmente epher calcula con números decimales como una calculadora de
 bolsillo. Algunos números se ven mejor exactos.
 
 **frac(n, d)** crea una fracción exacta:
@@ -429,7 +429,7 @@ big(10 ^ 20)
 
 ### 1.12 Funciones integradas
 
-Calc tiene las funciones de una calculadora científica, agrupadas por familia.
+epher tiene las funciones de una calculadora científica, agrupadas por familia.
 
 La trigonometría trabaja en radianes — usa `deg` y `rad` para convertir:
 
@@ -502,7 +502,7 @@ min(sqrt(16), 5)
 
 ### 1.13 Leer los errores
 
-Cuando algo sale mal, Calc te lo dice en lugar de adivinar:
+Cuando algo sale mal, epher te lo dice en lugar de adivinar:
 
 ```text
 1 / 0
@@ -536,7 +536,7 @@ foo(1)
 error: unknown name: foo
 ```
 
-El último ejemplo es importante: Calc te dice exactamente qué nombre no
+El último ejemplo es importante: epher te dice exactamente qué nombre no
 conoce, para que puedas arreglar tu expresión.
 
 ### 1.14 Referencia rápida
@@ -567,7 +567,7 @@ conoce, para que puedas arreglar tu expresión.
 La aplicación web está en:
 
 ```text
-https://upyesp.github.io/calc/pwa/
+https://upyesp.github.io/epher/pwa/
 ```
 
 No necesita instalación — funciona en cualquier navegador moderno, en
@@ -596,7 +596,7 @@ Escribe `graph` seguido de una expresión y pulsa **Intro**:
 graph x ^ 2
 ```
 
-Calc dibuja la curva y = f(x) desde x = −10 hasta x = 10 debajo del
+epher dibuja la curva y = f(x) desde x = −10 hasta x = 10 debajo del
 campo de entrada, con un rótulo que muestra lo representado. Puedes
 graficar cualquier expresión, incluidas tus propias funciones:
 
@@ -642,35 +642,35 @@ cómo la instalas y la abres.
 ### 3.1 Instalación
 
 Descarga la aplicación de escritorio para tu sistema desde el sitio web de
-Calc:
+epher:
 
 - **Linux (Debian/Ubuntu):** el paquete `.deb`
 
 ```text
-sudo apt install ./calc-desktop-linux-x86_64.deb
+sudo apt install ./epher-desktop-linux-x86_64.deb
 ```
 
 - **Linux (Fedora/RHEL):** el paquete `.rpm`
 
 ```text
-sudo dnf install ./calc-desktop-linux-x86_64.rpm
+sudo dnf install ./epher-desktop-linux-x86_64.rpm
 ```
 
 - **Linux (cualquier distro):** el AppImage — hazlo ejecutable y ejecútalo:
 
 ```text
-chmod +x calc-desktop-linux-x86_64.AppImage
-./calc-desktop-linux-x86_64.AppImage
+chmod +x epher-desktop-linux-x86_64.AppImage
+./epher-desktop-linux-x86_64.AppImage
 ```
 
-- **macOS:** abre el `.dmg` y arrastra Calc a Aplicaciones. Como la compilación
+- **macOS:** abre el `.dmg` y arrastra epher a Aplicaciones. Como la compilación
   no está firmada, el primer arranque necesita clic derecho → **Abrir**.
 - **Windows:** ejecuta el instalador. Como la compilación no está firmada,
   elige *Más información* → *Ejecutar de todas formas* en el primer arranque.
 
 ### 3.2 Uso
 
-Inicia Calc como cualquier otra aplicación. Obtienes una ventana con la misma
+Inicia epher como cualquier otra aplicación. Obtienes una ventana con la misma
 interfaz que la aplicación web: escribe una expresión, pulsa **Intro** o
 haz clic en **=**, y lee el resultado. Las gráficas también funcionan aquí
 — `graph x ^ 2` dibuja en la ventana (capítulo 2.4). La ventana se puede
@@ -680,8 +680,8 @@ redimensionar libremente.
 
 La aplicación de escritorio comparte su almacenamiento con las versiones
 de línea de comandos y terminal. Funciones, scripts, historial y la
-preferencia de idioma viven en un solo lugar — `~/.calc` en tu equipo (o
-`CALC_STORE_DIR`, capítulo 4.5) — y todo lo guardado en una versión está
+preferencia de idioma viven en un solo lugar — `~/.epher` en tu equipo (o
+`epher_STORE_DIR`, capítulo 4.5) — y todo lo guardado en una versión está
 disponible en las demás:
 
 ```text
@@ -701,7 +701,7 @@ definidas por scripts guardados. Los comandos `save`, `save script` y
 
 ## 4. La línea de comandos (CLI)
 
-La CLI es la versión de texto de Calc. Tiene dos modos: un modo de un solo
+La CLI es la versión de texto de epher. Tiene dos modos: un modo de un solo
 uso para resultados rápidos y una sesión interactiva para trabajos más
 largos.
 
@@ -710,7 +710,7 @@ largos.
 Pasa la expresión como argumento:
 
 ```text
-calc "2 + 3 * 4"
+epher "2 + 3 * 4"
 ```
 
 ```text
@@ -720,7 +720,7 @@ calc "2 + 3 * 4"
 Puedes hacer cualquier cosa del capítulo 1 que sea una sola expresión:
 
 ```text
-calc "if 3 > 2 then 10 else 20"
+epher "if 3 > 2 then 10 else 20"
 ```
 
 ```text
@@ -731,7 +731,7 @@ Si tu expresión empieza con un signo menos, dile a la CLI dónde empieza la
 expresión con `--`:
 
 ```text
-calc -- "-2 + 5"
+epher -- "-2 + 5"
 ```
 
 ```text
@@ -746,22 +746,22 @@ variables, funciones, bucles — necesitan la sesión interactiva.
 Inicia la sesión sin argumentos:
 
 ```text
-calc
+epher
 ```
 
-Calc muestra su prompt y espera:
+epher muestra su prompt y espera:
 
 ```text
-calc>
+epher>
 ```
 
 Ahora escribe cualquier cosa del capítulo 1, una línea cada vez. Las
 variables conservan sus valores entre líneas:
 
 ```text
-calc> x = 5
+epher> x = 5
 = 5
-calc> x ^ 2
+epher> x ^ 2
 = 25
 ```
 
@@ -769,10 +769,10 @@ Cada respuesta se muestra como `= resultado`. Para salir, escribe `quit` (o
 `exit`):
 
 ```text
-calc> quit
+epher> quit
 ```
 
-Tu historial se recuerda: la próxima vez que inicies `calc`, las líneas de
+Tu historial se recuerda: la próxima vez que inicies `epher`, las líneas de
 la sesión anterior siguen ahí.
 
 ### 4.3 Guardar funciones y scripts
@@ -780,16 +780,16 @@ la sesión anterior siguen ahí.
 Define una función y luego guárdala:
 
 ```text
-calc> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
-calc> save fib
+epher> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
+epher> save fib
 saved fib
 ```
 
 El comando `save fib` guarda la función en el disco. La próxima vez que
-inicies `calc`, `fib` ya está definida:
+inicies `epher`, `fib` ya está definida:
 
 ```text
-calc> fib(10)
+epher> fib(10)
 = 55
 ```
 
@@ -797,13 +797,13 @@ Para guardar un script completo (la última línea que escribiste) usa
 `save script`:
 
 ```text
-calc> x = 0; while x < 5 do x = x + 1; x
+epher> x = 0; while x < 5 do x = x + 1; x
 = 5
-calc> save script count_to_five
+epher> save script count_to_five
 saved script count_to_five
 ```
 
-Los scripts guardados se ejecutan automáticamente cuando Calc arranca, así
+Los scripts guardados se ejecutan automáticamente cuando epher arranca, así
 que todo lo que definen está listo para ti.
 
 ### 4.4 Cambiar el idioma de la interfaz
@@ -813,7 +813,7 @@ dispositivo. Para cambiarlo, escribe `language` seguido de uno de: `en`,
 `zh-CN`, `hi`, `es`, `fr`, `ar`:
 
 ```text
-calc> language fr
+epher> language fr
 language set to fr
 ```
 
@@ -827,15 +827,15 @@ Las funciones, scripts, historial y tu elección de idioma se guardan en una
 carpeta de tu ordenador:
 
 ```text
-~/.calc
+~/.epher
 ```
 
 Borra esa carpeta para empezar completamente de cero. Para usar otra
-ubicación, define la variable de entorno `CALC_STORE_DIR` antes de iniciar
-Calc:
+ubicación, define la variable de entorno `epher_STORE_DIR` antes de iniciar
+epher:
 
 ```text
-CALC_STORE_DIR=/tmp/my-calc calc
+epher_STORE_DIR=/tmp/my-epher epher
 ```
 
 ## 5. La interfaz de terminal (TUI)
@@ -844,7 +844,7 @@ La TUI es una versión a pantalla completa de la sesión interactiva, dentro
 de tu terminal. Iníciala con:
 
 ```text
-calc-tui
+epher-tui
 ```
 
 ### 5.1 La pantalla
@@ -875,7 +875,7 @@ Escribe `graph` seguido de una expresión y pulsa **Intro**:
 graph x ^ 2
 ```
 
-Calc muestrea la curva de x = −10 a x = 10 y la dibuja como una gráfica
+epher muestrea la curva de x = −10 a x = 10 y la dibuja como una gráfica
 ASCII en el panel Graph. El título sobre la gráfica muestra lo que se
 representa: `y = x ^ 2`.
 
@@ -894,19 +894,19 @@ cero) simplemente se omiten, dejando un hueco en la gráfica.
 
 La TUI comparte su almacenamiento con la CLI: todo lo guardado en una está
 disponible en la otra. Las funciones, scripts, historial y preferencia de
-idioma viven en `~/.calc` (capítulo 4.5), y los mismos comandos `save`,
+idioma viven en `~/.epher` (capítulo 4.5), y los mismos comandos `save`,
 `save script` y `language` funcionan aquí.
 
 ## 6. Tus datos y privacidad
 
 - La **CLI y la TUI** guardan funciones, scripts, historial y la elección de
-  idioma localmente en `~/.calc` (o `CALC_STORE_DIR`). Nada sale de tu
+  idioma localmente en `~/.epher` (o `epher_STORE_DIR`). Nada sale de tu
   ordenador.
 - La **aplicación web** no guarda nada en disco: el historial dura solo
   mientras la página está abierta. La aplicación web puede funcionar sin
   conexión porque la propia página la guarda tu navegador.
 - La **aplicación de escritorio** guarda funciones, scripts, historial y la
-  preferencia de idioma localmente en `~/.calc` (o `CALC_STORE_DIR`), el
+  preferencia de idioma localmente en `~/.epher` (o `epher_STORE_DIR`), el
   mismo almacén que la CLI y la TUI. Nada sale de tu equipo.
 
 Las cuatro versiones ejecutan el cálculo íntegramente en tu dispositivo —

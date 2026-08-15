@@ -1,4 +1,4 @@
-/* Calc landing page — i18n + theme.
+/* epher landing page — i18n + theme.
  *
  * i18n mirrors the Localizer in crates/i18n: device locale auto-detection,
  * a stored user preference, English fallback. The landing page is static
@@ -6,7 +6,7 @@
  * catalog lives in this file, keyed like the Fluent catalogs.
  *
  * Theme: light/dark, defaults to prefers-color-scheme, toggle persisted in
- * localStorage ("calc-theme"). Language preference: "calc-lang".
+ * localStorage ("epher-theme"). Language preference: "epher-lang".
  */
 "use strict";
 
@@ -24,7 +24,7 @@ const MESSAGES = {
     "lang-label": "Language",
     tagline: "A programmable, scriptable calculator",
     lede: "One calculation engine, four ways to use it. Type expressions, save functions and scripts, graph your results, and keep everything across sessions — in any of six languages.",
-    builds: "Get Calc",
+    builds: "Get epher",
     "cli-name": "Command line",
     "cli-desc": "One-shot expressions and an interactive REPL with saved functions, scripts, and settings.",
     "tui-name": "Terminal UI",
@@ -35,21 +35,21 @@ const MESSAGES = {
     "pwa-desc": "Runs in your browser, is installable, and works fully offline after the first visit.",
     downloads: "Downloads",
     get: "Get it",
-    "cli-linux": "Download Calc CLI for Linux",
-    "cli-macos": "Download Calc CLI for macOS",
-    "cli-windows": "Download Calc CLI for Windows",
-    "tui-linux": "Download Calc TUI for Linux",
-    "tui-macos": "Download Calc TUI for macOS",
-    "tui-windows": "Download Calc TUI for Windows",
-    "desktop-deb": "Download Calc Desktop for Linux (.deb)",
-    "desktop-rpm": "Download Calc Desktop for Linux (.rpm)",
-    "desktop-appimage": "Download Calc Desktop for Linux (AppImage)",
-    "desktop-macos": "Download Calc Desktop for macOS",
-    "desktop-windows": "Download Calc Desktop for Windows",
+    "cli-linux": "Download epher CLI for Linux",
+    "cli-macos": "Download epher CLI for macOS",
+    "cli-windows": "Download epher CLI for Windows",
+    "tui-linux": "Download epher TUI for Linux",
+    "tui-macos": "Download epher TUI for macOS",
+    "tui-windows": "Download epher TUI for Windows",
+    "desktop-deb": "Download epher Desktop for Linux (.deb)",
+    "desktop-rpm": "Download epher Desktop for Linux (.rpm)",
+    "desktop-appimage": "Download epher Desktop for Linux (AppImage)",
+    "desktop-macos": "Download epher Desktop for macOS",
+    "desktop-windows": "Download epher Desktop for Windows",
     "pwa-launch": "Launch the web app",
     "offline-note": "Works fully offline once loaded — install it from your browser's menu.",
     "footer-source": "Source code on GitHub",
-    "footer-license": "Calc is free and open source (MIT).",
+    "footer-license": "epher is free and open source (MIT).",
     "footer-release": "Downloads come from the latest GitHub release."
   },
 
@@ -64,7 +64,7 @@ const MESSAGES = {
     "lang-label": "语言",
     tagline: "可编程、可脚本化的计算器",
     lede: "一套计算引擎，四种使用方式。输入表达式、保存函数与脚本、绘制结果图表，并在会话之间保留所有内容——支持六种语言。",
-    builds: "获取 Calc",
+    builds: "获取 epher",
     "cli-name": "命令行",
     "cli-desc": "单次表达式计算与交互式 REPL，支持保存函数、脚本和设置。",
     "tui-name": "终端界面",
@@ -75,21 +75,21 @@ const MESSAGES = {
     "pwa-desc": "在浏览器中运行，可安装，首次访问后完全离线可用。",
     downloads: "下载",
     get: "获取",
-    "cli-linux": "下载 Linux 版 Calc 命令行",
-    "cli-macos": "下载 macOS 版 Calc 命令行",
-    "cli-windows": "下载 Windows 版 Calc 命令行",
-    "tui-linux": "下载 Linux 版 Calc 终端界面",
-    "tui-macos": "下载 macOS 版 Calc 终端界面",
-    "tui-windows": "下载 Windows 版 Calc 终端界面",
-    "desktop-deb": "下载 Linux 版 Calc 桌面应用（.deb）",
-    "desktop-rpm": "下载 Linux 版 Calc 桌面应用（.rpm）",
-    "desktop-appimage": "下载 Linux 版 Calc 桌面应用（AppImage）",
-    "desktop-macos": "下载 macOS 版 Calc 桌面应用",
-    "desktop-windows": "下载 Windows 版 Calc 桌面应用",
+    "cli-linux": "下载 Linux 版 epher 命令行",
+    "cli-macos": "下载 macOS 版 epher 命令行",
+    "cli-windows": "下载 Windows 版 epher 命令行",
+    "tui-linux": "下载 Linux 版 epher 终端界面",
+    "tui-macos": "下载 macOS 版 epher 终端界面",
+    "tui-windows": "下载 Windows 版 epher 终端界面",
+    "desktop-deb": "下载 Linux 版 epher 桌面应用（.deb）",
+    "desktop-rpm": "下载 Linux 版 epher 桌面应用（.rpm）",
+    "desktop-appimage": "下载 Linux 版 epher 桌面应用（AppImage）",
+    "desktop-macos": "下载 macOS 版 epher 桌面应用",
+    "desktop-windows": "下载 Windows 版 epher 桌面应用",
     "pwa-launch": "打开网页应用",
     "offline-note": "加载一次后即可完全离线使用——可从浏览器菜单中安装。",
     "footer-source": "GitHub 上的源代码",
-    "footer-license": "Calc 是免费开源软件（MIT 许可）。",
+    "footer-license": "epher 是免费开源软件（MIT 许可）。",
     "footer-release": "下载来自最新的 GitHub 版本。"
   },
 
@@ -104,7 +104,7 @@ const MESSAGES = {
     "lang-label": "भाषा",
     tagline: "एक प्रोग्राम करने योग्य, स्क्रिप्ट करने योग्य कैलकुलेटर",
     lede: "एक गणना इंजन, चार तरीकों से उपयोग करें। व्यंजक टाइप करें, फ़ंक्शन और स्क्रिप्ट सहेजें, परिणामों के ग्राफ़ बनाएँ — और सब कुछ सत्रों के बीच बनाए रखें, छह भाषाओं में।",
-    builds: "Calc प्राप्त करें",
+    builds: "epher प्राप्त करें",
     "cli-name": "कमांड लाइन",
     "cli-desc": "एकल व्यंजक और इंटरैक्टिव REPL, सहेजे गए फ़ंक्शन, स्क्रिप्ट और सेटिंग्स के साथ।",
     "tui-name": "टर्मिनल इंटरफ़ेस",
@@ -115,21 +115,21 @@ const MESSAGES = {
     "pwa-desc": "ब्राउज़र में चलता है, इंस्टॉल हो सकता है, और पहली बार खोलने के बाद पूरी तरह ऑफ़लाइन काम करता है।",
     downloads: "डाउनलोड",
     get: "प्राप्त करें",
-    "cli-linux": "Linux के लिए Calc CLI डाउनलोड करें",
-    "cli-macos": "macOS के लिए Calc CLI डाउनलोड करें",
-    "cli-windows": "Windows के लिए Calc CLI डाउनलोड करें",
-    "tui-linux": "Linux के लिए Calc TUI डाउनलोड करें",
-    "tui-macos": "macOS के लिए Calc TUI डाउनलोड करें",
-    "tui-windows": "Windows के लिए Calc TUI डाउनलोड करें",
-    "desktop-deb": "Linux के लिए Calc डेस्कटॉप डाउनलोड करें (.deb)",
-    "desktop-rpm": "Linux के लिए Calc डेस्कटॉप डाउनलोड करें (.rpm)",
-    "desktop-appimage": "Linux के लिए Calc डेस्कटॉप डाउनलोड करें (AppImage)",
-    "desktop-macos": "macOS के लिए Calc डेस्कटॉप डाउनलोड करें",
-    "desktop-windows": "Windows के लिए Calc डेस्कटॉप डाउनलोड करें",
+    "cli-linux": "Linux के लिए epher CLI डाउनलोड करें",
+    "cli-macos": "macOS के लिए epher CLI डाउनलोड करें",
+    "cli-windows": "Windows के लिए epher CLI डाउनलोड करें",
+    "tui-linux": "Linux के लिए epher TUI डाउनलोड करें",
+    "tui-macos": "macOS के लिए epher TUI डाउनलोड करें",
+    "tui-windows": "Windows के लिए epher TUI डाउनलोड करें",
+    "desktop-deb": "Linux के लिए epher डेस्कटॉप डाउनलोड करें (.deb)",
+    "desktop-rpm": "Linux के लिए epher डेस्कटॉप डाउनलोड करें (.rpm)",
+    "desktop-appimage": "Linux के लिए epher डेस्कटॉप डाउनलोड करें (AppImage)",
+    "desktop-macos": "macOS के लिए epher डेस्कटॉप डाउनलोड करें",
+    "desktop-windows": "Windows के लिए epher डेस्कटॉप डाउनलोड करें",
     "pwa-launch": "वेब ऐप खोलें",
     "offline-note": "लोड होते ही पूरी तरह ऑफ़लाइन काम करता है — इसे अपने ब्राउज़र मेनू से इंस्टॉल करें।",
     "footer-source": "GitHub पर स्रोत कोड",
-    "footer-license": "Calc निःशुल्क और ओपन सोर्स (MIT) है।",
+    "footer-license": "epher निःशुल्क और ओपन सोर्स (MIT) है।",
     "footer-release": "डाउनलोड नवीनतम GitHub रिलीज़ से आते हैं।"
   },
 
@@ -144,7 +144,7 @@ const MESSAGES = {
     "lang-label": "Idioma",
     tagline: "Una calculadora programable y con scripts",
     lede: "Un motor de cálculo, cuatro formas de usarlo. Escribe expresiones, guarda funciones y scripts, dibuja tus resultados y conserva todo entre sesiones, en seis idiomas.",
-    builds: "Obtén Calc",
+    builds: "Obtén epher",
     "cli-name": "Línea de comandos",
     "cli-desc": "Expresiones de una sola vez y REPL interactivo con funciones, scripts y ajustes guardados.",
     "tui-name": "Interfaz de terminal",
@@ -155,21 +155,21 @@ const MESSAGES = {
     "pwa-desc": "Se ejecuta en tu navegador, es instalable y funciona totalmente sin conexión tras la primera visita.",
     downloads: "Descargas",
     get: "Obtener",
-    "cli-linux": "Descargar Calc CLI para Linux",
-    "cli-macos": "Descargar Calc CLI para macOS",
-    "cli-windows": "Descargar Calc CLI para Windows",
-    "tui-linux": "Descargar Calc TUI para Linux",
-    "tui-macos": "Descargar Calc TUI para macOS",
-    "tui-windows": "Descargar Calc TUI para Windows",
-    "desktop-deb": "Descargar Calc de escritorio para Linux (.deb)",
-    "desktop-rpm": "Descargar Calc de escritorio para Linux (.rpm)",
-    "desktop-appimage": "Descargar Calc de escritorio para Linux (AppImage)",
-    "desktop-macos": "Descargar Calc de escritorio para macOS",
-    "desktop-windows": "Descargar Calc de escritorio para Windows",
+    "cli-linux": "Descargar epher CLI para Linux",
+    "cli-macos": "Descargar epher CLI para macOS",
+    "cli-windows": "Descargar epher CLI para Windows",
+    "tui-linux": "Descargar epher TUI para Linux",
+    "tui-macos": "Descargar epher TUI para macOS",
+    "tui-windows": "Descargar epher TUI para Windows",
+    "desktop-deb": "Descargar epher de escritorio para Linux (.deb)",
+    "desktop-rpm": "Descargar epher de escritorio para Linux (.rpm)",
+    "desktop-appimage": "Descargar epher de escritorio para Linux (AppImage)",
+    "desktop-macos": "Descargar epher de escritorio para macOS",
+    "desktop-windows": "Descargar epher de escritorio para Windows",
     "pwa-launch": "Abrir la aplicación web",
     "offline-note": "Funciona totalmente sin conexión una vez cargada: instálala desde el menú de tu navegador.",
     "footer-source": "Código fuente en GitHub",
-    "footer-license": "Calc es software libre y de código abierto (MIT).",
+    "footer-license": "epher es software libre y de código abierto (MIT).",
     "footer-release": "Las descargas provienen de la última versión de GitHub."
   },
 
@@ -184,7 +184,7 @@ const MESSAGES = {
     "lang-label": "Langue",
     tagline: "Une calculatrice programmable et scriptable",
     lede: "Un moteur de calcul, quatre façons de l'utiliser. Saisissez des expressions, enregistrez fonctions et scripts, tracez vos résultats, et conservez tout d'une session à l'autre, dans six langues.",
-    builds: "Obtenir Calc",
+    builds: "Obtenir epher",
     "cli-name": "Ligne de commande",
     "cli-desc": "Expressions ponctuelles et REPL interactif avec fonctions, scripts et réglages enregistrés.",
     "tui-name": "Interface de terminal",
@@ -195,21 +195,21 @@ const MESSAGES = {
     "pwa-desc": "Fonctionne dans votre navigateur, est installable et fonctionne entièrement hors ligne après la première visite.",
     downloads: "Téléchargements",
     get: "Obtenir",
-    "cli-linux": "Télécharger Calc CLI pour Linux",
-    "cli-macos": "Télécharger Calc CLI pour macOS",
-    "cli-windows": "Télécharger Calc CLI pour Windows",
-    "tui-linux": "Télécharger Calc TUI pour Linux",
-    "tui-macos": "Télécharger Calc TUI pour macOS",
-    "tui-windows": "Télécharger Calc TUI pour Windows",
-    "desktop-deb": "Télécharger Calc bureau pour Linux (.deb)",
-    "desktop-rpm": "Télécharger Calc bureau pour Linux (.rpm)",
-    "desktop-appimage": "Télécharger Calc bureau pour Linux (AppImage)",
-    "desktop-macos": "Télécharger Calc bureau pour macOS",
-    "desktop-windows": "Télécharger Calc bureau pour Windows",
+    "cli-linux": "Télécharger epher CLI pour Linux",
+    "cli-macos": "Télécharger epher CLI pour macOS",
+    "cli-windows": "Télécharger epher CLI pour Windows",
+    "tui-linux": "Télécharger epher TUI pour Linux",
+    "tui-macos": "Télécharger epher TUI pour macOS",
+    "tui-windows": "Télécharger epher TUI pour Windows",
+    "desktop-deb": "Télécharger epher bureau pour Linux (.deb)",
+    "desktop-rpm": "Télécharger epher bureau pour Linux (.rpm)",
+    "desktop-appimage": "Télécharger epher bureau pour Linux (AppImage)",
+    "desktop-macos": "Télécharger epher bureau pour macOS",
+    "desktop-windows": "Télécharger epher bureau pour Windows",
     "pwa-launch": "Ouvrir l'application web",
     "offline-note": "Fonctionne entièrement hors ligne une fois chargée — installez-la depuis le menu de votre navigateur.",
     "footer-source": "Code source sur GitHub",
-    "footer-license": "Calc est un logiciel libre et open source (MIT).",
+    "footer-license": "epher est un logiciel libre et open source (MIT).",
     "footer-release": "Les téléchargements proviennent de la dernière version GitHub."
   },
 
@@ -224,7 +224,7 @@ const MESSAGES = {
     "lang-label": "اللغة",
     tagline: "آلة حاسبة قابلة للبرمجة والكتابة النصية",
     lede: "محرك حساب واحد، وأربع طرق لاستخدامه. اكتب التعابير، واحفظ الدوال والنصوص البرمجية، وارسم النتائج، واحتفظ بكل شيء بين الجلسات — بست لغات.",
-    builds: "احصل على Calc",
+    builds: "احصل على epher",
     "cli-name": "سطر الأوامر",
     "cli-desc": "تعابير لمرة واحدة وواجهة REPL تفاعلية مع دوال ونصوص برمجية وإعدادات محفوظة.",
     "tui-name": "واجهة الطرفية",
@@ -235,21 +235,21 @@ const MESSAGES = {
     "pwa-desc": "يعمل في متصفحك، ويمكن تثبيته، ويعمل دون اتصال بالكامل بعد أول زيارة.",
     downloads: "التنزيلات",
     get: "احصل عليه",
-    "cli-linux": "تنزيل Calc CLI لنظام Linux",
-    "cli-macos": "تنزيل Calc CLI لنظام macOS",
-    "cli-windows": "تنزيل Calc CLI لنظام Windows",
-    "tui-linux": "تنزيل Calc TUI لنظام Linux",
-    "tui-macos": "تنزيل Calc TUI لنظام macOS",
-    "tui-windows": "تنزيل Calc TUI لنظام Windows",
-    "desktop-deb": "تنزيل Calc لسطح المكتب لنظام Linux (.deb)",
-    "desktop-rpm": "تنزيل Calc لسطح المكتب لنظام Linux (.rpm)",
-    "desktop-appimage": "تنزيل Calc لسطح المكتب لنظام Linux (AppImage)",
-    "desktop-macos": "تنزيل Calc لسطح المكتب لنظام macOS",
-    "desktop-windows": "تنزيل Calc لسطح المكتب لنظام Windows",
+    "cli-linux": "تنزيل epher CLI لنظام Linux",
+    "cli-macos": "تنزيل epher CLI لنظام macOS",
+    "cli-windows": "تنزيل epher CLI لنظام Windows",
+    "tui-linux": "تنزيل epher TUI لنظام Linux",
+    "tui-macos": "تنزيل epher TUI لنظام macOS",
+    "tui-windows": "تنزيل epher TUI لنظام Windows",
+    "desktop-deb": "تنزيل epher لسطح المكتب لنظام Linux (.deb)",
+    "desktop-rpm": "تنزيل epher لسطح المكتب لنظام Linux (.rpm)",
+    "desktop-appimage": "تنزيل epher لسطح المكتب لنظام Linux (AppImage)",
+    "desktop-macos": "تنزيل epher لسطح المكتب لنظام macOS",
+    "desktop-windows": "تنزيل epher لسطح المكتب لنظام Windows",
     "pwa-launch": "فتح تطبيق الويب",
     "offline-note": "يعمل دون اتصال بالكامل بعد تحميله — ثبِّته من قائمة المتصفح.",
     "footer-source": "الكود المصدري على GitHub",
-    "footer-license": "Calc برنامج مجاني ومفتوح المصدر (MIT).",
+    "footer-license": "epher برنامج مجاني ومفتوح المصدر (MIT).",
     "footer-release": "التنزيلات من أحدث إصدار على GitHub."
   }
 };
@@ -301,7 +301,7 @@ function applyLang(lang) {
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   try {
-    localStorage.setItem("calc-theme", theme);
+    localStorage.setItem("epher-theme", theme);
   } catch (e) {
     /* private mode: ignore */
   }
@@ -318,7 +318,7 @@ function setTheme(theme) {
 function init() {
   let stored = null;
   try {
-    stored = localStorage.getItem("calc-lang");
+    stored = localStorage.getItem("epher-lang");
   } catch (e) {
     /* ignore */
   }
@@ -336,7 +336,7 @@ function init() {
   document.getElementById("lang-select").addEventListener("change", (e) => {
     applyLang(e.target.value);
     try {
-      localStorage.setItem("calc-lang", e.target.value);
+      localStorage.setItem("epher-lang", e.target.value);
     } catch (err) {
       /* ignore */
     }

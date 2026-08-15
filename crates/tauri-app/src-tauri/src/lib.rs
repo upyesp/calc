@@ -1,15 +1,15 @@
 //! app_lib — the Tauri desktop shell (ADR-0001, ADR-0010).
 //!
 //! The native process owns the Native Store: a `DocStore<FsStore>` rooted
-//! at `default_store_dir()` (`CALC_STORE_DIR` override, `~/.calc` default) —
+//! at `default_store_dir()` (`EPHER_STORE_DIR` override, `~/.epher` default) —
 //! the same files the CLI and TUI use. The webview bridges to it through
-//! five IPC commands, all thin wrappers over calc-store's persist helpers;
+//! five IPC commands, all thin wrappers over epher-store's persist helpers;
 //! evaluation itself stays in the webview on the wasm core.
 
 use std::path::PathBuf;
 
-use calc_store::persist;
-use calc_store::{DocStore, FsStore};
+use epher_store::persist;
+use epher_store::{DocStore, FsStore};
 use serde::Serialize;
 use tauri::State;
 
@@ -28,7 +28,7 @@ impl DesktopStore {
 
     /// Everything the webview needs at startup: history, the replay lines
     /// (functions, then scripts), and the language preference.
-    pub fn init(&self) -> calc_store::StoreResult<InitState> {
+    pub fn init(&self) -> epher_store::StoreResult<InitState> {
         Ok(InitState {
             history: persist::history(&self.store)?,
             replay: persist::replay_lines(&self.store)?,
@@ -36,19 +36,19 @@ impl DesktopStore {
         })
     }
 
-    pub fn save_function(&self, name: &str, source: &str) -> calc_store::StoreResult<()> {
+    pub fn save_function(&self, name: &str, source: &str) -> epher_store::StoreResult<()> {
         persist::save_function(&self.store, name, source)
     }
 
-    pub fn save_script(&self, name: &str, source: &str) -> calc_store::StoreResult<()> {
+    pub fn save_script(&self, name: &str, source: &str) -> epher_store::StoreResult<()> {
         persist::save_script(&self.store, name, source)
     }
 
-    pub fn save_history(&self, history: &[String]) -> calc_store::StoreResult<()> {
+    pub fn save_history(&self, history: &[String]) -> epher_store::StoreResult<()> {
         persist::save_history(&self.store, history)
     }
 
-    pub fn save_language(&self, language: &str) -> calc_store::StoreResult<()> {
+    pub fn save_language(&self, language: &str) -> epher_store::StoreResult<()> {
         persist::save_language(&self.store, language)
     }
 }
@@ -115,7 +115,7 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use calc_store::persist::load_session;
+    use epher_store::persist::load_session;
 
     #[test]
     fn init_reports_what_the_cli_would_load() {

@@ -1,14 +1,14 @@
 # Website and GitHub Pages
 
-The project is published at **https://upyesp.github.io/calc/** via GitHub
+The project is published at **https://upyesp.github.io/epher/** via GitHub
 Pages, built and deployed by the `pages` workflow (`.github/workflows/pages.yml`).
 
 ## Site layout
 
 | Path | Content | Source |
 |---|---|---|
-| `/calc/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
-| `/calc/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
+| `/epher/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
+| `/epher/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
 | GitHub Releases | CLI/TUI/desktop binaries | built by `.github/workflows/release.yml` |
 
 The PWA dist is laid out by `crates/web/index.html`: `copy-file` puts the
@@ -20,7 +20,7 @@ reach users) and runtime-caches assets for offline use; bump its `CACHE`
 constant when the strategy changes.
 
 The landing page links to release assets via
-`https://github.com/upyesp/calc/releases/latest/download/<asset>` so download
+`https://github.com/upyesp/epher/releases/latest/download/<asset>` so download
 links never need a version number.
 
 ## Landing page design
@@ -31,7 +31,7 @@ links never need a version number.
   `site/app.js` (there is no wasm on the landing page). `lang`/`dir` (RTL for
   Arabic) follow the active locale (WCAG 3.1.1).
 - **Themes**: light/dark via `[data-theme]`; defaults to
-  `prefers-color-scheme`, toggle persists to `localStorage` (`calc-theme`).
+  `prefers-color-scheme`, toggle persists to `localStorage` (`epher-theme`).
   An inline script in `<head>` applies both theme and stored language before
   first paint — no flash.
 - **Accessibility**: WCAG 2.2 AA — see `docs/accessibility.md`. Contrast
@@ -75,11 +75,11 @@ git push origin v0.1.0
 Stable asset names (the landing page depends on them):
 
 ```
-calc-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-calc-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-calc-desktop-linux-x86_64.{deb,rpm,AppImage}
-calc-desktop-macos-aarch64.dmg
-calc-desktop-windows-x86_64.exe
+epher-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+epher-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+epher-desktop-linux-x86_64.{deb,rpm,AppImage}
+epher-desktop-macos-aarch64.dmg
+epher-desktop-windows-x86_64.exe
 ```
 
 macOS and Windows desktop builds are unsigned. If the landing page's
@@ -89,7 +89,7 @@ and in `site/index.html` together.
 ## First-time setup (already done for this repo)
 
 1. Enable Pages with the workflow source:
-   `gh api repos/upyesp/calc/pages -f build_type=workflow`
+   `gh api repos/upyesp/epher/pages -f build_type=workflow`
 2. Push `main` — the `pages` workflow builds and deploys.
 3. If the repository ever gets recreated, redo step 1; nothing else is
    configured outside the repo.

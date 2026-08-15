@@ -1,14 +1,14 @@
-# Calc user guide
+# epher user guide
 
-Welcome! Calc is a programmable, scriptable calculator. You can use it for a
+Welcome! epher is a programmable, scriptable calculator. You can use it for a
 quick calculation, or build up your own functions and small programs — and
 everything is available in six languages.
 
 This guide is for complete beginners. It starts with the simplest possible
 calculation and builds up to the full power of the language. Every example
-shows what you type and what Calc answers.
+shows what you type and what epher answers.
 
-There are four ways to use Calc — pick whichever suits you:
+There are four ways to use epher — pick whichever suits you:
 
 | Version | What it is | Best when |
 |---|---|---|
@@ -20,13 +20,13 @@ There are four ways to use Calc — pick whichever suits you:
 All four versions understand exactly the same language. Learn it once, use it
 anywhere.
 
-## 1. The Calc language
+## 1. The epher language
 
-This chapter teaches the language shared by every version of Calc. In the web
+This chapter teaches the language shared by every version of epher. In the web
 app or desktop app, type an expression and press **Enter** (or click the
-**=** button). In the CLI, type it after the `calc>` prompt. In the TUI, just
+**=** button). In the CLI, type it after the `epher>` prompt. In the TUI, just
 type and press **Enter**. In the CLI you can also write
-`calc "expression"` to evaluate one expression directly.
+`epher "expression"` to evaluate one expression directly.
 
 ### 1.1 Your first calculation
 
@@ -36,7 +36,7 @@ Type this:
 2 + 3 * 4
 ```
 
-Calc answers:
+epher answers:
 
 ```text
 14
@@ -209,7 +209,7 @@ x = 5
 5
 ```
 
-Calc repeats the value back to you. From now on, `x` can be used anywhere:
+epher repeats the value back to you. From now on, `x` can be used anywhere:
 
 ```text
 x ^ 2
@@ -259,7 +259,7 @@ if price > 50 then 2 else 1
 2
 ```
 
-> Calc does not have text values — both branches of an `if` must be numbers
+> epher does not have text values — both branches of an `if` must be numbers
 > (or the results of comparisons).
 
 ### 1.7 Loops with while
@@ -277,7 +277,7 @@ x = 0; while x < 5 do x = x + 1; x
 Read that script as: *start x at 0; while x is less than 5, add 1 to x; then
 show x.* The result is 5 because the loop ran five times.
 
-> **Safety net:** Calc stops any loop after 100,000 steps and shows
+> **Safety net:** epher stops any loop after 100,000 steps and shows
 > `error: step limit exceeded`. That protects you from loops that would
 > never end. If you see it, your condition probably never became false.
 
@@ -361,7 +361,7 @@ final result.
 
 ### 1.11 Exact results: frac, dec and big
 
-Normally Calc calculates with decimal numbers like a pocket calculator.
+Normally epher calculates with decimal numbers like a pocket calculator.
 Some numbers look better exact.
 
 **frac(n, d)** makes an exact fraction:
@@ -426,7 +426,7 @@ big(10 ^ 20)
 
 ### 1.12 Built-in functions
 
-Calc has the functions of a scientific calculator, grouped by family.
+epher has the functions of a scientific calculator, grouped by family.
 
 Trigonometry works in radians — use `deg` and `rad` to convert:
 
@@ -499,7 +499,7 @@ min(sqrt(16), 5)
 
 ### 1.13 Reading errors
 
-When something goes wrong, Calc tells you instead of guessing:
+When something goes wrong, epher tells you instead of guessing:
 
 ```text
 1 / 0
@@ -533,7 +533,7 @@ foo(1)
 error: unknown name: foo
 ```
 
-The last example is important: Calc tells you exactly which name it does
+The last example is important: epher tells you exactly which name it does
 not know, so you can fix your expression.
 
 ### 1.14 Quick reference
@@ -564,7 +564,7 @@ not know, so you can fix your expression.
 The web app lives at:
 
 ```text
-https://upyesp.github.io/calc/pwa/
+https://upyesp.github.io/epher/pwa/
 ```
 
 No installation is needed — it works in any modern browser on a computer,
@@ -593,7 +593,7 @@ Type `graph` followed by an expression and press **Enter**:
 graph x ^ 2
 ```
 
-Calc draws the curve y = f(x) from x = −10 to x = 10 beneath the input,
+epher draws the curve y = f(x) from x = −10 to x = 10 beneath the input,
 with a caption showing what was plotted. You can graph any expression,
 including your own functions:
 
@@ -633,35 +633,35 @@ chapter 2 applies; the difference is only how you install and start it.
 
 ### 3.1 Installing
 
-Download the desktop app for your system from the Calc website:
+Download the desktop app for your system from the epher website:
 
 - **Linux (Debian/Ubuntu):** the `.deb` package
 
 ```text
-sudo apt install ./calc-desktop-linux-x86_64.deb
+sudo apt install ./epher-desktop-linux-x86_64.deb
 ```
 
 - **Linux (Fedora/RHEL):** the `.rpm` package
 
 ```text
-sudo dnf install ./calc-desktop-linux-x86_64.rpm
+sudo dnf install ./epher-desktop-linux-x86_64.rpm
 ```
 
 - **Linux (any distro):** the AppImage — make it executable and run it:
 
 ```text
-chmod +x calc-desktop-linux-x86_64.AppImage
-./calc-desktop-linux-x86_64.AppImage
+chmod +x epher-desktop-linux-x86_64.AppImage
+./epher-desktop-linux-x86_64.AppImage
 ```
 
-- **macOS:** open the `.dmg` and drag Calc into Applications. Because the
+- **macOS:** open the `.dmg` and drag epher into Applications. Because the
   build is not signed, the first launch needs a right-click → **Open**.
 - **Windows:** run the installer. Because the build is not signed, choose
   *More info* → *Run anyway* on the first launch.
 
 ### 3.2 Using it
 
-Launch Calc like any other application. You get a window with the same
+Launch epher like any other application. You get a window with the same
 interface as the web app: type an expression, press **Enter** or click
 **=**, and read the result. Graphing works here too — `graph x ^ 2` draws
 in the window (chapter 2.4). The window can be resized freely.
@@ -670,7 +670,7 @@ in the window (chapter 2.4). The window can be resized freely.
 
 The desktop app shares its storage with the command line and terminal
 versions. Functions, scripts, history, and the language preference live in
-one place — `~/.calc` on your computer (or `CALC_STORE_DIR`, chapter
+one place — `~/.epher` on your computer (or `epher_STORE_DIR`, chapter
 4.5) — and everything saved in one version is available in the others:
 
 ```text
@@ -690,7 +690,7 @@ same here.
 
 ## 4. The command line (CLI)
 
-The CLI is the text version of Calc. It comes in two modes: a one-shot mode
+The CLI is the text version of epher. It comes in two modes: a one-shot mode
 for quick results, and an interactive session for longer work.
 
 ### 4.1 One-shot calculations
@@ -698,7 +698,7 @@ for quick results, and an interactive session for longer work.
 Give the expression as an argument:
 
 ```text
-calc "2 + 3 * 4"
+epher "2 + 3 * 4"
 ```
 
 ```text
@@ -708,7 +708,7 @@ calc "2 + 3 * 4"
 You can do anything from chapter 1 that is a single expression:
 
 ```text
-calc "if 3 > 2 then 10 else 20"
+epher "if 3 > 2 then 10 else 20"
 ```
 
 ```text
@@ -719,7 +719,7 @@ If your expression starts with a minus sign, tell the CLI where the
 expression begins with `--`:
 
 ```text
-calc -- "-2 + 5"
+epher -- "-2 + 5"
 ```
 
 ```text
@@ -734,32 +734,32 @@ functions, loops — need the interactive session.
 Start the session with no arguments:
 
 ```text
-calc
+epher
 ```
 
-Calc prints its prompt and waits:
+epher prints its prompt and waits:
 
 ```text
-calc>
+epher>
 ```
 
 Now type anything from chapter 1, one line at a time. Variables keep their
 values between lines:
 
 ```text
-calc> x = 5
+epher> x = 5
 = 5
-calc> x ^ 2
+epher> x ^ 2
 = 25
 ```
 
 Each answer is shown as `= result`. To leave, type `quit` (or `exit`):
 
 ```text
-calc> quit
+epher> quit
 ```
 
-Your history is remembered: the next time you start `calc`, the previous
+Your history is remembered: the next time you start `epher`, the previous
 session's lines are still there.
 
 ### 4.3 Saving functions and scripts
@@ -767,29 +767,29 @@ session's lines are still there.
 Define a function, then save it:
 
 ```text
-calc> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
-calc> save fib
+epher> def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
+epher> save fib
 saved fib
 ```
 
 The `save fib` command stores the function on disk. Next time you start
-`calc`, `fib` is already defined:
+`epher`, `fib` is already defined:
 
 ```text
-calc> fib(10)
+epher> fib(10)
 = 55
 ```
 
 To save a whole script (the last line you typed) use `save script`:
 
 ```text
-calc> x = 0; while x < 5 do x = x + 1; x
+epher> x = 0; while x < 5 do x = x + 1; x
 = 5
-calc> save script count_to_five
+epher> save script count_to_five
 saved script count_to_five
 ```
 
-Saved scripts run automatically when Calc starts, so anything they define is
+Saved scripts run automatically when epher starts, so anything they define is
 ready for you.
 
 ### 4.4 Changing the interface language
@@ -799,7 +799,7 @@ To override it, type `language` followed by one of: `en`, `zh-CN`, `hi`,
 `es`, `fr`, `ar`:
 
 ```text
-calc> language fr
+epher> language fr
 language set to fr
 ```
 
@@ -812,14 +812,14 @@ Functions, scripts, history, and your language choice are stored in one
 folder on your computer:
 
 ```text
-~/.calc
+~/.epher
 ```
 
 Delete that folder to start completely fresh. To use a different location,
-set the environment variable `CALC_STORE_DIR` before starting Calc:
+set the environment variable `epher_STORE_DIR` before starting epher:
 
 ```text
-CALC_STORE_DIR=/tmp/my-calc calc
+epher_STORE_DIR=/tmp/my-epher epher
 ```
 
 ## 5. The terminal UI (TUI)
@@ -828,7 +828,7 @@ The TUI is a full-screen version of the interactive session, inside your
 terminal. Start it with:
 
 ```text
-calc-tui
+epher-tui
 ```
 
 ### 5.1 The screen
@@ -859,7 +859,7 @@ Type `graph` followed by an expression, and press **Enter**:
 graph x ^ 2
 ```
 
-Calc samples the curve from x = −10 to x = 10 and draws it as an ASCII plot
+epher samples the curve from x = −10 to x = 10 and draws it as an ASCII plot
 in the Graph panel. The caption above the plot shows what is plotted:
 `y = x ^ 2`.
 
@@ -878,19 +878,19 @@ are simply skipped, leaving a gap in the plot.
 
 The TUI shares its storage with the CLI: everything saved in one is
 available in the other. Functions, scripts, history, and the language
-preference live in `~/.calc` (chapter 4.5), and the same `save`,
+preference live in `~/.epher` (chapter 4.5), and the same `save`,
 `save script`, and `language` commands work here.
 
 ## 6. Your data and privacy
 
 - The **CLI and TUI** store functions, scripts, history, and the language
-  choice locally in `~/.calc` (or `CALC_STORE_DIR`). Nothing leaves your
+  choice locally in `~/.epher` (or `epher_STORE_DIR`). Nothing leaves your
   computer.
 - The **web app** keeps nothing on disk: history lasts only while the page
   is open. The web app can work offline because the page itself is stored by
   your browser.
 - The **desktop app** stores functions, scripts, history, and the language
-  choice locally in `~/.calc` (or `CALC_STORE_DIR`), the same store as the
+  choice locally in `~/.epher` (or `epher_STORE_DIR`), the same store as the
   CLI and TUI. Nothing leaves your computer.
 
 All four versions run the calculation entirely on your device — nothing is

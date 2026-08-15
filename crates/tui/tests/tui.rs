@@ -1,6 +1,6 @@
-use calc_core::Sample;
-use calc_core::Session;
-use calc_tui::{render_ascii, App};
+use epher_core::Sample;
+use epher_core::Session;
+use epher_tui::{render_ascii, App};
 
 #[test]
 fn submit_evaluates_against_persistent_env() {
@@ -91,10 +91,10 @@ fn render_ascii_handles_empty_and_non_finite() {
 
 // --- shell commands through the App seam (ADR-0010) ---
 
-use calc_i18n::Localizer;
-use calc_shell::plain;
-use calc_store::persist::{history as load_history, load_language};
-use calc_store::{DocStore, FsStore};
+use epher_i18n::Localizer;
+use epher_shell::plain;
+use epher_store::persist::{history as load_history, load_language};
+use epher_store::{DocStore, FsStore};
 
 fn scratch_store() -> (DocStore<FsStore>, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();

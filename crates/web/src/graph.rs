@@ -10,7 +10,7 @@
 //! next to it in the component. Colors inherit `currentColor` so the theme
 //! controls contrast (the plot area color must stay >= 3:1, WCAG 1.4.11).
 
-use calc_core::Sample;
+use epher_core::Sample;
 use yew::html;
 use yew::prelude::Html;
 

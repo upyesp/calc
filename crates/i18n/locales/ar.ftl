@@ -1,1 +1,1 @@
-app-name = الآلة الحاسبة
+app-name = epher

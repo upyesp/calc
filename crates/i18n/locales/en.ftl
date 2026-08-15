@@ -1,5 +1,5 @@
-app-name = Calc
-prompt = calc>
+app-name = epher
+prompt = epher>
 saved = saved { $name }
 saved-script = saved script { $name }
 nothing-to-save = nothing to save (no preceding script line)

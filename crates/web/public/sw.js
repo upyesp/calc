@@ -1,4 +1,4 @@
-// Offline-first service worker for the Calc web app.
+// Offline-first service worker for the epher web app.
 //
 // Navigation requests are network-first (so new deploys reach users) with a
 // cache fallback when offline. Same-origin asset requests are runtime-cached
@@ -8,7 +8,7 @@
 //
 // Bump CACHE when the precache set or the caching strategy changes; the
 // activate handler clears older caches.
-const CACHE = "calc-v2";
+const CACHE = "epher-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.3"
+version = "0.2.0"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
@@ -17,14 +17,14 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # The desktop binary users see in target/release and /usr/bin — not the
 # package-name default `app`.
 [[bin]]
-name = "calc-desktop"
+name = "epher-desktop"
 path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
-calc-store = { path = "../../../crates/store", features = ["fs"] }
+epher-store = { path = "../../../crates/store", features = ["fs"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"

@@ -1,6 +1,6 @@
-# Calc
+# epher
 
-Calc is a programmable, scriptable calculator: users evaluate Expressions,
+epher is a programmable, scriptable calculator: users evaluate Expressions,
 define reusable Functions, and write multi-line Scripts. It can graph
 Expressions and accept LaTeX as an input form. (Some terms below are still
 being sharpened during design.)

@@ -1,10 +1,10 @@
-//! calc-shell policy tests: classification, preparation (validation and
+//! epher-shell policy tests: classification, preparation (validation and
 //! source resolution), and the native persist path.
 
-use calc_core::Session;
-use calc_i18n::Localizer;
-use calc_shell::{classify, plain, prepare, run_command, Command};
-use calc_store::{DocStore, MemoryStore};
+use epher_core::Session;
+use epher_i18n::Localizer;
+use epher_shell::{classify, plain, prepare, run_command, Command};
+use epher_store::{DocStore, MemoryStore};
 
 fn en() -> Localizer {
     Localizer::resolve(Some("en"), &[])
@@ -48,7 +48,7 @@ fn prepare_resolves_function_source_from_the_session() {
     let p = prepare(&Command::SaveFunction { name: "f".into() }, &s, &en()).unwrap();
     assert_eq!(
         p,
-        calc_shell::Prepared::SaveFunction { name: "f".into(), source: "def f(x) = x ^ 2".into() }
+        epher_shell::Prepared::SaveFunction { name: "f".into(), source: "def f(x) = x ^ 2".into() }
     );
 }
 
@@ -64,7 +64,7 @@ fn prepare_uses_the_last_submitted_line_for_scripts() {
     let mut s = Session::new();
     s.submit("x = 0; while x < 5 do x = x + 1; x");
     let p = prepare(&Command::SaveScript { name: "count".into() }, &s, &en()).unwrap();
-    assert!(matches!(p, calc_shell::Prepared::SaveScript { .. }));
+    assert!(matches!(p, epher_shell::Prepared::SaveScript { .. }));
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn prepare_rejects_scripts_when_nothing_qualifies() {
 fn prepare_validates_language_codes() {
     let s = Session::new();
     let p = prepare(&Command::Language { code: "fr".into() }, &s, &en()).unwrap();
-    assert_eq!(p, calc_shell::Prepared::Language { code: "fr".into() });
+    assert_eq!(p, epher_shell::Prepared::Language { code: "fr".into() });
 
     let err = plain(prepare(&Command::Language { code: "xx".into() }, &s, &en()).unwrap_err());
     assert!(err.starts_with("unsupported language xx"));
@@ -117,7 +117,7 @@ fn run_command_persists_language_and_answers() {
     assert_eq!(handled.language, Some("es".into()));
     assert_eq!(out, "language set to es");
     assert_eq!(
-        calc_store::persist::load_language(&store).unwrap(),
+        epher_store::persist::load_language(&store).unwrap(),
         Some("es".into())
     );
 }

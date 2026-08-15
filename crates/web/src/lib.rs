@@ -1,8 +1,8 @@
-//! calc-web — the Yew frontend compiled to `wasm32-unknown-unknown`, shared by
+//! epher-web — the Yew frontend compiled to `wasm32-unknown-unknown`, shared by
 //! the PWA and the Tauri desktop shell (ADR-0001).
 //!
 //! A thin component over the shared [`Session`]: input line, result, history.
-//! All logic lives in calc-core and calc-shell; this file is presentation
+//! All logic lives in epher-core and epher-shell; this file is presentation
 //! glue. Inside the desktop shell, persistence goes through the native store
 //! via the Tauri IPC bridge (ADR-0010); in the browser, the session is the
 //! whole state.
@@ -11,17 +11,17 @@ mod bridge;
 pub mod graph;
 
 use bridge::{Bridge, InitState};
-use calc_core::{parse, sample, Sample, Session};
-use calc_i18n::Localizer;
-use calc_shell::{classify, message, prepare};
+use epher_core::{parse, sample, Sample, Session};
+use epher_i18n::Localizer;
+use epher_shell::{classify, message, prepare};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlInputElement;
 use yew::events::{InputEvent, SubmitEvent};
 use yew::prelude::*;
 
-#[function_component(CalcApp)]
-fn calc_app() -> Html {
+#[function_component(EpherApp)]
+fn epher_app() -> Html {
     let session = use_state(Session::new);
     let input = use_state(String::new);
     let result = use_state(String::new);
@@ -105,7 +105,7 @@ fn calc_app() -> Html {
                 return;
             }
 
-            // Shell commands (calc-shell policy): persist through the
+            // Shell commands (epher-shell policy): persist through the
             // bridge in the desktop shell; explain the web app's limits
             // otherwise.
             if let Some(cmd) = classify(&line) {
@@ -113,13 +113,13 @@ fn calc_app() -> Html {
                     Bridge::Tauri => match prepare(&cmd, &session, &localizer) {
                         Ok(prepared) => {
                             match &prepared {
-                                calc_shell::Prepared::SaveFunction { name, source } => {
+                                epher_shell::Prepared::SaveFunction { name, source } => {
                                     bridge.save_function(name, source);
                                 }
-                                calc_shell::Prepared::SaveScript { name, source } => {
+                                epher_shell::Prepared::SaveScript { name, source } => {
                                     bridge.save_script(name, source);
                                 }
-                                calc_shell::Prepared::Language { code } => {
+                                epher_shell::Prepared::Language { code } => {
                                     bridge.save_language(code);
                                     localizer.set(Localizer::resolve(Some(code), &[]));
                                 }
@@ -150,8 +150,8 @@ fn calc_app() -> Html {
     let is_error = result.starts_with("error:") || result.starts_with("warning:");
 
     html! {
-        <main class="calc">
-            <h1>{ "Calc" }</h1>
+        <main class="epher">
+            <h1>{ "epher" }</h1>
             <form onsubmit={on_submit}>
                 <input
                     type="text"
@@ -161,11 +161,11 @@ fn calc_app() -> Html {
                     autofocus={true}
                     aria-label="expression"
                     aria-invalid={if is_error { "true" } else { "false" }}
-                    aria-describedby={if is_error { "calc-result" } else { "" }}
+                    aria-describedby={if is_error { "epher-result" } else { "" }}
                 />
                 <button type="submit" aria-label="Evaluate">{ "=" }</button>
             </form>
-            <div id="calc-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
+            <div id="epher-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
             {
                 match (*graph).clone() {
                     Some((samples, source)) => {
@@ -190,5 +190,5 @@ fn calc_app() -> Html {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    yew::Renderer::<CalcApp>::new().render();
+    yew::Renderer::<EpherApp>::new().render();
 }

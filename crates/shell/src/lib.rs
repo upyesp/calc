@@ -1,4 +1,4 @@
-//! calc-shell — the interactive-shell kernel shared by the CLI, TUI, and web
+//! epher-shell — the interactive-shell kernel shared by the CLI, TUI, and web
 //! frontends (ADR-0010).
 //!
 //! One policy for shell commands: [`classify`] recognizes `save`,
@@ -7,10 +7,10 @@
 //! persists through the store for native shells. The webview reuses
 //! classify/prepare and persists through its IPC bridge instead.
 
-use calc_core::Session;
-use calc_i18n::Localizer;
-use calc_store::persist;
-use calc_store::{DocStore, Storage};
+use epher_core::Session;
+use epher_i18n::Localizer;
+use epher_store::persist;
+use epher_store::{DocStore, Storage};
 
 /// A shell command recognized in an input line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,14 +83,14 @@ pub fn prepare(cmd: &Command, session: &Session, localizer: &Localizer) -> Resul
             _ => Err(localizer.lookup("nothing-to-save")),
         },
         Command::Language { code } => {
-            if calc_i18n::SUPPORTED_LOCALES.contains(&code.as_str()) {
+            if epher_i18n::SUPPORTED_LOCALES.contains(&code.as_str()) {
                 Ok(Prepared::Language { code: code.clone() })
             } else {
                 Err(localizer.lookup_args(
                     "unsupported-language",
                     &[
                         ("code", code),
-                        ("supported", &calc_i18n::SUPPORTED_LOCALES.join(", ")),
+                        ("supported", &epher_i18n::SUPPORTED_LOCALES.join(", ")),
                     ],
                 ))
             }

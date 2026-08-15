@@ -1,6 +1,6 @@
-# Numerics crate options for `calc-core`
+# Numerics crate options for `epher-core`
 
-**Goal:** pick number types for a programmable calculator whose `calc-core`
+**Goal:** pick number types for a programmable calculator whose `epher-core`
 must compile to **both** `wasm32-unknown-unknown` (Yew web + Tauri desktop)
 **and** native targets (CLI/TUI on x86_64 + aarch64). Expressions want exact
 fractions and arbitrary precision; graphing needs fast floats and complex.
@@ -40,9 +40,9 @@ it fails at the C build layer, two ways:
 Native build **does** succeed (compiles `libgmp.a`/`libmpfr.a`/`libmpc.a` from
 C source, ~2 min), but requires a host C toolchain including **`cc`, `m4`,
 `make`** (this sandbox lacked `m4` until installed) — a real distribution burden.
-**Conclusion: `rug`/`gmp-mpfr-sys` cannot be a `calc-core` dependency; the wasm
+**Conclusion: `rug`/`gmp-mpfr-sys` cannot be a `epher-core` dependency; the wasm
 constraint is hard.** If GMP-class numbers are ever wanted, they must live in a
-native-only crate `calc-core` does not link — and `malachite` is the wasm-safe
+native-only crate `epher-core` does not link — and `malachite` is the wasm-safe
 pure-Rust substitute.
 
 ## Flagged-dependency scan (the wasm32-unknown-unknown killers)
@@ -51,8 +51,8 @@ Scanned every candidate's `cargo tree` for the usual wasm pitfalls:
 
 | Flag | Finding |
 |---|---|
-| **`getrandom`** | Pulled **only** via `rand` features: `ibig`'s default `rand`, `malachite`'s `random`, `rust_decimal`'s optional `rand`. Disabling those → **no getrandom in the tree** (verified clean). On wasm32-unknown-unknown, `getrandom` needs its `js`/`wasm_js` feature + `wasm-bindgen` or it errors/panics, so `calc-core` should keep randomness out entirely. |
-| **`rayon`** | Not pulled by any candidate by default. rayon 1.12 *can* target wasm only via `web_spin_lock` **plus** `-C target-feature=+atomics,+bulk-memory,+mutable-globals` and JS glue; on stock `wasm32-unknown-unknown` it won't link. Keep `calc-core` sequential. |
+| **`getrandom`** | Pulled **only** via `rand` features: `ibig`'s default `rand`, `malachite`'s `random`, `rust_decimal`'s optional `rand`. Disabling those → **no getrandom in the tree** (verified clean). On wasm32-unknown-unknown, `getrandom` needs its `js`/`wasm_js` feature + `wasm-bindgen` or it errors/panics, so `epher-core` should keep randomness out entirely. |
+| **`rayon`** | Not pulled by any candidate by default. rayon 1.12 *can* target wasm only via `web_spin_lock` **plus** `-C target-feature=+atomics,+bulk-memory,+mutable-globals` and JS glue; on stock `wasm32-unknown-unknown` it won't link. Keep `epher-core` sequential. |
 | **`std::time::Instant`** | **Not** present in any candidate's default tree. (`Instant` is unavailable on wasm32-unknown-unknown — it would be a hard compile error.) Don't use it in core; take timing from the host. |
 | **C / syscall deps** | Only `gmp-mpfr-sys` (and transitively `rug`). `libc` appears but compiles to empty stubs on wasm — harmless. |
 
@@ -82,7 +82,7 @@ arbitrary precision. Both pure Rust, both targets.
 `Complex<f64>` for the fast path; wrap the exact/decimal types when needed.
 Needed for graphing complex-valued functions and for fractals.
 
-**Explicitly excluded from `calc-core`:** `rug` / `gmp-mpfr-sys` (wasm blocker,
+**Explicitly excluded from `epher-core`:** `rug` / `gmp-mpfr-sys` (wasm blocker,
 see above). `malachite` is the wasm-safe fallback if GMP-class bignum performance
 is ever required — accept its LGPL-3.0 caveat.
 
@@ -99,11 +99,11 @@ imports a numerics crate directly:
 ## wasm / native gotchas (affecting the choice)
 
 1. **No GMP on wasm.** Any crate that ultimately needs a C library targeting the
-   host OS is out for `calc-core`. `rug`/`gmp-mpfr-sys` is the canonical casualty.
+   host OS is out for `epher-core`. `rug`/`gmp-mpfr-sys` is the canonical casualty.
 2. **Disable `rand` features.** `ibig` (default), `malachite` (`random`),
    `rust_decimal` (optional) pull `getrandom`, which is broken on
    `wasm32-unknown-unknown` without `js`/`wasm_js` + `wasm-bindgen`. Keep
-   `calc-core` deterministic; do randomness on the host.
+   `epher-core` deterministic; do randomness on the host.
 3. **No threads / `Instant` / `rayon` in core.** `std::time::Instant` is absent
    on wasm32-unknown-unknown; rayon needs atomics + JS glue. Iterate sequentially;
    source timing from the host.

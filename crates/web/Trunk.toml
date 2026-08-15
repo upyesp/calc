@@ -1,7 +1,7 @@
-# Trunk build config for calc-web.
+# Trunk build config for epher-web.
 #
 # public-url "./": emit relative asset paths so the built PWA works from any
-# mount point — the deployed site serves it from /calc/pwa/ on GitHub Pages
+# mount point — the deployed site serves it from /epher/pwa/ on GitHub Pages
 # (see docs/website.md) and the Tauri shell embeds the same dist.
 #
 # wasm-opt: Debian's binaryen 108 is too old to parse modern rustc wasm output,

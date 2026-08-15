@@ -1,6 +1,6 @@
 # Float-by-default numerics behind one Value enum; GMP/rug excluded
 
-`calc-core` uses `f64` as the default fast path, with opt-in exact-rational
+`epher-core` uses `f64` as the default fast path, with opt-in exact-rational
 (`num-rational`/`BigRational`), decimal (`rust_decimal`, escalating to
 `bigdecimal`), and complex (`num-complex`) layers. Every number representation is
 a variant of a single `Value` enum behind a `Numeric` trait, so crate choices

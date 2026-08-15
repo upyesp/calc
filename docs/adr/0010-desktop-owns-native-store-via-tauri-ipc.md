@@ -8,9 +8,9 @@ Date: 2025-06-27 · Status: accepted · Supersedes: nothing (narrows ADR-0003's
 The Tauri desktop app shipped as the PWA in a window: it evaluated in the
 webview but touched no storage, so functions, scripts, history, and the
 language preference saved in the CLI/TUI were invisible to it — and nothing
-saved in the desktop app survived a restart. Users reasonably expect "Calc"
+saved in the desktop app survived a restart. Users reasonably expect "epher"
 to be one calculator with one body of saved work across its versions
-(`~/.calc`, ADR-0002).
+(`~/.epher`, ADR-0002).
 
 ADR-0001 already fixed where evaluation lives: the webview, on the wasm
 core, behind the one Yew frontend. Moving evaluation into the native
@@ -22,17 +22,17 @@ The desktop app's **native process owns the Native Store**. The webview
 bridges to it over Tauri IPC:
 
 - The Tauri shell manages a `DocStore<FsStore>` rooted at
-  `default_store_dir()` (`CALC_STORE_DIR` override, `~/.calc` default) —
+  `default_store_dir()` (`EPHER_STORE_DIR` override, `~/.epher` default) —
   the same files, same schema, same atomic writes as the CLI and TUI.
 - It exposes five thin commands — `init`, `save_function`, `save_script`,
-  `save_history`, `save_language` — that delegate to `calc_store::persist`.
+  `save_history`, `save_language` — that delegate to `epher_store::persist`.
 - On startup the frontend calls `init`, receiving history, the replay
   lines (saved functions, then scripts), and the language preference. It
   rebuilds its wasm `Session` with `Session::with_history` +
   `submit_quiet` per line — the exact `load_session` recipe — so saved
   functions, and any variables set by saved scripts, are restored.
 - The shell-command surface (`save`, `save script`, `language`) is shared
-  by every interactive frontend through the new `calc-shell` crate: one
+  by every interactive frontend through the new `epher-shell` crate: one
   `classify`/`prepare` policy, native adapters persist synchronously, the
   webview persists through the IPC bridge. (This also closes a real gap:
   the TUI never implemented these commands.)

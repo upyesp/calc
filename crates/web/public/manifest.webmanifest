@@ -1,6 +1,6 @@
 {
-  "name": "Calc",
-  "short_name": "Calc",
+  "name": "epher",
+  "short_name": "epher",
   "description": "A programmable, scriptable calculator",
   "lang": "en",
   "start_url": "./",

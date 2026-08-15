@@ -2,13 +2,13 @@
 # GitHub Release. Triggered by pushing a tag:  git tag v0.1.0 && git push origin v0.1.0
 #
 # Asset names (stable — the landing page links to these):
-#   calc-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-#   calc-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-#   calc-desktop-linux-x86_64.{deb,rpm,AppImage}
-#   calc-desktop-macos-aarch64.dmg
-#   calc-desktop-windows-x86_64.exe
+#   epher-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+#   epher-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
+#   epher-desktop-linux-x86_64.{deb,rpm,AppImage}
+#   epher-desktop-macos-aarch64.dmg
+#   epher-desktop-windows-x86_64.exe
 # macOS and Windows builds are unsigned. The CLI archive contains a
-# binary named `calc` (the package is calc-cli; users get `calc` on PATH).
+# binary named `epher` (the package is epher-cli; users get `epher` on PATH).
 name: release
 
 on:
@@ -37,22 +37,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Build CLI and TUI
-        run: cargo build --release -p calc-cli -p calc-tui
+        run: cargo build --release -p epher-cli -p epher-tui
 
       - name: Package binaries
         shell: bash
         run: |
           set -e
           mkdir -p artifacts
-          # the CLI package's [[bin]] is named "calc" (users get `calc` on
-          # PATH); the TUI binary is "calc-tui".
+          # the CLI package's [[bin]] is named "epher" (users get `epher` on
+          # PATH); the TUI binary is "epher-tui".
           if [ "${{ runner.os }}" = "Windows" ]; then
             cd target/release
-            7z a ../../artifacts/calc-cli-${{ matrix.target }}.zip calc.exe
-            7z a ../../artifacts/calc-tui-${{ matrix.target }}.zip calc-tui.exe
+            7z a ../../artifacts/epher-cli-${{ matrix.target }}.zip epher.exe
+            7z a ../../artifacts/epher-tui-${{ matrix.target }}.zip epher-tui.exe
           else
-            tar -C target/release -czf artifacts/calc-cli-${{ matrix.target }}.tar.gz calc
-            tar -C target/release -czf artifacts/calc-tui-${{ matrix.target }}.tar.gz calc-tui
+            tar -C target/release -czf artifacts/epher-cli-${{ matrix.target }}.tar.gz epher
+            tar -C target/release -czf artifacts/epher-tui-${{ matrix.target }}.tar.gz epher-tui
           fi
 
       - uses: actions/upload-artifact@v4
@@ -106,15 +106,15 @@ jobs:
           BUNDLE="$GITHUB_WORKSPACE/target/release/bundle"
           case "${{ runner.os }}" in
             Linux)
-              cp "$BUNDLE"/deb/*.deb artifacts/calc-desktop-linux-x86_64.deb
-              cp "$BUNDLE"/rpm/*.rpm artifacts/calc-desktop-linux-x86_64.rpm
-              cp "$BUNDLE"/appimage/*.AppImage artifacts/calc-desktop-linux-x86_64.AppImage
+              cp "$BUNDLE"/deb/*.deb artifacts/epher-desktop-linux-x86_64.deb
+              cp "$BUNDLE"/rpm/*.rpm artifacts/epher-desktop-linux-x86_64.rpm
+              cp "$BUNDLE"/appimage/*.AppImage artifacts/epher-desktop-linux-x86_64.AppImage
               ;;
             macOS)
-              cp "$BUNDLE"/dmg/*.dmg artifacts/calc-desktop-macos-aarch64.dmg
+              cp "$BUNDLE"/dmg/*.dmg artifacts/epher-desktop-macos-aarch64.dmg
               ;;
             Windows)
-              cp "$BUNDLE"/nsis/*-setup.exe artifacts/calc-desktop-windows-x86_64.exe
+              cp "$BUNDLE"/nsis/*-setup.exe artifacts/epher-desktop-windows-x86_64.exe
               ;;
           esac
 
@@ -140,11 +140,11 @@ jobs:
           files: assets/*
           generate_release_notes: true
           body: |
-            Calc ${{ github.ref_name }} — command line, terminal UI, desktop app, and web app.
+            epher ${{ github.ref_name }} — command line, terminal UI, desktop app, and web app.
 
             - **CLI / TUI**: native binaries for Linux, macOS (Apple Silicon), and Windows.
             - **Desktop**: Tauri bundles — Linux (deb/rpm/AppImage), macOS (dmg), Windows (installer).
-            - **Web app (PWA)**: https://upyesp.github.io/calc/pwa/ — works fully offline.
+            - **Web app (PWA)**: https://upyesp.github.io/epher/pwa/ — works fully offline.
 
             > Note: the macOS and Windows desktop builds are unsigned; your OS
             > may warn on first launch.

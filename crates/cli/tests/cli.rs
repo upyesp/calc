@@ -1,14 +1,14 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-fn calc_bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_calc"))
+fn epher_bin() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_epher"))
 }
 
 /// Run a REPL session with piped stdin, returning its stdout.
 fn repl_output(store_dir: &str, input: &str) -> String {
-    let mut child = calc_bin()
-        .env("CALC_STORE_DIR", store_dir)
+    let mut child = epher_bin()
+        .env("EPHER_STORE_DIR", store_dir)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -27,14 +27,14 @@ fn repl_output(store_dir: &str, input: &str) -> String {
 
 #[test]
 fn one_shot_evaluates_and_prints() {
-    let out = calc_bin().arg("2 + 3 * 4").output().unwrap();
+    let out = epher_bin().arg("2 + 3 * 4").output().unwrap();
     assert!(out.status.success());
     assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "14");
 }
 
 #[test]
 fn one_shot_errors_on_bad_input() {
-    let out = calc_bin().arg("2 +").output().unwrap();
+    let out = epher_bin().arg("2 +").output().unwrap();
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("error"));
 }
@@ -91,7 +91,7 @@ fn language_command_persists_the_setting() {
     assert!(raw.contains("\"fr\""), "setting file was: {raw}");
 
     let out2 = repl_output(path, "quit\n");
-    assert!(out2.contains("calc>"), "stdout was: {out2}");
+    assert!(out2.contains("epher>"), "stdout was: {out2}");
 }
 
 #[test]

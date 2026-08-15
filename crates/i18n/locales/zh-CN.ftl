@@ -1,1 +1,1 @@
-app-name = 计算器
+app-name = epher

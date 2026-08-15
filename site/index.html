@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Calc landing page (served at /calc/ on GitHub Pages, see docs/website.md).
+  epher landing page (served at /epher/ on GitHub Pages, see docs/website.md).
   - Languages: en, zh-CN, hi, es, fr, ar — auto-detected, stored preference,
     English fallback (mirrors the Localizer in crates/i18n; see app.js).
   - Themes: light/dark, defaults to the device preference, toggle persisted.
@@ -12,7 +12,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calc</title>
+  <title>epher</title>
   <meta
     name="description"
     content="A programmable, scriptable calculator — command line, terminal UI, desktop app, and offline web app."
@@ -26,7 +26,7 @@
     // before first paint, so there is no flash of the wrong theme/locale.
     (function () {
       try {
-        var theme = localStorage.getItem("calc-theme");
+        var theme = localStorage.getItem("epher-theme");
         if (theme !== "light" && theme !== "dark") {
           theme = window.matchMedia("(prefers-color-scheme: dark)").matches
             ? "dark"
@@ -37,7 +37,7 @@
         document.documentElement.dataset.theme = "light";
       }
       try {
-        var lang = localStorage.getItem("calc-lang");
+        var lang = localStorage.getItem("epher-lang");
         if (lang) {
           document.documentElement.lang = lang;
           if (lang === "ar") document.documentElement.dir = "rtl";
@@ -52,13 +52,13 @@
   <header class="site-header">
     <p class="brand">
       <img class="brand-icon" src="icon.svg" alt="" width="32" height="32" />
-      <span>Calc</span>
+      <span>epher</span>
     </p>
     <nav class="header-actions" aria-label="Main" data-i18n-aria="nav-label">
       <a class="gh-link" href="guide/en/" data-i18n="guide" data-i18n-href="guide">
         User guide
       </a>
-      <a class="gh-link" href="https://github.com/upyesp/calc" data-i18n="source-link">
+      <a class="gh-link" href="https://github.com/upyesp/epher" data-i18n="source-link">
         Source code
       </a>
       <button type="button" id="theme-toggle" class="icon-btn" aria-pressed="false">
@@ -86,7 +86,7 @@
 
   <main id="main">
     <section class="hero" aria-labelledby="tagline">
-      <h1>Calc</h1>
+      <h1>epher</h1>
       <p class="tagline" id="tagline" data-i18n="tagline">
         A programmable, scriptable calculator
       </p>
@@ -103,7 +103,7 @@
     </section>
 
     <section class="builds" aria-labelledby="builds-title">
-      <h2 id="builds-title" data-i18n="builds">Get Calc</h2>
+      <h2 id="builds-title" data-i18n="builds">Get epher</h2>
       <div class="cards">
         <article class="card">
           <h3 data-i18n="cli-name">Command line</h3>
@@ -114,16 +114,16 @@
           <p class="dl-title" data-i18n="downloads">Downloads</p>
           <ul class="dl-list">
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-linux-x86_64.tar.gz"
-                data-i18n="cli-linux">Download Calc CLI for Linux</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-cli-linux-x86_64.tar.gz"
+                data-i18n="cli-linux">Download epher CLI for Linux</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-macos-aarch64.tar.gz"
-                data-i18n="cli-macos">Download Calc CLI for macOS</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-cli-macos-aarch64.tar.gz"
+                data-i18n="cli-macos">Download epher CLI for macOS</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-cli-windows-x86_64.zip"
-                data-i18n="cli-windows">Download Calc CLI for Windows</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-cli-windows-x86_64.zip"
+                data-i18n="cli-windows">Download epher CLI for Windows</a>
             </li>
           </ul>
         </article>
@@ -137,16 +137,16 @@
           <p class="dl-title" data-i18n="downloads">Downloads</p>
           <ul class="dl-list">
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-linux-x86_64.tar.gz"
-                data-i18n="tui-linux">Download Calc TUI for Linux</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-tui-linux-x86_64.tar.gz"
+                data-i18n="tui-linux">Download epher TUI for Linux</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-macos-aarch64.tar.gz"
-                data-i18n="tui-macos">Download Calc TUI for macOS</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-tui-macos-aarch64.tar.gz"
+                data-i18n="tui-macos">Download epher TUI for macOS</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-tui-windows-x86_64.zip"
-                data-i18n="tui-windows">Download Calc TUI for Windows</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-tui-windows-x86_64.zip"
+                data-i18n="tui-windows">Download epher TUI for Windows</a>
             </li>
           </ul>
         </article>
@@ -160,24 +160,24 @@
           <p class="dl-title" data-i18n="downloads">Downloads</p>
           <ul class="dl-list">
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.deb"
-                data-i18n="desktop-deb">Download Calc Desktop for Linux (.deb)</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-desktop-linux-x86_64.deb"
+                data-i18n="desktop-deb">Download epher Desktop for Linux (.deb)</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.rpm"
-                data-i18n="desktop-rpm">Download Calc Desktop for Linux (.rpm)</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-desktop-linux-x86_64.rpm"
+                data-i18n="desktop-rpm">Download epher Desktop for Linux (.rpm)</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-linux-x86_64.AppImage"
-                data-i18n="desktop-appimage">Download Calc Desktop for Linux (AppImage)</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-desktop-linux-x86_64.AppImage"
+                data-i18n="desktop-appimage">Download epher Desktop for Linux (AppImage)</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-macos-aarch64.dmg"
-                data-i18n="desktop-macos">Download Calc Desktop for macOS</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-desktop-macos-aarch64.dmg"
+                data-i18n="desktop-macos">Download epher Desktop for macOS</a>
             </li>
             <li>
-              <a href="https://github.com/upyesp/calc/releases/latest/download/calc-desktop-windows-x86_64.exe"
-                data-i18n="desktop-windows">Download Calc Desktop for Windows</a>
+              <a href="https://github.com/upyesp/epher/releases/latest/download/epher-desktop-windows-x86_64.exe"
+                data-i18n="desktop-windows">Download epher Desktop for Windows</a>
             </li>
           </ul>
         </article>
@@ -204,8 +204,8 @@
   </main>
 
   <footer class="site-footer">
-    <p><a href="https://github.com/upyesp/calc" data-i18n="footer-source">Source code on GitHub</a></p>
-    <p data-i18n="footer-license">Calc is free and open source (MIT).</p>
+    <p><a href="https://github.com/upyesp/epher" data-i18n="footer-source">Source code on GitHub</a></p>
+    <p data-i18n="footer-license">epher is free and open source (MIT).</p>
     <p class="muted" data-i18n="footer-release">
       Downloads come from the latest GitHub release.
     </p>

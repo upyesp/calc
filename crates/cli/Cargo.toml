@@ -1,19 +1,19 @@
 [package]
-name = "calc-cli"
-version = "0.1.3"
+name = "epher-cli"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "Native command-line frontend — one-shot evaluation + REPL."
 
 [[bin]]
-name = "calc"
+name = "epher"
 path = "src/main.rs"
 
 [dependencies]
-calc-core = { path = "../core" }
-calc-shell = { path = "../shell" }
-calc-store = { path = "../store", features = ["fs"] }
-calc-i18n = { path = "../i18n" }
+epher-core = { path = "../core" }
+epher-shell = { path = "../shell" }
+epher-store = { path = "../store", features = ["fs"] }
+epher-i18n = { path = "../i18n" }
 clap = { version = "4", features = ["derive"] }
 sys-locale = "0.3"
 

@@ -1,17 +1,17 @@
-//! calc-tui — native full-screen terminal frontend (ADR-0001).
+//! epher-tui — native full-screen terminal frontend (ADR-0001).
 //!
 //! A thin ratatui shell over the [`App`] seam. Type an expression/script,
 //! Enter evaluates against a persistent environment, Esc clears, Ctrl+C or q
 //! (with empty input) quits. History and saved functions persist through the
-//! shared store (`CALC_STORE_DIR` override, default `~/.calc`).
+//! shared store (`EPHER_STORE_DIR` override, default `~/.epher`).
 
 use std::io;
 
-use calc_core::Session;
-use calc_i18n::Localizer;
-use calc_store::persist::{default_store_dir, load_language, load_session};
-use calc_store::{DocStore, FsStore};
-use calc_tui::{render_ascii, App};
+use epher_core::Session;
+use epher_i18n::Localizer;
+use epher_store::persist::{default_store_dir, load_language, load_session};
+use epher_store::{DocStore, FsStore};
+use epher_tui::{render_ascii, App};
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Position};
 use ratatui::style::{Color, Modifier, Style};

@@ -1,17 +1,17 @@
-use calc_i18n::Localizer;
+use epher_i18n::Localizer;
 
 #[test]
 fn lookup_uses_localized_catalog() {
     let l = Localizer::resolve(Some("fr"), &[]);
     assert_eq!(l.locale(), "fr");
-    assert_eq!(l.lookup("app-name"), "Calculatrice");
+    assert_eq!(l.lookup("app-name"), "epher");
 }
 
 #[test]
 fn missing_key_falls_back_to_english_then_to_key() {
     let l = Localizer::resolve(Some("fr"), &[]);
     // "prompt" exists only in the English catalog → fallback
-    assert_eq!(l.lookup("prompt"), "calc>");
+    assert_eq!(l.lookup("prompt"), "epher>");
     // unknown key → the key itself
     assert_eq!(l.lookup("no-such-key"), "no-such-key");
 }
@@ -42,7 +42,7 @@ fn placeholders_are_filled() {
 fn detected_locales_negotiate_with_region_matching() {
     let l = Localizer::resolve(None, &["fr-FR".to_string(), "en".to_string()]);
     assert_eq!(l.locale(), "fr");
-    assert_eq!(l.lookup("app-name"), "Calculatrice");
+    assert_eq!(l.lookup("app-name"), "epher");
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn explicit_preference_wins_over_detection() {
 
 #[test]
 fn every_supported_locale_loads() {
-    for locale in calc_i18n::SUPPORTED_LOCALES {
+    for locale in epher_i18n::SUPPORTED_LOCALES {
         let l = Localizer::resolve(Some(locale), &[]);
         assert_eq!(l.locale(), *locale);
         assert_eq!(l.lookup("app-name"), l.lookup("app-name")); // loads without panic

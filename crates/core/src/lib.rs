@@ -1,4 +1,4 @@
-//! calc-core — the single source of truth for calc's logic.
+//! epher-core — the single source of truth for epher's logic.
 //!
 //! Compiles to both `wasm32-unknown-unknown` (web/PWA/desktop) and native targets
 //! (CLI/TUI). Stays pure: no I/O, no threads, no platform calls. Numerics per
@@ -142,9 +142,9 @@ pub struct Function {
     body: Expression,
 }
 
-/// Errors crossing the calc-core seams.
+/// Errors crossing the epher-core seams.
 #[derive(Debug, thiserror::Error)]
-pub enum CalcError {
+pub enum EpherError {
     #[error("parse error: {0}")]
     Parse(String),
     #[error("type error: {0}")]
@@ -165,24 +165,24 @@ pub enum CalcError {
 ///
 /// Tokenizer + recursive-descent parser with precedence (additive below
 /// multiplicative) and left-associative operator folding.
-pub fn parse(text: &str) -> Result<Expression, CalcError> {
+pub fn parse(text: &str) -> Result<Expression, EpherError> {
     let tokens = tokenize(text)?;
     let mut parser = Parser { tokens, pos: 0 };
     let expr = parser.parse_expression()?;
     if parser.peek().is_some() {
-        return Err(CalcError::Parse("unexpected trailing input".into()));
+        return Err(EpherError::Parse("unexpected trailing input".into()));
     }
     Ok(expr)
 }
 
 /// Parse LaTeX math into an [`Expression`] — the LaTeX input form (Q5). A
-/// translation layer rewrites LaTeX constructs into plain calc text, then the
+/// translation layer rewrites LaTeX constructs into plain epher text, then the
 /// same grammar parses it: one grammar, two input forms.
-pub fn parse_latex(text: &str) -> Result<Expression, CalcError> {
+pub fn parse_latex(text: &str) -> Result<Expression, EpherError> {
     parse(&translate_latex(text)?)
 }
 
-fn translate_latex(text: &str) -> Result<String, CalcError> {
+fn translate_latex(text: &str) -> Result<String, EpherError> {
     let mut out = String::new();
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
@@ -217,7 +217,7 @@ fn translate_latex(text: &str) -> Result<String, CalcError> {
                     }
                 }
                 _ => {
-                    return Err(CalcError::Parse(format!(
+                    return Err(EpherError::Parse(format!(
                         "unsupported LaTeX command: \\{cmd}"
                     )));
                 }
@@ -234,13 +234,13 @@ fn translate_latex(text: &str) -> Result<String, CalcError> {
 }
 
 /// Take the contents of the next `{...}` group, tracking nested braces.
-fn take_braced(chars: &mut impl Iterator<Item = char>) -> Result<String, CalcError> {
+fn take_braced(chars: &mut impl Iterator<Item = char>) -> Result<String, EpherError> {
     match chars.next() {
         Some('{') => {}
         Some(other) => {
-            return Err(CalcError::Parse(format!("expected '{{', found {other}")));
+            return Err(EpherError::Parse(format!("expected '{{', found {other}")));
         }
-        None => return Err(CalcError::Parse("expected '{'".into())),
+        None => return Err(EpherError::Parse("expected '{'".into())),
     }
     let mut depth = 1;
     let mut inner = String::new();
@@ -260,11 +260,11 @@ fn take_braced(chars: &mut impl Iterator<Item = char>) -> Result<String, CalcErr
             _ => inner.push(c),
         }
     }
-    Err(CalcError::Parse("unbalanced braces in LaTeX".into()))
+    Err(EpherError::Parse("unbalanced braces in LaTeX".into()))
 }
 
 /// Parse a sequence of statements separated by `;` (the script seam).
-pub fn parse_script(text: &str) -> Result<Vec<Statement>, CalcError> {
+pub fn parse_script(text: &str) -> Result<Vec<Statement>, EpherError> {
     let tokens = tokenize(text)?;
     let mut parser = Parser { tokens, pos: 0 };
     let mut statements = Vec::new();
@@ -281,7 +281,7 @@ pub fn parse_script(text: &str) -> Result<Vec<Statement>, CalcError> {
             }
             None => break,
             Some(_) => {
-                return Err(CalcError::Parse("expected ';' between statements".into()));
+                return Err(EpherError::Parse("expected ';' between statements".into()));
             }
         }
     }
@@ -311,7 +311,7 @@ enum Token {
     RParen,
 }
 
-fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
+fn tokenize(text: &str) -> Result<Vec<Token>, EpherError> {
     let mut tokens = Vec::new();
     let mut chars = text.chars().peekable();
     while let Some(&c) = chars.peek() {
@@ -430,7 +430,7 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                 }
                 let n: f64 = num
                     .parse()
-                    .map_err(|_| CalcError::Parse(format!("invalid number: {num:?}")))?;
+                    .map_err(|_| EpherError::Parse(format!("invalid number: {num:?}")))?;
                 tokens.push(Token::Number(n));
             }
             c if c.is_alphabetic() => {
@@ -448,7 +448,7 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                 }
                 tokens.push(Token::Ident(ident));
             }
-            other => return Err(CalcError::Parse(format!("unexpected character: {other:?}"))),
+            other => return Err(EpherError::Parse(format!("unexpected character: {other:?}"))),
         }
     }
     Ok(tokens)
@@ -474,7 +474,7 @@ impl Parser {
 
     /// A statement is `while cond do stmt` (loop), `def name(params) = expr`
     /// (function definition), `name = expr` (assignment), or `expr`.
-    fn parse_statement(&mut self) -> Result<Statement, CalcError> {
+    fn parse_statement(&mut self) -> Result<Statement, EpherError> {
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "while") {
             self.next(); // consume 'while'
             let cond = self.parse_expression()?;
@@ -494,11 +494,11 @@ impl Parser {
                         Some(Token::Comma) => continue,
                         Some(Token::RParen) => break,
                         Some(other) => {
-                            return Err(CalcError::Parse(format!(
+                            return Err(EpherError::Parse(format!(
                                 "expected ',' or ')', found {other:?}"
                             )));
                         }
-                        None => return Err(CalcError::Parse("unexpected end of input".into())),
+                        None => return Err(EpherError::Parse("unexpected end of input".into())),
                     }
                 }
             } else {
@@ -520,24 +520,24 @@ impl Parser {
         Ok(Statement::Expr(expr))
     }
 
-    fn expect_ident(&mut self, what: &str) -> Result<String, CalcError> {
+    fn expect_ident(&mut self, what: &str) -> Result<String, EpherError> {
         match self.next() {
             Some(Token::Ident(name)) => Ok(name),
-            Some(other) => Err(CalcError::Parse(format!("expected {what}, found {other:?}"))),
-            None => Err(CalcError::Parse("unexpected end of input".into())),
+            Some(other) => Err(EpherError::Parse(format!("expected {what}, found {other:?}"))),
+            None => Err(EpherError::Parse("unexpected end of input".into())),
         }
     }
 
-    fn expect_token(&mut self, token: Token, what: &str) -> Result<(), CalcError> {
+    fn expect_token(&mut self, token: Token, what: &str) -> Result<(), EpherError> {
         match self.next() {
             Some(found) if found == token => Ok(()),
-            Some(other) => Err(CalcError::Parse(format!("expected {what}, found {other:?}"))),
-            None => Err(CalcError::Parse("unexpected end of input".into())),
+            Some(other) => Err(EpherError::Parse(format!("expected {what}, found {other:?}"))),
+            None => Err(EpherError::Parse("unexpected end of input".into())),
         }
     }
 
     /// Top level: `if cond then a else b` or a comparison.
-    fn parse_expression(&mut self) -> Result<Expression, CalcError> {
+    fn parse_expression(&mut self) -> Result<Expression, EpherError> {
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "if") {
             self.next(); // consume 'if'
             let cond = self.parse_expression()?;
@@ -556,7 +556,7 @@ impl Parser {
     }
 
     /// Boolean `or` level.
-    fn parse_or(&mut self) -> Result<Expression, CalcError> {
+    fn parse_or(&mut self) -> Result<Expression, EpherError> {
         let mut left = self.parse_and()?;
         while matches!(self.peek(), Some(Token::Ident(kw)) if kw == "or") {
             self.next();
@@ -567,7 +567,7 @@ impl Parser {
     }
 
     /// Boolean `and` level.
-    fn parse_and(&mut self) -> Result<Expression, CalcError> {
+    fn parse_and(&mut self) -> Result<Expression, EpherError> {
         let mut left = self.parse_not()?;
         while matches!(self.peek(), Some(Token::Ident(kw)) if kw == "and") {
             self.next();
@@ -579,7 +579,7 @@ impl Parser {
 
     /// Boolean `not` level: binds looser than comparison (`not x > 3` is
     /// `not (x > 3)`).
-    fn parse_not(&mut self) -> Result<Expression, CalcError> {
+    fn parse_not(&mut self) -> Result<Expression, EpherError> {
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "not") {
             self.next();
             let inner = self.parse_not()?;
@@ -589,17 +589,17 @@ impl Parser {
         }
     }
 
-    fn expect_keyword(&mut self, kw: &str) -> Result<(), CalcError> {
+    fn expect_keyword(&mut self, kw: &str) -> Result<(), EpherError> {
         match self.next() {
             Some(Token::Ident(found)) if found == kw => Ok(()),
-            Some(other) => Err(CalcError::Parse(format!("expected '{kw}', found {other:?}"))),
-            None => Err(CalcError::Parse("unexpected end of input".into())),
+            Some(other) => Err(EpherError::Parse(format!("expected '{kw}', found {other:?}"))),
+            None => Err(EpherError::Parse("unexpected end of input".into())),
         }
     }
 
     /// Comparison level: `>` `<` `>=` `<=` `==` `!=`, non-chaining, with
     /// arithmetic binding tighter.
-    fn parse_comparison(&mut self) -> Result<Expression, CalcError> {
+    fn parse_comparison(&mut self) -> Result<Expression, EpherError> {
         let left = self.parse_additive()?;
         let op = match self.peek() {
             Some(Token::GreaterThan) => Some(CmpOp::Gt),
@@ -620,7 +620,7 @@ impl Parser {
     }
 
     /// Additive level: `+` and `-`, folded left-associatively.
-    fn parse_additive(&mut self) -> Result<Expression, CalcError> {
+    fn parse_additive(&mut self) -> Result<Expression, EpherError> {
         let mut left = self.parse_term()?;
         loop {
             match self.peek() {
@@ -641,7 +641,7 @@ impl Parser {
     }
 
     /// Multiplicative level: `*` and `/`, folded left-associatively.
-    fn parse_term(&mut self) -> Result<Expression, CalcError> {
+    fn parse_term(&mut self) -> Result<Expression, EpherError> {
         let mut left = self.parse_unary()?;
         loop {
             match self.peek() {
@@ -662,7 +662,7 @@ impl Parser {
     }
 
     /// Unary level: `-` binds looser than `^` (math convention: `-2 ^ 2 = -4`).
-    fn parse_unary(&mut self) -> Result<Expression, CalcError> {
+    fn parse_unary(&mut self) -> Result<Expression, EpherError> {
         if matches!(self.peek(), Some(Token::Minus)) {
             self.next();
             let inner = self.parse_unary()?;
@@ -674,7 +674,7 @@ impl Parser {
 
     /// Power level: `^`, right-associative, binds tighter than `*` and `/`; the
     /// exponent may itself be a unary expression (`2 ^ -2`).
-    fn parse_pow(&mut self) -> Result<Expression, CalcError> {
+    fn parse_pow(&mut self) -> Result<Expression, EpherError> {
         let base = self.parse_factor()?;
         if matches!(self.peek(), Some(Token::Caret)) {
             self.next();
@@ -685,7 +685,7 @@ impl Parser {
         }
     }
 
-    fn parse_factor(&mut self) -> Result<Expression, CalcError> {
+    fn parse_factor(&mut self) -> Result<Expression, EpherError> {
         let primary = self.parse_primary()?;
         // postfix factorial binds tightest: 3! ^ 2 is (3!) ^ 2, and 4!!
         // is (4!)!; `!=` lexes as one token so `5! != 3` still works
@@ -697,7 +697,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn parse_primary(&mut self) -> Result<Expression, CalcError> {
+    fn parse_primary(&mut self) -> Result<Expression, EpherError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
             Some(Token::Ident(name)) => {
@@ -714,12 +714,12 @@ impl Parser {
                                 Some(Token::Comma) => continue,
                                 Some(Token::RParen) => break,
                                 Some(other) => {
-                                    return Err(CalcError::Parse(format!(
+                                    return Err(EpherError::Parse(format!(
                                         "expected ',' or ')', found {other:?}"
                                     )));
                                 }
                                 None => {
-                                    return Err(CalcError::Parse(
+                                    return Err(EpherError::Parse(
                                         "unexpected end of input".into(),
                                     ));
                                 }
@@ -736,30 +736,30 @@ impl Parser {
                 match self.next() {
                     Some(Token::RParen) => Ok(expr),
                     Some(other) => {
-                        Err(CalcError::Parse(format!("expected ')', found {other:?}")))
+                        Err(EpherError::Parse(format!("expected ')', found {other:?}")))
                     }
-                    None => Err(CalcError::Parse("unexpected end of input".into())),
+                    None => Err(EpherError::Parse("unexpected end of input".into())),
                 }
             }
-            Some(other) => Err(CalcError::Parse(format!("expected a number, found {other:?}"))),
-            None => Err(CalcError::Parse("unexpected end of input".into())),
+            Some(other) => Err(EpherError::Parse(format!("expected a number, found {other:?}"))),
+            None => Err(EpherError::Parse("unexpected end of input".into())),
         }
     }
 }
 
 /// Evaluate an [`Expression`] to a [`Value`] against an [`Env`] (the evaluation
 /// seam).
-pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
+pub fn eval(expr: &Expression, env: &Env) -> Result<Value, EpherError> {
     match expr {
         Expression::Literal(n) => Ok(Value::float(*n)),
         Expression::Var(name) => env
             .get(name)
             .cloned()
             .or_else(|| builtin_const(name))
-            .ok_or_else(|| CalcError::UnknownName(name.clone())),
+            .ok_or_else(|| EpherError::UnknownName(name.clone())),
         Expression::Neg(inner) => match eval(inner, env)? {
             Value::Float(n) => Ok(Value::Float(-n)),
-            other => Err(CalcError::Type(format!("cannot negate {other:?}"))),
+            other => Err(EpherError::Type(format!("cannot negate {other:?}"))),
         },
         Expression::Add(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Add),
         Expression::Sub(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Sub),
@@ -770,7 +770,7 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             let v = eval(inner, env)?;
             let x = one_float("!", &[v])?;
             let n = float_to_int(x)
-                .ok_or_else(|| CalcError::Type(format!("! expects integers, got {x}")))?;
+                .ok_or_else(|| EpherError::Type(format!("! expects integers, got {x}")))?;
             Ok(Value::Float(factorial_value(n)?))
         }
         Expression::Compare(op, lhs, rhs) => {
@@ -788,13 +788,13 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
                     };
                     Ok(Value::Bool(result))
                 }
-                _ => Err(CalcError::Type(format!("cannot compare {l:?} and {r:?}"))),
+                _ => Err(EpherError::Type(format!("cannot compare {l:?} and {r:?}"))),
             }
         }
         Expression::If(cond, then_expr, else_expr) => match eval(cond, env)? {
             Value::Bool(true) => eval(then_expr, env),
             Value::Bool(false) => eval(else_expr, env),
-            other => Err(CalcError::Type(format!(
+            other => Err(EpherError::Type(format!(
                 "if condition must be a boolean, got {other:?}"
             ))),
         },
@@ -802,11 +802,11 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             Value::Bool(false) => Ok(Value::Bool(false)),
             Value::Bool(true) => match eval(rhs, env)? {
                 Value::Bool(b) => Ok(Value::Bool(b)),
-                other => Err(CalcError::Type(format!(
+                other => Err(EpherError::Type(format!(
                     "and expects booleans, got {other:?}"
                 ))),
             },
-            other => Err(CalcError::Type(format!(
+            other => Err(EpherError::Type(format!(
                 "and expects booleans, got {other:?}"
             ))),
         },
@@ -814,17 +814,17 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             Value::Bool(true) => Ok(Value::Bool(true)),
             Value::Bool(false) => match eval(rhs, env)? {
                 Value::Bool(b) => Ok(Value::Bool(b)),
-                other => Err(CalcError::Type(format!(
+                other => Err(EpherError::Type(format!(
                     "or expects booleans, got {other:?}"
                 ))),
             },
-            other => Err(CalcError::Type(format!(
+            other => Err(EpherError::Type(format!(
                 "or expects booleans, got {other:?}"
             ))),
         },
         Expression::Not(inner) => match eval(inner, env)? {
             Value::Bool(b) => Ok(Value::Bool(!b)),
-            other => Err(CalcError::Type(format!(
+            other => Err(EpherError::Type(format!(
                 "not expects a boolean, got {other:?}"
             ))),
         },
@@ -835,7 +835,7 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
             }
             if let Some(f) = env.function(name) {
                 if f.params.len() != values.len() {
-                    return Err(CalcError::Type(format!(
+                    return Err(EpherError::Type(format!(
                         "{name} expects {} arguments, got {}",
                         f.params.len(),
                         values.len()
@@ -854,7 +854,7 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
 
 /// Evaluate source text as an expression with an empty environment — the CLI
 /// one-shot convenience (composition of `parse` + `eval`, not a seam).
-pub fn evaluate(text: &str) -> Result<Value, CalcError> {
+pub fn evaluate(text: &str) -> Result<Value, EpherError> {
     let env = Env::default();
     eval(&parse(text)?, &env)
 }
@@ -877,7 +877,7 @@ pub fn sample(
     x_max: f64,
     points: usize,
     env: &Env,
-) -> Result<Vec<Sample>, CalcError> {
+) -> Result<Vec<Sample>, EpherError> {
     let mut child = Env::new_child(env);
     let mut out = Vec::new();
     for i in 0..points {
@@ -905,7 +905,7 @@ pub fn sample_parametric(
     t_max: f64,
     points: usize,
     env: &Env,
-) -> Result<Vec<Sample>, CalcError> {
+) -> Result<Vec<Sample>, EpherError> {
     let mut child = Env::new_child(env);
     let mut out = Vec::new();
     for i in 0..points {
@@ -933,7 +933,7 @@ pub fn sample_polar(
     theta_max: f64,
     points: usize,
     env: &Env,
-) -> Result<Vec<Sample>, CalcError> {
+) -> Result<Vec<Sample>, EpherError> {
     let mut child = Env::new_child(env);
     let mut out = Vec::new();
     for i in 0..points {
@@ -968,10 +968,10 @@ fn builtin_const(name: &str) -> Option<Value> {
 }
 
 /// Take exactly one Float argument.
-fn one_float(name: &str, args: &[Value]) -> Result<f64, CalcError> {
+fn one_float(name: &str, args: &[Value]) -> Result<f64, EpherError> {
     match args {
         [Value::Float(x)] => Ok(*x),
-        _ => Err(CalcError::Type(format!(
+        _ => Err(EpherError::Type(format!(
             "{name} expects 1 number, got {} argument(s)",
             args.len()
         ))),
@@ -979,10 +979,10 @@ fn one_float(name: &str, args: &[Value]) -> Result<f64, CalcError> {
 }
 
 /// Take exactly two Float arguments.
-fn two_floats(name: &str, args: &[Value]) -> Result<(f64, f64), CalcError> {
+fn two_floats(name: &str, args: &[Value]) -> Result<(f64, f64), EpherError> {
     match args {
         [Value::Float(a), Value::Float(b)] => Ok((*a, *b)),
-        _ => Err(CalcError::Type(format!(
+        _ => Err(EpherError::Type(format!(
             "{name} expects 2 numbers, got {} argument(s)",
             args.len()
         ))),
@@ -990,9 +990,9 @@ fn two_floats(name: &str, args: &[Value]) -> Result<(f64, f64), CalcError> {
 }
 
 /// Take one or more Float arguments (variadic statistics and min/max).
-fn any_floats(name: &str, args: &[Value]) -> Result<Vec<f64>, CalcError> {
+fn any_floats(name: &str, args: &[Value]) -> Result<Vec<f64>, EpherError> {
     if args.is_empty() {
-        return Err(CalcError::Type(format!(
+        return Err(EpherError::Type(format!(
             "{name} expects at least 1 number, got 0"
         )));
     }
@@ -1001,7 +1001,7 @@ fn any_floats(name: &str, args: &[Value]) -> Result<Vec<f64>, CalcError> {
         match arg {
             Value::Float(x) => out.push(*x),
             other => {
-                return Err(CalcError::Type(format!(
+                return Err(EpherError::Type(format!(
                     "{name} expects numbers, got {other:?}"
                 )))
             }
@@ -1011,8 +1011,8 @@ fn any_floats(name: &str, args: &[Value]) -> Result<Vec<f64>, CalcError> {
 }
 
 /// Reject an out-of-domain argument.
-fn domain_error(message: impl std::fmt::Display) -> CalcError {
-    CalcError::Domain(message.to_string())
+fn domain_error(message: impl std::fmt::Display) -> EpherError {
+    EpherError::Domain(message.to_string())
 }
 
 /// A finite float with an integer value, as i64 (shared by the integer
@@ -1026,18 +1026,18 @@ fn float_to_int(x: f64) -> Option<i64> {
 }
 
 /// Exactly one integer-valued Float argument, as i64.
-fn integer_arg(name: &str, args: &[Value]) -> Result<i64, CalcError> {
+fn integer_arg(name: &str, args: &[Value]) -> Result<i64, EpherError> {
     let x = one_float(name, args)?;
     float_to_int(x).ok_or_else(|| {
-        CalcError::Type(format!("{name} expects integers, got {x}"))
+        EpherError::Type(format!("{name} expects integers, got {x}"))
     })
 }
 
 /// Exactly two integer-valued Float arguments, as i64.
-fn integer_pair(name: &str, args: &[Value]) -> Result<(i64, i64), CalcError> {
+fn integer_pair(name: &str, args: &[Value]) -> Result<(i64, i64), EpherError> {
     let (a, b) = two_floats(name, args)?;
     let (Some(a), Some(b)) = (float_to_int(a), float_to_int(b)) else {
-        return Err(CalcError::Type(format!(
+        return Err(EpherError::Type(format!(
             "{name} expects integers, got {a} and {b}"
         )));
     };
@@ -1045,7 +1045,7 @@ fn integer_pair(name: &str, args: &[Value]) -> Result<(i64, i64), CalcError> {
 }
 
 /// n! as a float, erroring for negatives and beyond 170! (the f64 limit).
-fn factorial_value(n: i64) -> Result<f64, CalcError> {
+fn factorial_value(n: i64) -> Result<f64, EpherError> {
     if n < 0 {
         return Err(domain_error(format!("factorial of negative number {n}")));
     }
@@ -1062,7 +1062,7 @@ fn factorial_value(n: i64) -> Result<f64, CalcError> {
 /// Dispatch a builtin function call. User-defined functions are resolved by
 /// the caller; everything here is the scientific function library (the
 /// calculator's function keys).
-fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
+fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, EpherError> {
     match name {
         "sin" => Ok(Value::Float(one_float(name, &args)?.sin())),
         "cos" => Ok(Value::Float(one_float(name, &args)?.cos())),
@@ -1194,7 +1194,7 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         }
         "frac" => {
             let [n, d] = args.as_slice() else {
-                return Err(CalcError::Type(format!(
+                return Err(EpherError::Type(format!(
                     "frac expects 2 arguments, got {}",
                     args.len()
                 )));
@@ -1202,16 +1202,16 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             match (n, d) {
                 (Value::Float(n), Value::Float(d)) => {
                     let (Some(n), Some(d)) = (float_to_int(*n), float_to_int(*d)) else {
-                        return Err(CalcError::Type(format!(
+                        return Err(EpherError::Type(format!(
                             "frac expects integer arguments, got {n:?} and {d:?}"
                         )));
                     };
                     if d == 0 {
-                        return Err(CalcError::ZeroDivision);
+                        return Err(EpherError::ZeroDivision);
                     }
                     Ok(Value::Rational(BigRational::new(BigInt::from(n), BigInt::from(d))))
                 }
-                _ => Err(CalcError::Type(format!(
+                _ => Err(EpherError::Type(format!(
                     "frac expects numbers, got {n:?} and {d:?}"
                 ))),
             }
@@ -1266,7 +1266,7 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         "mod" => {
             let (a, b) = integer_pair(name, &args)?;
             if b == 0 {
-                return Err(CalcError::ZeroDivision);
+                return Err(EpherError::ZeroDivision);
             }
             // truncated remainder, the sign of the dividend (calculator MOD)
             Ok(Value::Float((a % b) as f64))
@@ -1308,7 +1308,7 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         }
         "dec" => {
             let [x] = args.as_slice() else {
-                return Err(CalcError::Type(format!(
+                return Err(EpherError::Type(format!(
                     "dec expects 1 argument, got {}",
                     args.len()
                 )));
@@ -1316,15 +1316,15 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             match x {
                 Value::Float(n) => float_to_decimal(*n)
                     .map(Value::Decimal)
-                    .ok_or_else(|| CalcError::Type(format!("cannot convert {n} to a decimal"))),
-                other => Err(CalcError::Type(format!(
+                    .ok_or_else(|| EpherError::Type(format!("cannot convert {n} to a decimal"))),
+                other => Err(EpherError::Type(format!(
                     "dec expects a number, got {other:?}"
                 ))),
             }
         }
         "big" => {
             let [x] = args.as_slice() else {
-                return Err(CalcError::Type(format!(
+                return Err(EpherError::Type(format!(
                     "big expects 1 argument, got {}",
                     args.len()
                 )));
@@ -1332,19 +1332,19 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             match x {
                 Value::Float(n) => float_to_big(*n)
                     .map(Value::Big)
-                    .ok_or_else(|| CalcError::Type(format!("cannot convert {n} to big"))),
-                other => Err(CalcError::Type(format!(
+                    .ok_or_else(|| EpherError::Type(format!("cannot convert {n} to big"))),
+                other => Err(EpherError::Type(format!(
                     "big expects a number, got {other:?}"
                 ))),
             }
         }
-        _ => Err(CalcError::UnknownName(name.to_string())),
+        _ => Err(EpherError::UnknownName(name.to_string())),
     }
 }
 
 /// Execute a script's statements in order against a mutable [`Env`], returning
 /// the last statement's value (the script seam).
-pub fn run(script: &[Statement], env: &mut Env) -> Result<Option<Value>, CalcError> {
+pub fn run(script: &[Statement], env: &mut Env) -> Result<Option<Value>, EpherError> {
     let mut steps = STEP_LIMIT;
     run_inner(script, env, &mut steps)
 }
@@ -1352,15 +1352,15 @@ pub fn run(script: &[Statement], env: &mut Env) -> Result<Option<Value>, CalcErr
 /// Maximum statement executions per `run` — protects against runaway loops.
 const STEP_LIMIT: u64 = 100_000;
 
-fn consume_step(steps: &mut u64) -> Result<(), CalcError> {
+fn consume_step(steps: &mut u64) -> Result<(), EpherError> {
     if *steps == 0 {
-        return Err(CalcError::StepLimit);
+        return Err(EpherError::StepLimit);
     }
     *steps -= 1;
     Ok(())
 }
 
-fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Option<Value>, CalcError> {
+fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Option<Value>, EpherError> {
     let mut result = None;
     for stmt in script {
         consume_step(steps)?;
@@ -1389,7 +1389,7 @@ fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Opt
 
 /// Execute one statement for its effect (used by loop bodies; loops produce no
 /// value).
-fn execute_stmt(stmt: &Statement, env: &mut Env, steps: &mut u64) -> Result<(), CalcError> {
+fn execute_stmt(stmt: &Statement, env: &mut Env, steps: &mut u64) -> Result<(), EpherError> {
     consume_step(steps)?;
     match stmt {
         Statement::Expr(expr) => {
@@ -1421,13 +1421,13 @@ fn run_while(
     body: &Statement,
     env: &mut Env,
     steps: &mut u64,
-) -> Result<(), CalcError> {
+) -> Result<(), EpherError> {
     loop {
         match eval(cond, env)? {
             Value::Bool(true) => execute_stmt(body, env, steps)?,
             Value::Bool(false) => break,
             other => {
-                return Err(CalcError::Type(format!(
+                return Err(EpherError::Type(format!(
                     "while condition must be a boolean, got {other:?}"
                 )));
             }
@@ -1554,7 +1554,7 @@ enum BinOp {
 
 /// Apply a binary op to two [`Value`]s, promoting to a common number layer
 /// (Float → Rational → Decimal → Big) when operands differ (ADR-0005).
-fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
+fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, EpherError> {
     match (&lhs, &rhs) {
         (Value::Float(a), Value::Float(b)) => Ok(Value::Float(float_binop(op, *a, *b)?)),
         (Value::Rational(a), Value::Rational(b)) => {
@@ -1562,12 +1562,12 @@ fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
         }
         (Value::Float(a), Value::Rational(b)) => {
             let a = BigRational::from_float(*a)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to a rational")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {a} to a rational")))?;
             Ok(Value::Rational(rational_binop(op, a, b.clone())?))
         }
         (Value::Rational(a), Value::Float(b)) => {
             let b = BigRational::from_float(*b)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a rational")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {b} to a rational")))?;
             Ok(Value::Rational(rational_binop(op, a.clone(), b)?))
         }
         (Value::Decimal(a), Value::Decimal(b)) => {
@@ -1575,37 +1575,37 @@ fn binop(lhs: Value, rhs: Value, op: BinOp) -> Result<Value, CalcError> {
         }
         (Value::Float(a), Value::Decimal(b)) => {
             let a = float_to_decimal(*a)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to a decimal")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {a} to a decimal")))?;
             Ok(Value::Decimal(decimal_binop(op, a, b.clone())?))
         }
         (Value::Decimal(a), Value::Float(b)) => {
             let b = float_to_decimal(*b)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to a decimal")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {b} to a decimal")))?;
             Ok(Value::Decimal(decimal_binop(op, a.clone(), b)?))
         }
         (Value::Big(a), Value::Big(b)) => Ok(Value::Big(big_binop(op, a.clone(), b.clone())?)),
         (Value::Float(a), Value::Big(b)) => {
             let a = float_to_big(*a)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {a} to big")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {a} to big")))?;
             Ok(Value::Big(big_binop(op, a, b.clone())?))
         }
         (Value::Big(a), Value::Float(b)) => {
             let b = float_to_big(*b)
-                .ok_or_else(|| CalcError::Type(format!("cannot promote {b} to big")))?;
+                .ok_or_else(|| EpherError::Type(format!("cannot promote {b} to big")))?;
             Ok(Value::Big(big_binop(op, a.clone(), b)?))
         }
-        _ => Err(CalcError::Type(format!("cannot combine {lhs:?} and {rhs:?}"))),
+        _ => Err(EpherError::Type(format!("cannot combine {lhs:?} and {rhs:?}"))),
     }
 }
 
-fn float_binop(op: BinOp, a: f64, b: f64) -> Result<f64, CalcError> {
+fn float_binop(op: BinOp, a: f64, b: f64) -> Result<f64, EpherError> {
     match op {
         BinOp::Add => Ok(a + b),
         BinOp::Sub => Ok(a - b),
         BinOp::Mul => Ok(a * b),
         BinOp::Div => {
             if b == 0.0 {
-                Err(CalcError::ZeroDivision)
+                Err(EpherError::ZeroDivision)
             } else {
                 Ok(a / b)
             }
@@ -1614,44 +1614,44 @@ fn float_binop(op: BinOp, a: f64, b: f64) -> Result<f64, CalcError> {
     }
 }
 
-fn rational_binop(op: BinOp, a: BigRational, b: BigRational) -> Result<BigRational, CalcError> {
+fn rational_binop(op: BinOp, a: BigRational, b: BigRational) -> Result<BigRational, EpherError> {
     match op {
         BinOp::Add => Ok(a + b),
         BinOp::Sub => Ok(a - b),
         BinOp::Mul => Ok(a * b),
         BinOp::Div => {
             if b == BigRational::from_integer(0.into()) {
-                Err(CalcError::ZeroDivision)
+                Err(EpherError::ZeroDivision)
             } else {
                 Ok(a / b)
             }
         }
-        BinOp::Pow => Err(CalcError::Type(
+        BinOp::Pow => Err(EpherError::Type(
             "rational exponentiation is not supported yet".into(),
         )),
     }
 }
 
-fn decimal_binop(op: BinOp, a: Decimal, b: Decimal) -> Result<Decimal, CalcError> {
+fn decimal_binop(op: BinOp, a: Decimal, b: Decimal) -> Result<Decimal, EpherError> {
     match op {
         BinOp::Add => a
             .checked_add(b)
-            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+            .ok_or_else(|| EpherError::Type("decimal overflow".into())),
         BinOp::Sub => a
             .checked_sub(b)
-            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+            .ok_or_else(|| EpherError::Type("decimal overflow".into())),
         BinOp::Mul => a
             .checked_mul(b)
-            .ok_or_else(|| CalcError::Type("decimal overflow".into())),
+            .ok_or_else(|| EpherError::Type("decimal overflow".into())),
         BinOp::Div => {
             if b.is_zero() {
-                Err(CalcError::ZeroDivision)
+                Err(EpherError::ZeroDivision)
             } else {
                 a.checked_div(b)
-                    .ok_or_else(|| CalcError::Type("decimal division error".into()))
+                    .ok_or_else(|| EpherError::Type("decimal division error".into()))
             }
         }
-        BinOp::Pow => Err(CalcError::Type(
+        BinOp::Pow => Err(EpherError::Type(
             "decimal exponentiation is not supported yet".into(),
         )),
     }
@@ -1669,19 +1669,19 @@ fn float_to_big(n: f64) -> Option<BigDecimal> {
     n.to_string().parse().ok()
 }
 
-fn big_binop(op: BinOp, a: BigDecimal, b: BigDecimal) -> Result<BigDecimal, CalcError> {
+fn big_binop(op: BinOp, a: BigDecimal, b: BigDecimal) -> Result<BigDecimal, EpherError> {
     match op {
         BinOp::Add => Ok(a + b),
         BinOp::Sub => Ok(a - b),
         BinOp::Mul => Ok(a * b),
         BinOp::Div => {
             if b.is_zero() {
-                Err(CalcError::ZeroDivision)
+                Err(EpherError::ZeroDivision)
             } else {
                 Ok(a / b)
             }
         }
-        BinOp::Pow => Err(CalcError::Type(
+        BinOp::Pow => Err(EpherError::Type(
             "big exponentiation is not supported yet".into(),
         )),
     }

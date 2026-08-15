@@ -19,12 +19,12 @@ const LANGS = ["en", "zh-CN", "hi", "es", "fr", "ar"];
 // Per-language chrome strings (mirror the landing page dictionaries in
 // site/app.js; the guide page itself is single-language so no runtime i18n).
 const CHROME = {
-  en: { title: "Calc — User guide", back: "Back to home", contents: "Contents", themeDark: "Use dark theme", themeLight: "Use light theme", footer: "Calc user guide" },
-  "zh-CN": { title: "Calc — 用户指南", back: "返回主页", contents: "目录", themeDark: "使用深色主题", themeLight: "使用浅色主题", footer: "Calc 用户指南" },
-  hi: { title: "Calc — उपयोगकर्ता गाइड", back: "मुख्य पृष्ठ पर वापस जाएँ", contents: "विषय-सूची", themeDark: "गहरी थीम का उपयोग करें", themeLight: "हल्की थीम का उपयोग करें", footer: "Calc उपयोगकर्ता गाइड" },
-  es: { title: "Calc — Guía de usuario", back: "Volver al inicio", contents: "Contenido", themeDark: "Usar tema oscuro", themeLight: "Usar tema claro", footer: "Guía de usuario de Calc" },
-  fr: { title: "Calc — Guide de l'utilisateur", back: "Retour à l'accueil", contents: "Sommaire", themeDark: "Utiliser le thème sombre", themeLight: "Utiliser le thème clair", footer: "Guide de l'utilisateur de Calc" },
-  ar: { title: "Calc — دليل المستخدم", back: "العودة إلى الصفحة الرئيسية", contents: "المحتويات", themeDark: "استخدام المظهر الداكن", themeLight: "استخدام المظهر الفاتح", footer: "دليل مستخدم Calc" },
+  en: { title: "epher — User guide", back: "Back to home", contents: "Contents", themeDark: "Use dark theme", themeLight: "Use light theme", footer: "epher user guide" },
+  "zh-CN": { title: "epher — 用户指南", back: "返回主页", contents: "目录", themeDark: "使用深色主题", themeLight: "使用浅色主题", footer: "epher 用户指南" },
+  hi: { title: "epher — उपयोगकर्ता गाइड", back: "मुख्य पृष्ठ पर वापस जाएँ", contents: "विषय-सूची", themeDark: "गहरी थीम का उपयोग करें", themeLight: "हल्की थीम का उपयोग करें", footer: "epher उपयोगकर्ता गाइड" },
+  es: { title: "epher — Guía de usuario", back: "Volver al inicio", contents: "Contenido", themeDark: "Usar tema oscuro", themeLight: "Usar tema claro", footer: "Guía de usuario de epher" },
+  fr: { title: "epher — Guide de l'utilisateur", back: "Retour à l'accueil", contents: "Sommaire", themeDark: "Utiliser le thème sombre", themeLight: "Utiliser le thème clair", footer: "Guide de l'utilisateur de epher" },
+  ar: { title: "epher — دليل المستخدم", back: "العودة إلى الصفحة الرئيسية", contents: "المحتويات", themeDark: "استخدام المظهر الداكن", themeLight: "استخدام المظهر الفاتح", footer: "دليل مستخدم epher" },
 };
 
 const usedIds = new Set();
@@ -69,7 +69,7 @@ function themeScript() {
   return `<script>
   (function () {
     try {
-      var theme = localStorage.getItem("calc-theme");
+      var theme = localStorage.getItem("epher-theme");
       if (theme !== "light" && theme !== "dark") {
         theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       }
@@ -102,7 +102,7 @@ function page(lang, body, toc) {
   <header class="site-header guide-header">
     <a class="brand" href="../../">
       <img class="brand-icon" src="../../icon.svg" alt="" width="32" height="32" />
-      <span>Calc</span>
+      <span>epher</span>
     </a>
     <nav class="header-actions" aria-label="${c.contents}">
       <a class="gh-link" href="../../">${c.back}</a>
@@ -135,7 +135,7 @@ function page(lang, body, toc) {
       var labels = ${JSON.stringify({ dark: CHROME[lang].themeDark, light: CHROME[lang].themeLight })};
       function setTheme(t) {
         document.documentElement.dataset.theme = t;
-        try { localStorage.setItem("calc-theme", t); } catch (e) {}
+        try { localStorage.setItem("epher-theme", t); } catch (e) {}
         var next = t === "dark" ? "light" : "dark";
         toggle.setAttribute("aria-label", labels[next]);
       }

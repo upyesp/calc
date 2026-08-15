@@ -1,14 +1,14 @@
-//! calc-tui — native full-screen terminal frontend (ADR-0001).
+//! epher-tui — native full-screen terminal frontend (ADR-0001).
 //!
 //! The testable seam is [`App`] (input/result + the shared [`Session`]) plus
 //! the pure [`render_ascii`] plot renderer (ADR-0006: the TUI renders ASCII).
 //! The ratatui event loop in `main.rs` is a thin shell over both.
 
-use calc_core::{parse, sample, Sample, Session};
-use calc_i18n::Localizer;
-use calc_shell::{classify, plain, run_command};
-use calc_store::persist::save_history;
-use calc_store::{DocStore, FsStore};
+use epher_core::{parse, sample, Sample, Session};
+use epher_i18n::Localizer;
+use epher_shell::{classify, plain, run_command};
+use epher_store::persist::save_history;
+use epher_store::{DocStore, FsStore};
 
 /// The TUI's application state — the testable seam. Rendering is thin.
 #[derive(Default)]
@@ -78,7 +78,7 @@ impl App {
     }
 
     /// Handle one submitted line the way the event loop does: shell commands
-    /// dispatch through the shared kernel (calc-shell), `graph ` samples,
+    /// dispatch through the shared kernel (epher-shell), `graph ` samples,
     /// anything else evaluates — and history persists. Returns the new
     /// language preference when a `language` command changed it, so the
     /// caller can re-resolve its Localizer.
