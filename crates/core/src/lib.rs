@@ -407,7 +407,10 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
             c if c.is_alphabetic() => {
                 let mut ident = String::new();
                 while let Some(&c2) = chars.peek() {
-                    if c2.is_alphabetic() || c2 == '_' {
+                    // identifiers may contain digits after the first
+                    // character (atan2, log10, x2), but must start with a
+                    // letter so numbers still tokenize as numbers
+                    if c2.is_alphanumeric() || c2 == '_' {
                         ident.push(c2);
                         chars.next();
                     } else {
@@ -913,43 +916,115 @@ fn builtin_const(name: &str) -> Option<Value> {
     }
 }
 
-/// Dispatch a builtin function call. User-defined functions (L2) will share
-/// this seam later.
-fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
-    match name {
-        "sqrt" => {
-            let [x] = args.as_slice() else {
+/// Take exactly one Float argument.
+fn one_float(name: &str, args: &[Value]) -> Result<f64, CalcError> {
+    match args {
+        [Value::Float(x)] => Ok(*x),
+        _ => Err(CalcError::Type(format!(
+            "{name} expects 1 number, got {} argument(s)",
+            args.len()
+        ))),
+    }
+}
+
+/// Take exactly two Float arguments.
+fn two_floats(name: &str, args: &[Value]) -> Result<(f64, f64), CalcError> {
+    match args {
+        [Value::Float(a), Value::Float(b)] => Ok((*a, *b)),
+        _ => Err(CalcError::Type(format!(
+            "{name} expects 2 numbers, got {} argument(s)",
+            args.len()
+        ))),
+    }
+}
+
+/// Take one or more Float arguments (variadic statistics and min/max).
+fn any_floats(name: &str, args: &[Value]) -> Result<Vec<f64>, CalcError> {
+    if args.is_empty() {
+        return Err(CalcError::Type(format!(
+            "{name} expects at least 1 number, got 0"
+        )));
+    }
+    let mut out = Vec::with_capacity(args.len());
+    for arg in args {
+        match arg {
+            Value::Float(x) => out.push(*x),
+            other => {
                 return Err(CalcError::Type(format!(
-                    "sqrt expects 1 argument, got {}",
-                    args.len()
-                )));
-            };
-            match x {
-                Value::Float(n) => {
-                    if *n < 0.0 {
-                        Err(CalcError::Domain(format!("sqrt of negative number {n}")))
-                    } else {
-                        Ok(Value::Float(n.sqrt()))
-                    }
-                }
-                other => Err(CalcError::Type(format!(
-                    "sqrt expects a number, got {other:?}"
-                ))),
+                    "{name} expects numbers, got {other:?}"
+                )))
             }
         }
-        "min" => {
-            let [a, b] = args.as_slice() else {
-                return Err(CalcError::Type(format!(
-                    "min expects 2 arguments, got {}",
-                    args.len()
-                )));
-            };
-            match (a, b) {
-                (Value::Float(x), Value::Float(y)) => Ok(Value::Float(x.min(*y))),
-                _ => Err(CalcError::Type(format!(
-                    "min expects numbers, got {a:?} and {b:?}"
-                ))),
+    }
+    Ok(out)
+}
+
+/// Reject an out-of-domain argument.
+fn domain_error(message: impl std::fmt::Display) -> CalcError {
+    CalcError::Domain(message.to_string())
+}
+
+/// Dispatch a builtin function call. User-defined functions are resolved by
+/// the caller; everything here is the scientific function library (the
+/// calculator's function keys).
+fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
+    match name {
+        "sin" => Ok(Value::Float(one_float(name, &args)?.sin())),
+        "cos" => Ok(Value::Float(one_float(name, &args)?.cos())),
+        "tan" => Ok(Value::Float(one_float(name, &args)?.tan())),
+        "asin" => {
+            let x = one_float(name, &args)?;
+            if x < -1.0 || x > 1.0 {
+                return Err(domain_error(format!("asin of {x} outside -1..1")));
             }
+            Ok(Value::Float(x.asin()))
+        }
+        "acos" => {
+            let x = one_float(name, &args)?;
+            if x < -1.0 || x > 1.0 {
+                return Err(domain_error(format!("acos of {x} outside -1..1")));
+            }
+            Ok(Value::Float(x.acos()))
+        }
+        "atan" => Ok(Value::Float(one_float(name, &args)?.atan())),
+        "sinh" => Ok(Value::Float(one_float(name, &args)?.sinh())),
+        "cosh" => Ok(Value::Float(one_float(name, &args)?.cosh())),
+        "tanh" => Ok(Value::Float(one_float(name, &args)?.tanh())),
+        "asinh" => Ok(Value::Float(one_float(name, &args)?.asinh())),
+        "acosh" => {
+            let x = one_float(name, &args)?;
+            if x < 1.0 {
+                return Err(domain_error(format!("acosh of {x} below 1")));
+            }
+            Ok(Value::Float(x.acosh()))
+        }
+        "atanh" => {
+            let x = one_float(name, &args)?;
+            if x <= -1.0 || x >= 1.0 {
+                return Err(domain_error(format!("atanh of {x} outside -1..1")));
+            }
+            Ok(Value::Float(x.atanh()))
+        }
+        "deg" => Ok(Value::Float(one_float(name, &args)?.to_degrees())),
+        "rad" => Ok(Value::Float(one_float(name, &args)?.to_radians())),
+        "atan2" => {
+            let (y, x) = two_floats(name, &args)?;
+            Ok(Value::Float(y.atan2(x)))
+        }
+        "sqrt" => {
+            let x = one_float(name, &args)?;
+            if x < 0.0 {
+                return Err(domain_error(format!("sqrt of negative number {x}")));
+            }
+            Ok(Value::Float(x.sqrt()))
+        }
+        "min" => {
+            let xs = any_floats(name, &args)?;
+            Ok(Value::Float(xs.iter().cloned().fold(f64::INFINITY, f64::min)))
+        }
+        "max" => {
+            let xs = any_floats(name, &args)?;
+            Ok(Value::Float(xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max)))
         }
         "frac" => {
             let [n, d] = args.as_slice() else {

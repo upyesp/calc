@@ -327,3 +327,115 @@ fn session_tracks_last_submitted_line() {
     session.submit("x = 1; y = x + 1");
     assert_eq!(session.last_line(), Some("x = 1; y = x + 1"));
 }
+
+// ---------------------------------------------------------------------
+// Scientific function library
+
+/// Two floats close enough to agree (independent expected values are
+/// literals or std constants, so equality is approximate by nature).
+fn assert_close(actual: f64, expected: f64) {
+    assert!(
+        (actual - expected).abs() < 1e-10,
+        "expected {expected}, got {actual}"
+    );
+}
+
+fn eval_number(src: &str) -> f64 {
+    match eval_str(src) {
+        Value::Float(n) => n,
+        other => panic!("expected a number from {src:?}, got {other:?}"),
+    }
+}
+
+fn eval_err(src: &str) -> String {
+    let env = Env::default();
+    match eval(&parse(src).expect("parse"), &env) {
+        Err(e) => e.to_string(),
+        Ok(v) => panic!("expected an error from {src:?}, got {v}"),
+    }
+}
+
+#[test]
+fn trigonometric_functions_work_in_radians() {
+    assert_close(eval_number("sin(0)"), 0.0);
+    assert_close(eval_number("sin(pi / 2)"), 1.0);
+    assert_close(eval_number("cos(0)"), 1.0);
+    assert_close(eval_number("cos(pi)"), -1.0);
+    assert_close(eval_number("tan(0)"), 0.0);
+    assert_close(eval_number("tan(pi / 4)"), 1.0);
+}
+
+#[test]
+fn inverse_trigonometric_functions_work() {
+    assert_close(eval_number("asin(1)"), std::f64::consts::FRAC_PI_2);
+    assert_close(eval_number("asin(0)"), 0.0);
+    assert_close(eval_number("acos(1)"), 0.0);
+    assert_close(eval_number("atan(1)"), std::f64::consts::FRAC_PI_4);
+    assert_close(eval_number("atan(0)"), 0.0);
+}
+
+#[test]
+fn inverse_trigonometric_functions_reject_out_of_domain() {
+    assert!(eval_err("asin(2)").contains("domain"));
+    assert!(eval_err("asin(-1.5)").contains("domain"));
+    assert!(eval_err("acos(-2)").contains("domain"));
+}
+
+#[test]
+fn hyperbolic_functions_work() {
+    // sinh(1) = 1.1752011936438014 (independent value)
+    assert_close(eval_number("sinh(1)"), 1.1752011936438014);
+    assert_close(eval_number("cosh(0)"), 1.0);
+    assert_close(eval_number("cosh(1)"), 1.5430806348152437);
+    assert_close(eval_number("tanh(0)"), 0.0);
+    assert_close(eval_number("tanh(1)"), 0.7615941559557649);
+}
+
+#[test]
+fn inverse_hyperbolic_functions_work_and_reject_out_of_domain() {
+    assert_close(eval_number("asinh(0)"), 0.0);
+    assert_close(eval_number("asinh(1)"), 0.881373587019543);
+    assert_close(eval_number("acosh(1)"), 0.0);
+    assert_close(eval_number("atanh(0)"), 0.0);
+    assert!(eval_err("acosh(0.5)").contains("domain"));
+    assert!(eval_err("atanh(1)").contains("domain"));
+    assert!(eval_err("atanh(-1.1)").contains("domain"));
+}
+
+#[test]
+fn angle_conversions_between_degrees_and_radians() {
+    assert_close(eval_number("deg(pi)"), 180.0);
+    assert_close(eval_number("deg(pi / 2)"), 90.0);
+    assert_close(eval_number("deg(1)"), 57.29577951308232);
+    assert_close(eval_number("rad(180)"), std::f64::consts::PI);
+    assert_close(eval_number("rad(90)"), std::f64::consts::FRAC_PI_2);
+}
+
+#[test]
+fn sampler_can_graph_a_trig_expression() {
+    let env = Env::default();
+    let expr = parse("sin(x)").expect("parse");
+    let points = sample(&expr, 0.0, std::f64::consts::TAU, 5, &env).expect("sample");
+    let ys: Vec<f64> = points.iter().map(|p| p.y).collect();
+    assert_close(ys[0], 0.0);
+    assert_close(ys[1], 1.0);
+    assert_close(ys[2], 0.0);
+    assert_close(ys[3], -1.0);
+    assert_close(ys[4], 0.0);
+}
+
+#[test]
+fn atan2_gives_the_angle_of_a_point() {
+    assert_close(eval_number("atan2(1, 1)"), std::f64::consts::FRAC_PI_4);
+    assert_close(eval_number("atan2(0, -1)"), std::f64::consts::PI);
+    assert_close(eval_number("atan2(-1, 0)"), -std::f64::consts::FRAC_PI_2);
+}
+
+#[test]
+fn min_and_max_take_any_number_of_arguments() {
+    assert_close(eval_number("min(2, 3)"), 2.0);
+    assert_close(eval_number("min(4, 1, 3, 2)"), 1.0);
+    assert_close(eval_number("max(4, 1, 3, 2)"), 4.0);
+    assert_close(eval_number("max(7)"), 7.0);
+    assert!(eval_err("min()").contains("expects"));
+}
