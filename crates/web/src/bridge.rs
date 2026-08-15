@@ -74,6 +74,25 @@ impl Bridge {
         self.spawn("save_language", args);
     }
 
+    /// Can this desktop shell install the `epher` terminal command?
+    /// (macOS only, ADR-0011.) The UI asks at startup.
+    pub async fn cli_install_supported(self) -> Result<bool, String> {
+        let value =
+            self.invoke("cli_install_supported", &JsValue::UNDEFINED)
+                .await
+                .map_err(js_err)?;
+        serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())
+    }
+
+    /// Install the `epher` terminal command. Ok carries a Fluent key;
+    /// Err carries readable instructions to show.
+    pub async fn install_cli(self) -> Result<String, String> {
+        let value = self.invoke("install_cli", &JsValue::UNDEFINED)
+            .await
+            .map_err(js_err)?;
+        serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())
+    }
+
     fn spawn(self, cmd: &'static str, args: JsValue) {
         spawn_local(async move {
             if let Err(e) = self.invoke(cmd, &args).await {

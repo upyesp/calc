@@ -85,6 +85,20 @@
       padding: 0.5rem 0;
       overflow-wrap: anywhere;
     }
+    /* The macOS "install the epher command" action (ADR-0011): a quiet,
+       secondary button — it must not compete with the = button. Contrast
+       8.3:1 accent-on-background (WCAG 1.4.3); 48px target (2.5.8). */
+    .install-cli {
+      font-size: 0.95rem;
+      font-weight: 500;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 0.5rem 1rem;
+      min-height: 48px;
+      align-self: flex-start;
+      margin-bottom: 0.75rem;
+    }
     .history {
       list-style: none;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

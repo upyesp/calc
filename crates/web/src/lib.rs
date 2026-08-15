@@ -27,6 +27,7 @@ fn epher_app() -> Html {
     let result = use_state(String::new);
     let localizer = use_state(|| Localizer::resolve(None, &[]));
     let graph = use_state(|| Option::<(Vec<Sample>, String)>::None);
+    let show_install_cli = use_state(|| false);
     let bridge = Bridge::detect();
 
     // Inside the desktop shell: rebuild the session from the native store —
@@ -68,6 +69,44 @@ fn epher_app() -> Html {
             },
         );
     }
+
+    // macOS desktop builds offer to install the `epher` terminal command
+    // (ADR-0011): a one-click symlink into /usr/local/bin.
+    {
+        let show_install_cli = show_install_cli.clone();
+        use_effect_with(
+            (),
+            move |_| {
+                if bridge == Bridge::Tauri {
+                    spawn_local(async move {
+                        if let Ok(true) = bridge.cli_install_supported().await {
+                            show_install_cli.set(true);
+                        }
+                    });
+                }
+                || {}
+            },
+        );
+    }
+
+    let on_install_cli = {
+        let result = result.clone();
+        let localizer = localizer.clone();
+        Callback::from(move |_| {
+            let result = result.clone();
+            let localizer = localizer.clone();
+            spawn_local(async move {
+                let outcome = bridge.install_cli().await;
+                let message = match outcome {
+                    Ok(key) => localizer.lookup(&key),
+                    Err(detail) => {
+                        format!("{} {detail}", localizer.lookup("install-cli-failed"))
+                    }
+                };
+                result.set(message);
+            });
+        })
+    };
 
     let on_input = {
         let input = input.clone();
@@ -166,6 +205,21 @@ fn epher_app() -> Html {
                 <button type="submit" aria-label="Evaluate">{ "=" }</button>
             </form>
             <div id="epher-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
+            {
+                if *show_install_cli {
+                    html! {
+                        <button
+                            type="button"
+                            class="install-cli"
+                            onclick={on_install_cli}
+                        >
+                            { localizer.lookup("install-cli") }
+                        </button>
+                    }
+                } else {
+                    html! {}
+                }
+            }
             {
                 match (*graph).clone() {
                     Some((samples, source)) => {

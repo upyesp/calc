@@ -83,11 +83,32 @@ fn save_history(state: State<DesktopStore>, history: Vec<String>) -> Result<(), 
     state.save_history(&history).map_err(|e| e.to_string())
 }
 
+pub mod cli_install;
 pub mod dispatch;
 
 #[tauri::command]
 fn save_language(state: State<DesktopStore>, code: String) -> Result<(), String> {
     state.save_language(&code).map_err(|e| e.to_string())
+}
+
+/// Can this shell install the `epher` terminal command? (macOS app bundle
+/// only — see cli_install.) The webview asks at startup to decide whether
+/// to show the button.
+#[tauri::command]
+fn cli_install_supported() -> bool {
+    cfg!(target_os = "macos")
+}
+
+/// Install the `epher` command (macOS): symlink `/usr/local/bin/epher` to
+/// the app bundle's executable, with an osascript administrator-privilege
+/// fallback. Ok carries a Fluent key; Err carries readable instructions.
+/// Async + spawn_blocking: the password prompt can be open a long while,
+/// and the UI must stay responsive.
+#[tauri::command]
+async fn install_cli() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(cli_install::install)
+        .await
+        .map_err(|e| format!("join error: {e}"))?
 }
 
 /// Run the desktop GUI (the Tauri event loop). On Windows this is called
@@ -103,7 +124,9 @@ pub fn run() {
             save_function,
             save_script,
             save_history,
-            save_language
+            save_language,
+            cli_install_supported,
+            install_cli
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
