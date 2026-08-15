@@ -106,6 +106,7 @@ pub enum Expression {
     Mul(Box<Expression>, Box<Expression>),
     Div(Box<Expression>, Box<Expression>),
     Pow(Box<Expression>, Box<Expression>),
+    Factorial(Box<Expression>),
     Compare(CmpOp, Box<Expression>, Box<Expression>),
     If(Box<Expression>, Box<Expression>, Box<Expression>),
     And(Box<Expression>, Box<Expression>),
@@ -305,6 +306,7 @@ enum Token {
     NotEqual,
     Equals,
     Semicolon,
+    Bang,
     LParen,
     RParen,
 }
@@ -374,7 +376,7 @@ fn tokenize(text: &str) -> Result<Vec<Token>, CalcError> {
                     chars.next();
                     tokens.push(Token::NotEqual);
                 } else {
-                    return Err(CalcError::Parse("unexpected character: '!'".into()));
+                    tokens.push(Token::Bang);
                 }
             }
             ';' => {
@@ -657,6 +659,18 @@ impl Parser {
     }
 
     fn parse_factor(&mut self) -> Result<Expression, CalcError> {
+        let primary = self.parse_primary()?;
+        // postfix factorial binds tightest: 3! ^ 2 is (3!) ^ 2, and 4!!
+        // is (4!)!; `!=` lexes as one token so `5! != 3` still works
+        let mut expr = primary;
+        while matches!(self.peek(), Some(Token::Bang)) {
+            self.next();
+            expr = Expression::Factorial(Box::new(expr));
+        }
+        Ok(expr)
+    }
+
+    fn parse_primary(&mut self) -> Result<Expression, CalcError> {
         match self.next() {
             Some(Token::Number(n)) => Ok(Expression::Literal(n)),
             Some(Token::Ident(name)) => {
@@ -725,6 +739,13 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, CalcError> {
         Expression::Mul(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Mul),
         Expression::Div(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Div),
         Expression::Pow(lhs, rhs) => binop(eval(lhs, env)?, eval(rhs, env)?, BinOp::Pow),
+        Expression::Factorial(inner) => {
+            let v = eval(inner, env)?;
+            let x = one_float("!", &[v])?;
+            let n = float_to_int(x)
+                .ok_or_else(|| CalcError::Type(format!("! expects integers, got {x}")))?;
+            Ok(Value::Float(factorial_value(n)?))
+        }
         Expression::Compare(op, lhs, rhs) => {
             let l = eval(lhs, env)?;
             let r = eval(rhs, env)?;
@@ -996,6 +1017,21 @@ fn integer_pair(name: &str, args: &[Value]) -> Result<(i64, i64), CalcError> {
     Ok((a, b))
 }
 
+/// n! as a float, erroring for negatives and beyond 170! (the f64 limit).
+fn factorial_value(n: i64) -> Result<f64, CalcError> {
+    if n < 0 {
+        return Err(domain_error(format!("factorial of negative number {n}")));
+    }
+    let mut acc = 1.0;
+    for i in 2..=n {
+        acc *= i as f64;
+        if !acc.is_finite() {
+            return Err(domain_error(format!("factorial of {n} overflows")));
+        }
+    }
+    Ok(acc)
+}
+
 /// Dispatch a builtin function call. User-defined functions are resolved by
 /// the caller; everything here is the scientific function library (the
 /// calculator's function keys).
@@ -1155,17 +1191,7 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         }
         "fact" => {
             let n = integer_arg(name, &args)?;
-            if n < 0 {
-                return Err(domain_error(format!("factorial of negative number {n}")));
-            }
-            let mut acc = 1.0;
-            for i in 2..=n {
-                acc *= i as f64;
-                if !acc.is_finite() {
-                    return Err(domain_error(format!("factorial of {n} overflows")));
-                }
-            }
-            Ok(Value::Float(acc))
+            Ok(Value::Float(factorial_value(n)?))
         }
         "ncr" | "npr" => {
             let (n, r) = integer_pair(name, &args)?;

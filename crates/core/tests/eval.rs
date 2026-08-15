@@ -582,3 +582,22 @@ fn statistics_variance_and_stdev_are_population() {
     assert_close(eval_number("stdev(2, 4)"), 1.0);
     assert_close(eval_number("stdev(1, 2, 3)"), 0.816496580927726);
 }
+
+#[test]
+fn postfix_factorial_operator() {
+    assert_close(eval_number("5!"), 120.0);
+    assert_close(eval_number("0!"), 1.0);
+    assert_close(eval_number("(2 + 1)!"), 6.0);
+    // factorial binds tighter than ^ and unary -
+    assert_close(eval_number("3! ^ 2"), 36.0);
+    assert_close(eval_number("2 ^ 3!"), 64.0);
+    assert_close(eval_number("-5!"), -120.0);
+    // (4!)! = 24!
+    assert_close(eval_number("4!!"), 6.204484017332394e23);
+    assert_close(eval_number("fact(5) + 5!"), 240.0);
+    assert_eq!(eval_str("5! == 120"), Value::Bool(true));
+    // ! and != stay distinct tokens
+    assert_eq!(eval_str("5! != 100"), Value::Bool(true));
+    assert!(eval_err("(-1)!").contains("domain"));
+    assert!(eval_err("3.5!").contains("expects integers"));
+}
