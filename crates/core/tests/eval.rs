@@ -334,8 +334,10 @@ fn session_tracks_last_submitted_line() {
 /// Two floats close enough to agree (independent expected values are
 /// literals or std constants, so equality is approximate by nature).
 fn assert_close(actual: f64, expected: f64) {
+    // relative tolerance: works from tiny values up to 170!
+    let scale = expected.abs().max(1.0);
     assert!(
-        (actual - expected).abs() < 1e-10,
+        (actual - expected).abs() <= 1e-10 * scale,
         "expected {expected}, got {actual}"
     );
 }
@@ -509,4 +511,46 @@ fn builtin_constants_tau_and_phi() {
     assert_close(eval_number("phi"), 1.618033988749895);
     // the golden ratio satisfies phi^2 = phi + 1
     assert_close(eval_number("phi ^ 2 - phi - 1"), 0.0);
+}
+
+#[test]
+fn factorial_of_non_negative_integers() {
+    assert_close(eval_number("fact(0)"), 1.0);
+    assert_close(eval_number("fact(1)"), 1.0);
+    assert_close(eval_number("fact(5)"), 120.0);
+    assert_close(eval_number("fact(10)"), 3628800.0);
+    // 170! is the largest factorial that fits in a double
+    assert_close(eval_number("fact(170)"), 7.257415615307999e306);
+    assert!(eval_err("fact(171)").contains("domain"));
+    assert!(eval_err("fact(-1)").contains("domain"));
+    assert!(eval_err("fact(2.5)").contains("expects integers"));
+}
+
+#[test]
+fn combinations_and_permutations() {
+    assert_close(eval_number("ncr(5, 2)"), 10.0);
+    assert_close(eval_number("ncr(5, 0)"), 1.0);
+    assert_close(eval_number("ncr(5, 5)"), 1.0);
+    assert_close(eval_number("ncr(10, 3)"), 120.0);
+    assert_close(eval_number("ncr(52, 5)"), 2598960.0);
+    assert_close(eval_number("npr(5, 2)"), 20.0);
+    assert_close(eval_number("npr(5, 5)"), 120.0);
+    assert_close(eval_number("npr(10, 3)"), 720.0);
+    assert!(eval_err("ncr(2, 5)").contains("domain"));
+    assert!(eval_err("npr(3, 5)").contains("domain"));
+    assert!(eval_err("ncr(5.5, 2)").contains("expects integers"));
+}
+
+#[test]
+fn gcd_lcm_and_modulo() {
+    assert_close(eval_number("gcd(12, 18)"), 6.0);
+    assert_close(eval_number("gcd(0, 0)"), 0.0);
+    assert_close(eval_number("gcd(-12, 18)"), 6.0);
+    assert_close(eval_number("lcm(4, 6)"), 12.0);
+    assert_close(eval_number("lcm(0, 5)"), 0.0);
+    assert_close(eval_number("mod(7, 3)"), 1.0);
+    assert_close(eval_number("mod(-7, 3)"), -1.0);
+    assert_close(eval_number("mod(7, -3)"), 1.0);
+    assert!(eval_err("mod(5, 0)").contains("zero"));
+    assert!(eval_err("gcd(2.5, 3)").contains("expects integers"));
 }

@@ -967,6 +967,35 @@ fn domain_error(message: impl std::fmt::Display) -> CalcError {
     CalcError::Domain(message.to_string())
 }
 
+/// A finite float with an integer value, as i64 (shared by the integer
+/// function family: frac, fact, ncr, npr, gcd, lcm, mod).
+fn float_to_int(x: f64) -> Option<i64> {
+    if x.is_finite() && x.fract() == 0.0 && x.abs() <= i64::MAX as f64 {
+        Some(x as i64)
+    } else {
+        None
+    }
+}
+
+/// Exactly one integer-valued Float argument, as i64.
+fn integer_arg(name: &str, args: &[Value]) -> Result<i64, CalcError> {
+    let x = one_float(name, args)?;
+    float_to_int(x).ok_or_else(|| {
+        CalcError::Type(format!("{name} expects integers, got {x}"))
+    })
+}
+
+/// Exactly two integer-valued Float arguments, as i64.
+fn integer_pair(name: &str, args: &[Value]) -> Result<(i64, i64), CalcError> {
+    let (a, b) = two_floats(name, args)?;
+    let (Some(a), Some(b)) = (float_to_int(a), float_to_int(b)) else {
+        return Err(CalcError::Type(format!(
+            "{name} expects integers, got {a} and {b}"
+        )));
+    };
+    Ok((a, b))
+}
+
 /// Dispatch a builtin function call. User-defined functions are resolved by
 /// the caller; everything here is the scientific function library (the
 /// calculator's function keys).
@@ -1109,27 +1138,85 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             };
             match (n, d) {
                 (Value::Float(n), Value::Float(d)) => {
-                    let to_int = |x: f64| -> Option<BigInt> {
-                        if x.is_finite() && x.fract() == 0.0 && x.abs() <= i64::MAX as f64 {
-                            Some(BigInt::from(x as i64))
-                        } else {
-                            None
-                        }
-                    };
-                    let (Some(n), Some(d)) = (to_int(*n), to_int(*d)) else {
+                    let (Some(n), Some(d)) = (float_to_int(*n), float_to_int(*d)) else {
                         return Err(CalcError::Type(format!(
                             "frac expects integer arguments, got {n:?} and {d:?}"
                         )));
                     };
-                    if d == BigInt::from(0) {
+                    if d == 0 {
                         return Err(CalcError::ZeroDivision);
                     }
-                    Ok(Value::Rational(BigRational::new(n, d)))
+                    Ok(Value::Rational(BigRational::new(BigInt::from(n), BigInt::from(d))))
                 }
                 _ => Err(CalcError::Type(format!(
                     "frac expects numbers, got {n:?} and {d:?}"
                 ))),
             }
+        }
+        "fact" => {
+            let n = integer_arg(name, &args)?;
+            if n < 0 {
+                return Err(domain_error(format!("factorial of negative number {n}")));
+            }
+            let mut acc = 1.0;
+            for i in 2..=n {
+                acc *= i as f64;
+                if !acc.is_finite() {
+                    return Err(domain_error(format!("factorial of {n} overflows")));
+                }
+            }
+            Ok(Value::Float(acc))
+        }
+        "ncr" | "npr" => {
+            let (n, r) = integer_pair(name, &args)?;
+            if n < 0 || r < 0 || r > n {
+                return Err(domain_error(format!(
+                    "{name} needs 0 <= r <= n, got n = {n}, r = {r}"
+                )));
+            }
+            // keep r small for ncr: C(n, r) == C(n, n-r)
+            let r = if name == "ncr" { r.min(n - r) } else { r };
+            let mut acc = 1.0;
+            for i in 0..r {
+                if name == "ncr" {
+                    // C(n, i+1) = C(n, i) * (n-i) / (i+1) - integral at
+                    // every step, so tiny rounding only for huge results
+                    acc = acc * ((n - i) as f64) / ((i + 1) as f64);
+                } else {
+                    acc *= (n - i) as f64;
+                    if !acc.is_finite() {
+                        return Err(domain_error(format!("npr of {n} and {r} overflows")));
+                    }
+                }
+            }
+            Ok(Value::Float(acc))
+        }
+        "gcd" | "lcm" => {
+            let (a, b) = integer_pair(name, &args)?;
+            let (a, b) = (a.abs(), b.abs());
+            let mut x = a;
+            let mut y = b;
+            while y != 0 {
+                let t = y;
+                y = x % y;
+                x = t;
+            }
+            let gcd = x;
+            if name == "gcd" {
+                Ok(Value::Float(gcd as f64))
+            } else if gcd == 0 {
+                Ok(Value::Float(0.0))
+            } else {
+                Ok(Value::Float(((a / gcd) * b) as f64))
+            }
+        }
+        "mod" => {
+            let (a, b) = integer_pair(name, &args)?;
+            if b == 0 {
+                return Err(CalcError::ZeroDivision);
+            }
+            // truncated remainder, the sign of the dividend (calculator MOD)
+            Ok(Value::Float((a % b) as f64))
         }
         "dec" => {
             let [x] = args.as_slice() else {
