@@ -49,9 +49,10 @@ matemáticas. Esa regla se llama *precedencia de operadores*.
 
 El orden completo de precedencia, de más fuerte a más débil:
 
-1. `^` potencia
-2. `*` y `/` multiplicación y división
-3. `+` y `-` suma y resta
+1. `!` factorial
+2. `^` potencia
+3. `*` y `/` multiplicación y división
+4. `+` y `-` suma y resta
 
 Usa paréntesis para cambiar el orden:
 
@@ -103,9 +104,9 @@ La resta y la división funcionan de izquierda a derecha:
 5
 ```
 
-### 1.3 Los números especiales pi y e
+### 1.3 Los números especiales pi, e, tau y phi
 
-Las dos constantes famosas están integradas:
+Las constantes famosas están integradas:
 
 ```text
 pi
@@ -129,6 +130,24 @@ e
 
 ```text
 2.718281828459045
+```
+
+Dos más: `tau` es una vuelta completa (2 pi) y `phi` es el número áureo:
+
+```text
+tau
+```
+
+```text
+6.283185307179586
+```
+
+```text
+phi
+```
+
+```text
+1.618033988749895
 ```
 
 ### 1.4 Comparar y lógica
@@ -410,12 +429,63 @@ big(10 ^ 20)
 
 ### 1.12 Funciones integradas
 
-Calc tiene un pequeño conjunto de funciones integradas:
+Calc tiene las funciones de una calculadora científica, agrupadas por familia.
+
+La trigonometría trabaja en radianes — usa `deg` y `rad` para convertir:
+
+| Función | Significado | Ejemplo | Resultado |
+|---|---|---|---|
+| `sin(x)`, `cos(x)`, `tan(x)` | funciones trigonométricas | `sin(pi / 2)` | `1` |
+| `asin(x)`, `acos(x)`, `atan(x)` | trigonometría inversa | `atan(1)` | `0.7853981633974483` |
+| `atan2(y, x)` | ángulo del punto (x, y) | `atan2(1, 1)` | `0.7853981633974483` |
+| `deg(x)` | radianes → grados | `deg(pi)` | `180` |
+| `rad(x)` | grados → radianes | `rad(180)` | `3.141592653589793` |
+| `sinh(x)`, `cosh(x)`, `tanh(x)` | funciones hiperbólicas | `sinh(1)` | `1.1752011936438014` |
+| `asinh(x)`, `acosh(x)`, `atanh(x)` | hiperbólicas inversas | `acosh(1)` | `0` |
+
+Potencias, raíces y logaritmos (en una calculadora `log` es base 10):
 
 | Función | Significado | Ejemplo | Resultado |
 |---|---|---|---|
 | `sqrt(x)` | raíz cuadrada | `sqrt(16)` | `4` |
-| `min(a, b)` | el menor de dos | `min(3, 7)` | `3` |
+| `cbrt(x)` | raíz cúbica | `cbrt(-27)` | `-3` |
+| `root(n, x)` | raíz n-ésima | `root(3, 8)` | `2` |
+| `exp(x)` | e elevado a x | `exp(1)` | `2.718281828459045` |
+| `ln(x)` | logaritmo natural | `ln(e)` | `1` |
+| `log(x)` | logaritmo base 10 | `log(100)` | `2` |
+| `log2(x)` | logaritmo base 2 | `log2(8)` | `3` |
+| `logb(b, x)` | logaritmo en base b | `logb(2, 8)` | `3` |
+| `hypot(a, b)` | hipotenusa | `hypot(3, 4)` | `5` |
+| `5!` (también `fact(n)`) | factorial | `5!` | `120` |
+
+Redondeo, signos y números enteros:
+
+| Función | Significado | Ejemplo | Resultado |
+|---|---|---|---|
+| `abs(x)` | valor absoluto | `abs(-3)` | `3` |
+| `floor(x)` / `ceil(x)` | redondear abajo / arriba | `floor(2.7)` | `2` |
+| `round(x)` | el más cercano, medio siempre lejos de cero | `round(2.5)` | `3` |
+| `trunc(x)` | quitar la parte decimal | `trunc(-2.9)` | `-2` |
+| `sign(x)` | -1, 0 o 1 | `sign(-5)` | `-1` |
+| `ncr(n, r)` | combinaciones | `ncr(52, 5)` | `2598960` |
+| `npr(n, r)` | permutaciones | `npr(5, 2)` | `20` |
+| `gcd(a, b)` / `lcm(a, b)` | divisores y múltiplos comunes | `gcd(12, 18)` | `6` |
+| `mod(a, b)` | resto | `mod(7, 3)` | `1` |
+
+La estadística acepta cualquier número de argumentos:
+
+| Función | Significado | Ejemplo | Resultado |
+|---|---|---|---|
+| `sum(...)` / `product(...)` | totales | `sum(1, 2, 3)` | `6` |
+| `mean(...)` | promedio | `mean(1, 2, 3)` | `2` |
+| `median(...)` | valor central | `median(1, 2, 3, 4)` | `2.5` |
+| `min(...)` / `max(...)` | el menor / el mayor | `max(4, 1, 3)` | `4` |
+| `variance(...)` / `stdev(...)` | dispersión de los valores | `stdev(2, 4)` | `1` |
+
+Las capas exactas de la sección 1.11 se mantienen:
+
+| Función | Significado | Ejemplo | Resultado |
+|---|---|---|---|
 | `frac(n, d)` | fracción exacta | `frac(1, 3)` | `1/3` |
 | `dec(x)` | decimal exacto | `dec(0.1)` | `0.1` |
 | `big(x)` | número entero exacto | `big(10 ^ 20)` | `100000000000000000000` |
@@ -459,16 +529,15 @@ error: unknown name: unknown_name
 ```
 
 ```text
-sin(1)
+foo(1)
 ```
 
 ```text
-error: unknown name: sin
+error: unknown name: foo
 ```
 
-El último ejemplo es importante: `sin` **no** está integrado — solo las
-funciones de la sección 1.12. El mensaje de error te dice exactamente qué
-Calc no conoce, para que puedas arreglar tu expresión.
+El último ejemplo es importante: Calc te dice exactamente qué nombre no
+conoce, para que puedas arreglar tu expresión.
 
 ### 1.14 Referencia rápida
 
@@ -476,8 +545,10 @@ Calc no conoce, para que puedas arreglar tu expresión.
 |---|---|---|
 | Sumar, restar, multiplicar, dividir | `+ - * /` | `7 / 2` |
 | Potencia | `^` (de derecha a izquierda) | `2 ^ 10` |
+| Factorial | `!` (postfijo) | `5!` |
 | Paréntesis | `( )` | `(2 + 3) * 4` |
-| Constantes | `pi`, `e` | `2 * pi` |
+| Constantes | `pi`, `e`, `tau`, `phi` | `2 * pi` |
+| Notación científica | `2.5e-3` | `6.02e23` |
 | Comparar | `> < >= <= == !=` | `3 >= 2` |
 | Lógica | `and or not` | `a > 1 and a < 10` |
 | Variable | `name = value` | `x = 5` |

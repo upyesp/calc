@@ -50,9 +50,10 @@ mathématiques. Cette règle s'appelle la *précédence des opérateurs*.
 
 L'ordre complet de précédence, du plus fort au plus faible :
 
-1. `^` puissance
-2. `*` et `/` multiplication et division
-3. `+` et `-` addition et soustraction
+1. `!` factorielle
+2. `^` puissance
+3. `*` et `/` multiplication et division
+4. `+` et `-` addition et soustraction
 
 Utilisez des parenthèses pour changer l'ordre :
 
@@ -105,9 +106,9 @@ La soustraction et la division fonctionnent de gauche à droite :
 5
 ```
 
-### 1.3 Les nombres spéciaux pi et e
+### 1.3 Les nombres spéciaux pi, e, tau et phi
 
-Les deux constantes célèbres sont intégrées :
+Les constantes célèbres sont intégrées :
 
 ```text
 pi
@@ -131,6 +132,24 @@ e
 
 ```text
 2.718281828459045
+```
+
+Deux autres : `tau` est un tour complet (2 pi) et `phi` est le nombre d'or :
+
+```text
+tau
+```
+
+```text
+6.283185307179586
+```
+
+```text
+phi
+```
+
+```text
+1.618033988749895
 ```
 
 ### 1.4 Comparer et logique
@@ -415,12 +434,66 @@ big(10 ^ 20)
 
 ### 1.12 Fonctions intégrées
 
-Calc a un petit ensemble de fonctions intégrées :
+Calc possède les fonctions d'une calculatrice scientifique, regroupées par
+famille.
+
+La trigonométrie travaille en radians — utilisez `deg` et `rad` pour
+convertir :
+
+| Fonction | Signification | Exemple | Résultat |
+|---|---|---|---|
+| `sin(x)`, `cos(x)`, `tan(x)` | fonctions trigonométriques | `sin(pi / 2)` | `1` |
+| `asin(x)`, `acos(x)`, `atan(x)` | trigonométrie inverse | `atan(1)` | `0.7853981633974483` |
+| `atan2(y, x)` | angle du point (x, y) | `atan2(1, 1)` | `0.7853981633974483` |
+| `deg(x)` | radians → degrés | `deg(pi)` | `180` |
+| `rad(x)` | degrés → radians | `rad(180)` | `3.141592653589793` |
+| `sinh(x)`, `cosh(x)`, `tanh(x)` | fonctions hyperboliques | `sinh(1)` | `1.1752011936438014` |
+| `asinh(x)`, `acosh(x)`, `atanh(x)` | hyperboliques inverses | `acosh(1)` | `0` |
+
+Puissances, racines et logarithmes (sur une calculatrice `log` est en
+base 10) :
 
 | Fonction | Signification | Exemple | Résultat |
 |---|---|---|---|
 | `sqrt(x)` | racine carrée | `sqrt(16)` | `4` |
-| `min(a, b)` | le plus petit des deux | `min(3, 7)` | `3` |
+| `cbrt(x)` | racine cubique | `cbrt(-27)` | `-3` |
+| `root(n, x)` | racine n-ième | `root(3, 8)` | `2` |
+| `exp(x)` | e puissance x | `exp(1)` | `2.718281828459045` |
+| `ln(x)` | logarithme népérien | `ln(e)` | `1` |
+| `log(x)` | logarithme base 10 | `log(100)` | `2` |
+| `log2(x)` | logarithme base 2 | `log2(8)` | `3` |
+| `logb(b, x)` | logarithme en base b | `logb(2, 8)` | `3` |
+| `hypot(a, b)` | hypoténuse | `hypot(3, 4)` | `5` |
+| `5!` (aussi `fact(n)`) | factorielle | `5!` | `120` |
+
+Arrondis, signes et nombres entiers :
+
+| Fonction | Signification | Exemple | Résultat |
+|---|---|---|---|
+| `abs(x)` | valeur absolue | `abs(-3)` | `3` |
+| `floor(x)` / `ceil(x)` | arrondir en bas / en haut | `floor(2.7)` | `2` |
+| `round(x)` | le plus proche, les demis s'éloignent de zéro | `round(2.5)` | `3` |
+| `trunc(x)` | supprimer la partie décimale | `trunc(-2.9)` | `-2` |
+| `sign(x)` | -1, 0 ou 1 | `sign(-5)` | `-1` |
+| `ncr(n, r)` | combinaisons | `ncr(52, 5)` | `2598960` |
+| `npr(n, r)` | permutations | `npr(5, 2)` | `20` |
+| `gcd(a, b)` / `lcm(a, b)` | diviseurs et multiples communs | `gcd(12, 18)` | `6` |
+| `mod(a, b)` | reste | `mod(7, 3)` | `1` |
+
+Les statistiques acceptent un nombre quelconque d'arguments :
+
+| Fonction | Signification | Exemple | Résultat |
+|---|---|---|---|
+| `sum(...)` / `product(...)` | totaux | `sum(1, 2, 3)` | `6` |
+| `mean(...)` | moyenne | `mean(1, 2, 3)` | `2` |
+| `median(...)` | valeur centrale | `median(1, 2, 3, 4)` | `2.5` |
+| `min(...)` / `max(...)` | le plus petit / le plus grand | `max(4, 1, 3)` | `4` |
+| `variance(...)` / `stdev(...)` | dispersion des valeurs | `stdev(2, 4)` | `1` |
+
+Les couches exactes de la section 1.11 restent :
+
+| Fonction | Signification | Exemple | Résultat |
+|---|---|---|---|
 | `frac(n, d)` | fraction exacte | `frac(1, 3)` | `1/3` |
 | `dec(x)` | décimal exact | `dec(0.1)` | `0.1` |
 | `big(x)` | nombre entier exact | `big(10 ^ 20)` | `100000000000000000000` |
@@ -464,16 +537,15 @@ error: unknown name: unknown_name
 ```
 
 ```text
-sin(1)
+foo(1)
 ```
 
 ```text
-error: unknown name: sin
+error: unknown name: foo
 ```
 
-Le dernier exemple est important : `sin` n'est **pas** intégré — seulement
-les fonctions de la section 1.12. Le message d'erreur vous dit exactement ce
-que Calc ne connaît pas, pour que vous puissiez corriger votre expression.
+Le dernier exemple est important : Calc vous dit exactement quel nom il ne
+connaît pas, pour que vous puissiez corriger votre expression.
 
 ### 1.14 Référence rapide
 
@@ -481,8 +553,10 @@ que Calc ne connaît pas, pour que vous puissiez corriger votre expression.
 |---|---|---|
 | Addition, soustraction, multiplication, division | `+ - * /` | `7 / 2` |
 | Puissance | `^` (de droite à gauche) | `2 ^ 10` |
+| Factorielle | `!` (postfixe) | `5!` |
 | Parenthèses | `( )` | `(2 + 3) * 4` |
-| Constantes | `pi`, `e` | `2 * pi` |
+| Constantes | `pi`, `e`, `tau`, `phi` | `2 * pi` |
+| Notation scientifique | `2.5e-3` | `6.02e23` |
 | Comparer | `> < >= <= == !=` | `3 >= 2` |
 | Logique | `and or not` | `a > 1 and a < 10` |
 | Variable | `name = value` | `x = 5` |

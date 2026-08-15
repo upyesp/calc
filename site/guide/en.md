@@ -49,9 +49,10 @@ rule is called *operator precedence*.
 
 The full precedence order, from strongest to weakest:
 
-1. `^` power
-2. `*` and `/` multiplication and division
-3. `+` and `-` addition and subtraction
+1. `!` factorial
+2. `^` power
+3. `*` and `/` multiplication and division
+4. `+` and `-` addition and subtraction
 
 Use parentheses to change the order:
 
@@ -103,9 +104,9 @@ Subtraction and division work left-to-right:
 5
 ```
 
-### 1.3 The special numbers pi and e
+### 1.3 The special numbers pi, e, tau and phi
 
-The two famous constants are built in:
+The famous constants are built in:
 
 ```text
 pi
@@ -129,6 +130,24 @@ e
 
 ```text
 2.718281828459045
+```
+
+Two more: `tau` is a full turn (2 pi), and `phi` is the golden ratio:
+
+```text
+tau
+```
+
+```text
+6.283185307179586
+```
+
+```text
+phi
+```
+
+```text
+1.618033988749895
 ```
 
 ### 1.4 Comparing and logic
@@ -407,12 +426,63 @@ big(10 ^ 20)
 
 ### 1.12 Built-in functions
 
-Calc has a small set of built-in functions:
+Calc has the functions of a scientific calculator, grouped by family.
+
+Trigonometry works in radians — use `deg` and `rad` to convert:
+
+| Function | Meaning | Example | Result |
+|---|---|---|---|
+| `sin(x)`, `cos(x)`, `tan(x)` | trigonometric functions | `sin(pi / 2)` | `1` |
+| `asin(x)`, `acos(x)`, `atan(x)` | inverse trigonometric | `atan(1)` | `0.7853981633974483` |
+| `atan2(y, x)` | angle of the point (x, y) | `atan2(1, 1)` | `0.7853981633974483` |
+| `deg(x)` | radians → degrees | `deg(pi)` | `180` |
+| `rad(x)` | degrees → radians | `rad(180)` | `3.141592653589793` |
+| `sinh(x)`, `cosh(x)`, `tanh(x)` | hyperbolic functions | `sinh(1)` | `1.1752011936438014` |
+| `asinh(x)`, `acosh(x)`, `atanh(x)` | inverse hyperbolic | `acosh(1)` | `0` |
+
+Powers, roots and logarithms (on a calculator `log` is base 10):
 
 | Function | Meaning | Example | Result |
 |---|---|---|---|
 | `sqrt(x)` | square root | `sqrt(16)` | `4` |
-| `min(a, b)` | the smaller of two | `min(3, 7)` | `3` |
+| `cbrt(x)` | cube root | `cbrt(-27)` | `-3` |
+| `root(n, x)` | nth root | `root(3, 8)` | `2` |
+| `exp(x)` | e to the power x | `exp(1)` | `2.718281828459045` |
+| `ln(x)` | natural logarithm | `ln(e)` | `1` |
+| `log(x)` | base-10 logarithm | `log(100)` | `2` |
+| `log2(x)` | base-2 logarithm | `log2(8)` | `3` |
+| `logb(b, x)` | logarithm in base b | `logb(2, 8)` | `3` |
+| `hypot(a, b)` | hypotenuse | `hypot(3, 4)` | `5` |
+| `5!` (also `fact(n)`) | factorial | `5!` | `120` |
+
+Rounding, signs and whole numbers:
+
+| Function | Meaning | Example | Result |
+|---|---|---|---|
+| `abs(x)` | absolute value | `abs(-3)` | `3` |
+| `floor(x)` / `ceil(x)` | round down / up | `floor(2.7)` | `2` |
+| `round(x)` | nearest, half away from zero | `round(2.5)` | `3` |
+| `trunc(x)` | drop the fraction | `trunc(-2.9)` | `-2` |
+| `sign(x)` | -1, 0 or 1 | `sign(-5)` | `-1` |
+| `ncr(n, r)` | combinations | `ncr(52, 5)` | `2598960` |
+| `npr(n, r)` | permutations | `npr(5, 2)` | `20` |
+| `gcd(a, b)` / `lcm(a, b)` | common divisors and multiples | `gcd(12, 18)` | `6` |
+| `mod(a, b)` | remainder | `mod(7, 3)` | `1` |
+
+Statistics take any number of arguments:
+
+| Function | Meaning | Example | Result |
+|---|---|---|---|
+| `sum(...)` / `product(...)` | totals | `sum(1, 2, 3)` | `6` |
+| `mean(...)` | average | `mean(1, 2, 3)` | `2` |
+| `median(...)` | middle value | `median(1, 2, 3, 4)` | `2.5` |
+| `min(...)` / `max(...)` | smallest / largest | `max(4, 1, 3)` | `4` |
+| `variance(...)` / `stdev(...)` | spread of the values | `stdev(2, 4)` | `1` |
+
+The exact layers from section 1.11 stay:
+
+| Function | Meaning | Example | Result |
+|---|---|---|---|
 | `frac(n, d)` | exact fraction | `frac(1, 3)` | `1/3` |
 | `dec(x)` | exact decimal | `dec(0.1)` | `0.1` |
 | `big(x)` | exact whole number | `big(10 ^ 20)` | `100000000000000000000` |
@@ -456,16 +526,15 @@ error: unknown name: unknown_name
 ```
 
 ```text
-sin(1)
+foo(1)
 ```
 
 ```text
-error: unknown name: sin
+error: unknown name: foo
 ```
 
-The last example is important: `sin` is **not** built in — only the
-functions listed in section 1.12. The error message tells you exactly what
-Calc does not know, so you can fix your expression.
+The last example is important: Calc tells you exactly which name it does
+not know, so you can fix your expression.
 
 ### 1.14 Quick reference
 
@@ -473,8 +542,10 @@ Calc does not know, so you can fix your expression.
 |---|---|---|
 | Add, subtract, multiply, divide | `+ - * /` | `7 / 2` |
 | Power | `^` (right-to-left) | `2 ^ 10` |
+| Factorial | `!` (postfix) | `5!` |
 | Parentheses | `( )` | `(2 + 3) * 4` |
-| Constants | `pi`, `e` | `2 * pi` |
+| Constants | `pi`, `e`, `tau`, `phi` | `2 * pi` |
+| Scientific notation | `2.5e-3` | `6.02e23` |
 | Compare | `> < >= <= == !=` | `3 >= 2` |
 | Logic | `and or not` | `a > 1 and a < 10` |
 | Variable | `name = value` | `x = 5` |
