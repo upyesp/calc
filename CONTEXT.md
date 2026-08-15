@@ -40,8 +40,8 @@ _Avoid_: database, save file, cache
 
 **Native Store**:
 The Store instance reachable by frontends that have host filesystem access
-(the command-line, terminal, and desktop apps). Shared across those frontends
-on a single device.
+(the desktop app, CLI, and TUI — three modes of the single `epher` binary,
+ADR-0011). Shared across those frontends on a single device.
 _Avoid_: local store, disk store
 
 **Bridge**:

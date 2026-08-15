@@ -17,6 +17,10 @@ Hay cuatro formas de usar epher — elige la que más te convenga:
 | **Línea de comandos** (CLI) | Comandos de texto en una terminal; también una sesión interactiva | Vives en la terminal y te gustan los scripts |
 | **Interfaz de terminal** (TUI) | Un programa a pantalla completa dentro de la terminal | Quieres una app de terminal con gráficos e historial |
 
+La aplicación de escritorio, la línea de comandos y la interfaz de terminal
+son un solo programa: una única descarga instala el comando `epher`, que hace
+las tres cosas. La aplicación web es la excepción — no necesita descarga.
+
 Las cuatro versiones entienden exactamente el mismo lenguaje. Apréndelo una
 vez, úsalo en cualquier parte.
 
@@ -24,8 +28,9 @@ vez, úsalo en cualquier parte.
 
 Este capítulo enseña el lenguaje compartido por todas las versiones de epher.
 En la aplicación web o de escritorio, escribe una expresión y pulsa
-**Intro** (o haz clic en el botón **=**). En la CLI, escríbela después del
-prompt `epher>`. En la TUI, solo escribe y pulsa **Intro**. En la CLI también
+**Intro** (o haz clic en el botón **=**). En la CLI, inicia la sesión con
+`epher repl` y escribe después del prompt `epher>`. En la TUI (`epher tui`),
+solo escribe y pulsa **Intro**. En la CLI también
 puedes escribir `epher "expresión"` para evaluar una expresión directamente.
 
 ### 1.1 Tu primer cálculo
@@ -641,32 +646,38 @@ cómo la instalas y la abres.
 
 ### 3.1 Instalación
 
-Descarga la aplicación de escritorio para tu sistema desde el sitio web de
-epher:
+Descarga un instalador para tu sistema desde el sitio web de epher:
 
+- **Windows:** ejecuta `epher-windows-x86_64.exe`. El instalador pone `epher`
+  en tu PATH — abre una ventana nueva de CMD o PowerShell y `epher "2 + 2"`
+  funciona. Como la compilación no está firmada, elige *Más información* →
+  *Ejecutar de todas formas* en el primer arranque.
+- **macOS:** abre `epher-macos-aarch64.dmg` y arrastra epher a Aplicaciones.
+  Como la compilación no está firmada, el primer arranque necesita clic
+  derecho → **Abrir**.
 - **Linux (Debian/Ubuntu):** el paquete `.deb`
 
 ```text
-sudo apt install ./epher-desktop-linux-x86_64.deb
+sudo apt install ./epher-linux-x86_64.deb
 ```
 
 - **Linux (Fedora/RHEL):** el paquete `.rpm`
 
 ```text
-sudo dnf install ./epher-desktop-linux-x86_64.rpm
+sudo dnf install ./epher-linux-x86_64.rpm
 ```
 
-- **Linux (cualquier distro):** el AppImage — hazlo ejecutable y ejecútalo:
+- **Linux (cualquier distro, incluida Arch):** el AppImage — hazlo ejecutable
+  y ejecútalo:
 
 ```text
-chmod +x epher-desktop-linux-x86_64.AppImage
-./epher-desktop-linux-x86_64.AppImage
+chmod +x epher-linux-x86_64.AppImage
+./epher-linux-x86_64.AppImage
 ```
 
-- **macOS:** abre el `.dmg` y arrastra epher a Aplicaciones. Como la compilación
-  no está firmada, el primer arranque necesita clic derecho → **Abrir**.
-- **Windows:** ejecuta el instalador. Como la compilación no está firmada,
-  elige *Más información* → *Ejecutar de todas formas* en el primer arranque.
+Cada instalador contiene *todo* epher — la aplicación de escritorio, la línea
+de comandos (capítulo 4) y la interfaz de terminal (capítulo 5) — como el
+único comando `epher`. En Linux, el paquete instala `epher` en `/usr/bin`.
 
 ### 3.2 Uso
 
@@ -676,12 +687,17 @@ haz clic en **=**, y lee el resultado. Las gráficas también funcionan aquí
 — `graph x ^ 2` dibuja en la ventana (capítulo 2.4). La ventana se puede
 redimensionar libremente.
 
+También puedes abrirla desde una terminal: un `epher` sin argumentos (o
+`epher gui`) inicia la aplicación de escritorio. En macOS, usa el botón
+**Install the epher command** dentro de la app para poner `epher` en el PATH
+de tu terminal.
+
 ### 3.3 Almacenamiento: un mismo almacén con la CLI y la TUI
 
 La aplicación de escritorio comparte su almacenamiento con las versiones
 de línea de comandos y terminal. Funciones, scripts, historial y la
 preferencia de idioma viven en un solo lugar — `~/.epher` en tu equipo (o
-`epher_STORE_DIR`, capítulo 4.5) — y todo lo guardado en una versión está
+`EPHER_STORE_DIR`, capítulo 4.6) — y todo lo guardado en una versión está
 disponible en las demás:
 
 ```text
@@ -701,9 +717,9 @@ definidas por scripts guardados. Los comandos `save`, `save script` y
 
 ## 4. La línea de comandos (CLI)
 
-La CLI es la versión de texto de epher. Tiene dos modos: un modo de un solo
-uso para resultados rápidos y una sesión interactiva para trabajos más
-largos.
+La CLI es el lado de texto del mismo programa `epher` que la aplicación de
+escritorio. Tiene tres modos: evaluación de un solo uso, scripts por tubería
+y una sesión interactiva para trabajos más largos.
 
 ### 4.1 Cálculos de un solo uso
 
@@ -727,11 +743,10 @@ epher "if 3 > 2 then 10 else 20"
 10
 ```
 
-Si tu expresión empieza con un signo menos, dile a la CLI dónde empieza la
-expresión con `--`:
+Una expresión que empieza con un signo menos funciona directamente:
 
 ```text
-epher -- "-2 + 5"
+epher "-2 + 5"
 ```
 
 ```text
@@ -739,15 +754,37 @@ epher -- "-2 + 5"
 ```
 
 El modo de un solo uso evalúa exactamente una expresión. Las instrucciones —
-variables, funciones, bucles — necesitan la sesión interactiva.
+variables, funciones, bucles — necesitan la sesión interactiva o un script
+por tubería (sección 4.2).
 
-### 4.2 La sesión interactiva (REPL)
+### 4.2 Scripts por tubería
 
-Inicia la sesión sin argumentos:
+`epher -` lee expresiones de la entrada estándar, línea a línea — como se
+usan los lenguajes de script en las tuberías:
 
 ```text
-epher
+printf "x = 3\nx * 10\n" | epher -
 ```
+
+```text
+= 3
+= 30
+```
+
+Todo lo del capítulo 1 funciona, y las líneas comparten una sesión: una
+función definida en una línea temprana está disponible después, y `save`
+escribe en el mismo almacén de siempre. Los errores se imprimen y el script
+sigue.
+
+### 4.3 La sesión interactiva (REPL)
+
+Iníciala con `epher repl`:
+
+```text
+epher repl
+```
+
+> Un `epher` sin argumentos abre la aplicación de escritorio (capítulo 3).
 
 epher muestra su prompt y espera:
 
@@ -772,10 +809,10 @@ Cada respuesta se muestra como `= resultado`. Para salir, escribe `quit` (o
 epher> quit
 ```
 
-Tu historial se recuerda: la próxima vez que inicies `epher`, las líneas de
-la sesión anterior siguen ahí.
+Tu historial se recuerda: la próxima vez que ejecutes `epher repl`, las
+líneas de la sesión anterior siguen ahí.
 
-### 4.3 Guardar funciones y scripts
+### 4.4 Guardar funciones y scripts
 
 Define una función y luego guárdala:
 
@@ -786,7 +823,7 @@ saved fib
 ```
 
 El comando `save fib` guarda la función en el disco. La próxima vez que
-inicies `epher`, `fib` ya está definida:
+inicies la sesión, `fib` ya está definida:
 
 ```text
 epher> fib(10)
@@ -806,7 +843,7 @@ saved script count_to_five
 Los scripts guardados se ejecutan automáticamente cuando epher arranca, así
 que todo lo que definen está listo para ti.
 
-### 4.4 Cambiar el idioma de la interfaz
+### 4.5 Cambiar el idioma de la interfaz
 
 El idioma de la interfaz se elige entre los idiomas configurados en tu
 dispositivo. Para cambiarlo, escribe `language` seguido de uno de: `en`,
@@ -821,7 +858,7 @@ La elección se recuerda para la próxima vez. Nota: el idioma que *escribes*
 — el lenguaje de las expresiones — es siempre el mismo, en cualquier idioma
 de la interfaz.
 
-### 4.5 Dónde viven tus datos
+### 4.6 Dónde viven tus datos
 
 Las funciones, scripts, historial y tu elección de idioma se guardan en una
 carpeta de tu ordenador:
@@ -831,20 +868,20 @@ carpeta de tu ordenador:
 ```
 
 Borra esa carpeta para empezar completamente de cero. Para usar otra
-ubicación, define la variable de entorno `epher_STORE_DIR` antes de iniciar
+ubicación, define la variable de entorno `EPHER_STORE_DIR` antes de iniciar
 epher:
 
 ```text
-epher_STORE_DIR=/tmp/my-epher epher
+EPHER_STORE_DIR=/tmp/my-epher epher repl
 ```
 
 ## 5. La interfaz de terminal (TUI)
 
 La TUI es una versión a pantalla completa de la sesión interactiva, dentro
-de tu terminal. Iníciala con:
+de tu terminal. Forma parte del mismo programa `epher` — iníciala con:
 
 ```text
-epher-tui
+epher tui
 ```
 
 ### 5.1 La pantalla
@@ -894,20 +931,17 @@ cero) simplemente se omiten, dejando un hueco en la gráfica.
 
 La TUI comparte su almacenamiento con la CLI: todo lo guardado en una está
 disponible en la otra. Las funciones, scripts, historial y preferencia de
-idioma viven en `~/.epher` (capítulo 4.5), y los mismos comandos `save`,
+idioma viven en `~/.epher` (capítulo 4.6), y los mismos comandos `save`,
 `save script` y `language` funcionan aquí.
 
 ## 6. Tus datos y privacidad
 
-- La **CLI y la TUI** guardan funciones, scripts, historial y la elección de
-  idioma localmente en `~/.epher` (o `epher_STORE_DIR`). Nada sale de tu
-  ordenador.
+- El **programa epher instalado** — aplicación de escritorio, CLI y TUI —
+  guarda funciones, scripts, historial y la elección de idioma localmente en
+  `~/.epher` (o `EPHER_STORE_DIR`). Nada sale de tu equipo.
 - La **aplicación web** no guarda nada en disco: el historial dura solo
   mientras la página está abierta. La aplicación web puede funcionar sin
   conexión porque la propia página la guarda tu navegador.
-- La **aplicación de escritorio** guarda funciones, scripts, historial y la
-  preferencia de idioma localmente en `~/.epher` (o `epher_STORE_DIR`), el
-  mismo almacén que la CLI y la TUI. Nada sale de tu equipo.
 
 Las cuatro versiones ejecutan el cálculo íntegramente en tu dispositivo —
 nada se envía a ningún sitio.

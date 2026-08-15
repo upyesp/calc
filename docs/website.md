@@ -9,7 +9,7 @@ Pages, built and deployed by the `pages` workflow (`.github/workflows/pages.yml`
 |---|---|---|
 | `/epher/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
 | `/epher/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
-| GitHub Releases | CLI/TUI/desktop binaries | built by `.github/workflows/release.yml` |
+| GitHub Releases | unified platform installers (ADR-0011) | built by `.github/workflows/release.yml` |
 
 The PWA dist is laid out by `crates/web/index.html`: `copy-file` puts the
 manifest/sw/icon at the dist root (a `copy-dir` would bury them in
@@ -68,23 +68,34 @@ the option to the `lang-select` in `site/index.html`.
 Push a version tag and the `release` workflow builds and attaches everything:
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
+
+One download per platform (ADR-0011): every installer carries the single
+unified `epher` executable — one-shot CLI, REPL (`epher repl`), piped
+scripts (`epher -`), TUI (`epher tui`), and the desktop GUI (bare `epher` /
+`epher gui`). The old per-frontend archives (v0.1.x–v0.2.x) are gone.
 
 Stable asset names (the landing page depends on them):
 
 ```
-epher-cli-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-epher-tui-{linux-x86_64,macos-aarch64,windows-x86_64}.{tar.gz,zip}
-epher-desktop-linux-x86_64.{deb,rpm,AppImage}
-epher-desktop-macos-aarch64.dmg
-epher-desktop-windows-x86_64.exe
+epher-windows-x86_64.exe
+epher-macos-aarch64.dmg
+epher-linux-x86_64.{deb,rpm,AppImage}
 ```
 
-macOS and Windows desktop builds are unsigned. If the landing page's
-download links need to change (e.g. a new platform), change the names here
-and in `site/index.html` together.
+- Windows: NSIS installer; `installerHooks` (`nsis-hooks.nsh`) adds the
+  install dir to the user PATH so `epher` works from any terminal.
+  `makensis nsis-check.nsi` compile-verifies the hook script.
+- macOS: unsigned dmg; the app's "Install the epher command" button
+  symlinks `/usr/local/bin/epher` (osascript fallback for admin rights).
+- Linux: deb/rpm install `epher` into `/usr/bin`; the AppImage covers Arch
+  and every other distro.
+
+macOS and Windows builds are unsigned. If the landing page's download
+links need to change (e.g. a new platform), change the names here and in
+`site/index.html` together.
 
 ## First-time setup (already done for this repo)
 

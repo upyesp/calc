@@ -258,6 +258,18 @@ select {
   padding-bottom: 2rem;
 }
 
+/* The one-install note spans the card grid and sets the offer: one
+   download per platform, every frontend inside (ADR-0011). */
+.one-install {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.05rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
