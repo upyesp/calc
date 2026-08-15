@@ -554,3 +554,31 @@ fn gcd_lcm_and_modulo() {
     assert!(eval_err("mod(5, 0)").contains("zero"));
     assert!(eval_err("gcd(2.5, 3)").contains("expects integers"));
 }
+
+#[test]
+fn statistics_sum_product_and_mean() {
+    assert_close(eval_number("sum(1, 2, 3)"), 6.0);
+    assert_close(eval_number("sum(5)"), 5.0);
+    assert_close(eval_number("product(2, 3, 4)"), 24.0);
+    assert_close(eval_number("product(7)"), 7.0);
+    assert_close(eval_number("mean(1, 2, 3)"), 2.0);
+    assert_close(eval_number("mean(2, 4)"), 3.0);
+    assert!(eval_err("sum()").contains("expects"));
+    assert!(eval_err("mean()").contains("expects"));
+}
+
+#[test]
+fn statistics_median_sorts_before_selecting() {
+    assert_close(eval_number("median(3, 1, 2)"), 2.0);
+    assert_close(eval_number("median(1, 2, 3, 4)"), 2.5);
+    assert_close(eval_number("median(9)"), 9.0);
+    assert_close(eval_number("median(-5, -1, -3)"), -3.0);
+}
+
+#[test]
+fn statistics_variance_and_stdev_are_population() {
+    assert_close(eval_number("variance(2, 4)"), 1.0);
+    assert_close(eval_number("variance(1, 2, 3)"), 0.6666666666666666);
+    assert_close(eval_number("stdev(2, 4)"), 1.0);
+    assert_close(eval_number("stdev(1, 2, 3)"), 0.816496580927726);
+}

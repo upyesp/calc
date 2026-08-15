@@ -1218,6 +1218,41 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
             // truncated remainder, the sign of the dividend (calculator MOD)
             Ok(Value::Float((a % b) as f64))
         }
+        // statistics family: population variance (divide by n), like a
+        // calculator's 1-Var Stats
+        "sum" | "product" | "mean" | "variance" | "stdev" => {
+            let xs = any_floats(name, &args)?;
+            match name {
+                "sum" => Ok(Value::Float(xs.iter().sum())),
+                "product" => Ok(Value::Float(xs.iter().product())),
+                "mean" => Ok(Value::Float(xs.iter().sum::<f64>() / xs.len() as f64)),
+                "variance" => {
+                    let mean = xs.iter().sum::<f64>() / xs.len() as f64;
+                    Ok(Value::Float(
+                        xs.iter().map(|x| (x - mean) * (x - mean)).sum::<f64>() / xs.len() as f64,
+                    ))
+                }
+                _ => {
+                    let mean = xs.iter().sum::<f64>() / xs.len() as f64;
+                    Ok(Value::Float(
+                        (xs.iter().map(|x| (x - mean) * (x - mean)).sum::<f64>()
+                            / xs.len() as f64)
+                            .sqrt(),
+                    ))
+                }
+            }
+        }
+        "median" => {
+            let mut xs = any_floats(name, &args)?;
+            xs.sort_by(|a, b| a.partial_cmp(b).expect("floats are comparable"));
+            let n = xs.len();
+            let mid = n / 2;
+            Ok(Value::Float(if n % 2 == 1 {
+                xs[mid]
+            } else {
+                (xs[mid - 1] + xs[mid]) / 2.0
+            }))
+        }
         "dec" => {
             let [x] = args.as_slice() else {
                 return Err(CalcError::Type(format!(
