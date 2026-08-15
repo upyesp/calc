@@ -199,6 +199,7 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         return Ok(());
                     }
+                    KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
                     KeyCode::Char(c) => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Enter => {
@@ -208,7 +209,6 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                         }
                     }
                     KeyCode::Esc => app.clear_input(),
-                    KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
                     _ => {}
                 }
             }
