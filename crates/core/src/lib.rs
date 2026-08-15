@@ -907,11 +907,14 @@ pub fn sample_polar(
     Ok(out)
 }
 
-/// Built-in constants (π, e), resolved when a name isn't in the environment.
+/// Built-in constants (π, e, τ, φ), resolved when a name isn't in the
+/// environment.
 fn builtin_const(name: &str) -> Option<Value> {
     match name {
         "pi" => Some(Value::float(std::f64::consts::PI)),
         "e" => Some(Value::float(std::f64::consts::E)),
+        "tau" => Some(Value::float(std::f64::consts::TAU)),
+        "phi" => Some(Value::float(1.618_033_988_749_895)),
         _ => None,
     }
 }
@@ -1065,6 +1068,22 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, CalcError> {
         "hypot" => {
             let (a, b) = two_floats(name, &args)?;
             Ok(Value::Float(a.hypot(b)))
+        }
+        "abs" => Ok(Value::Float(one_float(name, &args)?.abs())),
+        "floor" => Ok(Value::Float(one_float(name, &args)?.floor())),
+        "ceil" => Ok(Value::Float(one_float(name, &args)?.ceil())),
+        "trunc" => Ok(Value::Float(one_float(name, &args)?.trunc())),
+        // half away from zero, like a calculator
+        "round" => Ok(Value::Float(one_float(name, &args)?.round())),
+        "sign" => {
+            let x = one_float(name, &args)?;
+            Ok(Value::Float(if x > 0.0 {
+                1.0
+            } else if x < 0.0 {
+                -1.0
+            } else {
+                0.0
+            }))
         }
         "sqrt" => {
             let x = one_float(name, &args)?;

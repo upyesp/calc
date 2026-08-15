@@ -482,3 +482,31 @@ fn hypot_computes_the_hypotenuse() {
     assert_close(eval_number("hypot(3, 4)"), 5.0);
     assert_close(eval_number("hypot(5, 12)"), 13.0);
 }
+
+#[test]
+fn rounding_and_sign_functions() {
+    assert_close(eval_number("abs(-3)"), 3.0);
+    assert_close(eval_number("abs(3)"), 3.0);
+    assert_close(eval_number("floor(2.7)"), 2.0);
+    assert_close(eval_number("floor(-2.1)"), -3.0);
+    assert_close(eval_number("ceil(2.1)"), 3.0);
+    assert_close(eval_number("ceil(-2.7)"), -2.0);
+    assert_close(eval_number("trunc(2.9)"), 2.0);
+    assert_close(eval_number("trunc(-2.9)"), -2.0);
+    // round is half away from zero, like a calculator
+    assert_close(eval_number("round(2.5)"), 3.0);
+    assert_close(eval_number("round(-2.5)"), -3.0);
+    assert_close(eval_number("round(2.4)"), 2.0);
+    assert_close(eval_number("sign(-5)"), -1.0);
+    assert_close(eval_number("sign(5)"), 1.0);
+    assert_close(eval_number("sign(0)"), 0.0);
+}
+
+#[test]
+fn builtin_constants_tau_and_phi() {
+    assert_close(eval_number("tau"), std::f64::consts::TAU);
+    assert_close(eval_number("tau / 2"), std::f64::consts::PI);
+    assert_close(eval_number("phi"), 1.618033988749895);
+    // the golden ratio satisfies phi^2 = phi + 1
+    assert_close(eval_number("phi ^ 2 - phi - 1"), 0.0);
+}
