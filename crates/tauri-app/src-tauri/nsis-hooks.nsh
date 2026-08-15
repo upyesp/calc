@@ -10,7 +10,16 @@
 ; Implementation notes: written in plain NSIS + LogicLib only. Tauri's NSIS
 ; bundle ships no environment plugins (no EnVar), so PATH membership and
 ; entry removal are hand-rolled below and verified with makensis in
-; scripts/nsis-check.nsi (compile check) — keep them dependency-free.
+; nsis-check.nsi (compile check) — keep them dependency-free.
+;
+; How Tauri consumes this file: the template `!include`s it whole at the
+; top of installer.nsi, then inserts each `NSIS_HOOK_*` macro body at its
+; marked point. `NSIS_HOOK_POSTUNINSTALL` lands inside `Section Uninstall`,
+; and NSIS forbids an uninstall Section from Calling installer-context
+; functions — the uninstaller needs `un.`-prefixed copies. Hence each
+; helper is written once as a macro, parameterized by prefix, and
+; instantiated twice. Label names can stay identical across the copies
+; because NSIS labels are scoped to their function.
 ;
 ; The functions deliberately clobber only $R0–$R6 and $0/$1 (standard NSIS
 ; section temporaries); the macros push/pop what they touch.
@@ -43,12 +52,12 @@
   ReadRegStr $0 HKCU "Environment" "Path"
   Push $0
   Push "$INSTDIR"
-  Call epher_path_contains
+  Call un.epher_path_contains
   Pop $1
   ${If} $1 == 1
     Push $0
     Push "$INSTDIR"
-    Call epher_remove_from_path
+    Call un.epher_remove_from_path
     Pop $0
     WriteRegStr HKCU "Environment" "Path" "$0"
     SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
@@ -56,13 +65,14 @@
 !macroend
 
 ; ---------------------------------------------------------------------------
-; Helpers
+; Helpers (installer context: plain; uninstaller context: `un.` prefix)
 ; ---------------------------------------------------------------------------
 
 ; epher_path_contains — stack in: [haystack, needle] → out: 1 if needle
 ; occurs anywhere in haystack, else 0 (substring match; the install dir is
 ; specific enough that substring granularity is safe here).
-Function epher_path_contains
+!macro epher_path_contains_body prefix
+Function ${prefix}epher_path_contains
   Exch $R0            ; needle
   Exch
   Exch $R1            ; haystack
@@ -101,12 +111,16 @@ Function epher_path_contains
   Pop $R0
   Push $R9
 FunctionEnd
+!macroend
+!insertmacro epher_path_contains_body ""
+!insertmacro epher_path_contains_body "un."
 
 ; epher_remove_from_path — stack in: [path, entry] → out: path rebuilt
 ; without any ;-delimited entry equal to `entry` (case-insensitive, the
 ; StrCmp default). Empty entries (from `;;` or leading/trailing `;`) are
 ; dropped, normalizing the result.
-Function epher_remove_from_path
+!macro epher_remove_from_path_body prefix
+Function ${prefix}epher_remove_from_path
   Exch $R0            ; entry to remove
   Exch
   Exch $R1            ; path
@@ -156,3 +170,6 @@ Function epher_remove_from_path
   Pop $R0
   Push $R4
 FunctionEnd
+!macroend
+!insertmacro epher_remove_from_path_body ""
+!insertmacro epher_remove_from_path_body "un."

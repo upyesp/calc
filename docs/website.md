@@ -87,7 +87,8 @@ epher-linux-x86_64.{deb,rpm,AppImage}
 
 - Windows: NSIS installer; `installerHooks` (`nsis-hooks.nsh`) adds the
   install dir to the user PATH so `epher` works from any terminal.
-  `makensis nsis-check.nsi` compile-verifies the hook script.
+  `makensis nsis-check.nsi` compile-verifies the hook script (locally and
+  as a dedicated job in the release workflow).
 - macOS: unsigned dmg; the app's "Install the epher command" button
   symlinks `/usr/local/bin/epher` (osascript fallback for admin rights).
 - Linux: deb/rpm install `epher` into `/usr/bin`; the AppImage covers Arch

@@ -25,6 +25,21 @@ permissions:
   contents: write
 
 jobs:
+  nsis-hooks-check:
+    # Compile-check nsis-hooks.nsh with makensis before any bundle ships.
+    # nsis-check.nsi mirrors Tauri's installer.nsi consumption (hooks file
+    # included whole; POSTINSTALL expanded in installer context,
+    # POSTUNINSTALL inside Section Uninstall — where only `un.` functions
+    # may be Called).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile-check the NSIS hooks
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nsis
+          makensis crates/tauri-app/src-tauri/nsis-check.nsi
+
   desktop:
     name: desktop (${{ matrix.target }})
     strategy:
@@ -90,7 +105,7 @@ jobs:
 
   release:
     name: Attach assets to the release
-    needs: [desktop]
+    needs: [desktop, nsis-hooks-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
