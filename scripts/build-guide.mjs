@@ -179,7 +179,7 @@ function page(lang, body, toc) {
   <a class="skip-link" href="#main">${c.back}</a>
   <header class="site-header guide-header">
     <a class="brand" href="../../">
-      <img class="brand-icon" src="../../icon.svg" alt="" width="32" height="32" />
+      <img class="brand-icon" id="brand-icon" src="../../icon.svg" alt="" width="32" height="32" />
       <span>epher</span>
     </a>
     <nav class="header-actions" aria-label="${c.contents}">
@@ -218,6 +218,10 @@ function page(lang, body, toc) {
         try { localStorage.setItem("epher-theme", t); } catch (e) {}
         var next = t === "dark" ? "light" : "dark";
         toggle.setAttribute("aria-label", labels[next]);
+        // brand mark flips tile colors with the theme; the CSS content:url
+        // rule (styles.css) handles Chrome/Firefox, this keeps Safari right
+        var brand = document.getElementById("brand-icon");
+        if (brand) brand.src = t === "dark" ? "../../icon-light.svg" : "../../icon.svg";
       }
       toggle.addEventListener("click", function () {
         setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");

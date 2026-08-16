@@ -144,6 +144,15 @@ a:hover {
   border-radius: 8px;
 }
 
+/* The brand mark flips tile colors with the theme: dark tile + white glyph
+   on light backgrounds, light tile + dark glyph on dark ones (icon.svg /
+   icon-light.svg). content:url() swaps without JS in Chrome/Firefox; app.js
+   keeps the src in sync for engines without img content support (Safari).
+   The corner cutout is the tile's own rounding (both icons are rx=96/512). */
+[data-theme="dark"] .brand-icon {
+  content: url("icon-light.svg");
+}
+
 .header-actions {
   display: flex;
   align-items: center;

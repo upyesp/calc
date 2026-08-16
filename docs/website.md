@@ -35,6 +35,15 @@ links never need a version number.
   `prefers-color-scheme`, toggle persists to `localStorage` (`epher-theme`).
   An inline script in `<head>` applies both theme and stored language before
   first paint — no flash.
+- **Icon**: the epher mark is the monogram "e" (from the epher.svg artwork)
+  on a rounded tile. Three variants live in `site/` and `crates/web/public/`:
+  `icon.svg` (dark tile, white glyph — the default, the favicon, and the
+  desktop/app-icon source), `icon-light.svg` (light tile, dark glyph — used
+  in the dark theme), and `icon-plain.svg` (transparent, white glyph). The
+  header brand icon swaps per theme (CSS `content:url` in `styles.css` plus
+  a JS `src` sync for engines without img-content support); the favicon is
+  always `icon.svg`. Desktop icons (`crates/tauri-app/src-tauri/icons/`) are
+  regenerated with `cargo tauri icon site/icon.svg`.
 - **Accessibility**: WCAG 2.2 AA — see `docs/accessibility.md`. Contrast
   values for both themes are recorded in `site/styles.css`; keep them in
   spec when editing colors.

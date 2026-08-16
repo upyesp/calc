@@ -283,6 +283,10 @@ function setTheme(theme) {
   if (label) toggle.setAttribute("aria-label", label);
   const hidden = toggle.querySelector(".visually-hidden");
   if (hidden && label) hidden.textContent = label;
+  // The brand mark flips tile colors with the theme (the CSS content:url
+  // rule handles Chrome/Firefox; this keeps the src right for Safari).
+  const brand = document.getElementById("brand-icon");
+  if (brand) brand.src = theme === "dark" ? "icon-light.svg" : "icon.svg";
 }
 
 function init() {
