@@ -170,7 +170,7 @@ function page(lang, body, toc) {
   <title>${c.title}</title>
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
-  <link rel="icon" href="../../icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="../../icon.svg?v=2" type="image/svg+xml" />
   <link rel="stylesheet" href="../../styles.css" />
   <link rel="stylesheet" href="../../guide.css" />
   ${themeScript()}
@@ -179,7 +179,7 @@ function page(lang, body, toc) {
   <a class="skip-link" href="#main">${c.back}</a>
   <header class="site-header guide-header">
     <a class="brand" href="../../">
-      <img class="brand-icon" id="brand-icon" src="../../icon.svg" alt="" width="32" height="32" />
+      <img class="brand-icon" id="brand-icon" src="../../icon.svg?v=2" alt="" width="32" height="32" />
       <span>epher</span>
     </a>
     <nav class="header-actions" aria-label="${c.contents}">
@@ -221,7 +221,7 @@ function page(lang, body, toc) {
         // brand mark flips tile colors with the theme; the CSS content:url
         // rule (styles.css) handles Chrome/Firefox, this keeps Safari right
         var brand = document.getElementById("brand-icon");
-        if (brand) brand.src = t === "dark" ? "../../icon-light.svg" : "../../icon.svg";
+        if (brand) brand.src = t === "dark" ? "../../icon-light.svg?v=2" : "../../icon.svg?v=2";
       }
       toggle.addEventListener("click", function () {
         setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");

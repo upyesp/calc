@@ -150,7 +150,7 @@ a:hover {
    keeps the src in sync for engines without img content support (Safari).
    The corner cutout is the tile's own rounding (both icons are rx=96/512). */
 [data-theme="dark"] .brand-icon {
-  content: url("icon-light.svg");
+  content: url("icon-light.svg?v=2");
 }
 
 .header-actions {

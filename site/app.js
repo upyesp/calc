@@ -286,7 +286,7 @@ function setTheme(theme) {
   // The brand mark flips tile colors with the theme (the CSS content:url
   // rule handles Chrome/Firefox; this keeps the src right for Safari).
   const brand = document.getElementById("brand-icon");
-  if (brand) brand.src = theme === "dark" ? "icon-light.svg" : "icon.svg";
+  if (brand) brand.src = theme === "dark" ? "icon-light.svg?v=2" : "icon.svg?v=2";
 }
 
 function init() {
