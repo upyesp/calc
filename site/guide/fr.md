@@ -243,7 +243,80 @@ x = x + 1
 > `my_total`. Ils ne peuvent pas contenir d'espaces ni commencer par un
 > chiffre.
 
-### 1.6 Les décisions avec if
+### 1.6 Les constantes : des noms qui ne changent jamais
+
+Une *constante* est un nom dont la valeur ne change jamais — comme le `pi`
+intégré, mais choisi par vous. Définissez-en une avec `const` :
+
+```epher
+const tax = 0.2
+```
+
+```text
+0.2
+```
+
+Utilisez-la partout où un nombre peut aller :
+
+```epher
+100 * (1 + tax)
+```
+
+```text
+120
+```
+
+La valeur est figée : la changer avec `=` est une erreur,
+
+```epher
+tax = 0.25
+```
+
+```text
+error: cannot assign to constant tax
+```
+
+et définir deux fois la même constante aussi :
+
+```epher
+const tax = 0.25
+```
+
+```text
+error: constant already defined: tax
+```
+
+Les constantes diffèrent des variables sur un autre point : comme `pi`,
+elles fonctionnent à l'intérieur de vos propres fonctions.
+
+```epher
+const g = 9.81
+```
+
+```text
+9.81
+```
+
+```epher
+def weight(m) = m * g
+```
+
+```epher
+weight(80)
+```
+
+```text
+784.8000000000001
+```
+
+Enregistrez une constante pour les sessions futures avec `save tax`,
+exactement comme une fonction (chapitre 4.4).
+
+> Une variable et une constante ne peuvent pas porter le même nom : après
+> `const tax = 0.2`, `tax = ...` est toujours une erreur. Choisissez un
+> autre nom ou démarrez une nouvelle session.
+
+### 1.7 Les décisions avec if
 
 `if` choisit entre deux valeurs :
 
@@ -272,7 +345,7 @@ if price > 50 then 2 else 1
 > epher n'a pas de valeurs texte — les deux branches d'un `if` doivent être
 > des nombres (ou des résultats de comparaisons).
 
-### 1.7 Les boucles avec while
+### 1.8 Les boucles avec while
 
 `while` répète une instruction tant qu'une condition est vraie :
 
@@ -293,7 +366,7 @@ exécutée cinq fois.
 > se termineraient jamais. Si vous le voyez, votre condition ne devenait
 > probablement jamais fausse.
 
-### 1.8 Vos propres fonctions avec def
+### 1.9 Vos propres fonctions avec def
 
 Une fonction est un calcul avec un nom et des paramètres :
 
@@ -333,7 +406,7 @@ answer()
 42
 ```
 
-### 1.9 La récursivité : une fonction qui s'appelle elle-même
+### 1.10 La récursivité : une fonction qui s'appelle elle-même
 
 L'exemple le plus célèbre — les nombres de Fibonacci :
 
@@ -357,7 +430,7 @@ branche dont elle a besoin.
 > Le corps d'une fonction est une seule expression — une ligne. Combinez
 > plutôt plusieurs calculs avec `;` dans un script (section suivante).
 
-### 1.10 Les scripts : plusieurs instructions à la fois
+### 1.11 Les scripts : plusieurs instructions à la fois
 
 Un *script* est plusieurs instructions reliées par `;`, exécutées l'une
 après l'autre :
@@ -373,7 +446,7 @@ x = 10; y = x + 5; x + y
 Les scripts sont la façon de construire de petits programmes : préparez des
 variables, faites des boucles, et affichez un résultat final.
 
-### 1.11 Résultats exacts : frac, dec et big
+### 1.12 Résultats exacts : frac, dec et big
 
 Normalement epher calcule avec des nombres décimaux comme une calculatrice de
 poche. Certains nombres sont plus beaux exacts.
@@ -438,7 +511,7 @@ big(10 ^ 20)
 100000000000000000000
 ```
 
-### 1.12 Fonctions intégrées
+### 1.13 Fonctions intégrées
 
 epher possède les fonctions d'une calculatrice scientifique, regroupées par
 famille.
@@ -496,7 +569,7 @@ Les statistiques acceptent un nombre quelconque d'arguments :
 | `min(...)` / `max(...)` | le plus petit / le plus grand | `max(4, 1, 3)` | `4` |
 | `variance(...)` / `stdev(...)` | dispersion des valeurs | `stdev(2, 4)` | `1` |
 
-Les couches exactes de la section 1.11 restent :
+Les couches exactes de la section 1.12 restent :
 
 | Fonction | Signification | Exemple | Résultat |
 |---|---|---|---|
@@ -514,7 +587,7 @@ min(sqrt(16), 5)
 4
 ```
 
-### 1.13 Lire les erreurs
+### 1.14 Lire les erreurs
 
 Quand quelque chose ne va pas, epher vous le dit au lieu de deviner :
 
@@ -553,7 +626,7 @@ error: unknown name: foo
 Le dernier exemple est important : epher vous dit exactement quel nom il ne
 connaît pas, pour que vous puissiez corriger votre expression.
 
-### 1.14 Référence rapide
+### 1.15 Référence rapide
 
 | Quoi | Syntaxe | Exemple |
 |---|---|---|
@@ -566,6 +639,7 @@ connaît pas, pour que vous puissiez corriger votre expression.
 | Comparer | `> < >= <= == !=` | `3 >= 2` |
 | Logique | `and or not` | `a > 1 and a < 10` |
 | Variable | `name = value` | `x = 5` |
+| Constante | `const name = value` | `const tax = 0.2` |
 | Décision | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Boucle | `while c do statement` | `while x < 5 do x = x + 1` |
 | Fonction | `def name(params) = expr` | `def f(x) = x ^ 2` |
@@ -708,7 +782,7 @@ PATH de votre terminal.
 ### 3.3 Stockage : un seul magasin partagé avec la CLI et la TUI
 
 L'application de bureau partage son stockage avec les versions ligne de
-commande et terminal. Fonctions, scripts, historique et préférence de
+commande et terminal. Fonctions, constantes, scripts, historique et préférence de
 langue vivent au même endroit — `~/.epher` sur votre ordinateur (ou
 `EPHER_STORE_DIR`, chapitre 4.6) — et tout ce qui est enregistré dans une
 version est disponible dans les autres :
@@ -824,7 +898,7 @@ epher> quit
 Votre historique est mémorisé : la prochaine fois que vous lancez
 `epher repl`, les lignes de la session précédente sont toujours là.
 
-### 4.4 Enregistrer fonctions et scripts
+### 4.4 Enregistrer fonctions, constantes et scripts
 
 Définissez une fonction, puis enregistrez-la :
 
@@ -840,6 +914,15 @@ fois que vous lancez `epher`, `fib` est déjà définie :
 ```text
 epher> fib(10)
 = 55
+```
+
+Les constantes s'enregistrent pareil : `save` sur le nom de la constante :
+
+```text
+epher> const tax = 0.2
+= 0.2
+epher> save tax
+saved tax
 ```
 
 Pour enregistrer un script complet (la dernière ligne tapée) utilisez

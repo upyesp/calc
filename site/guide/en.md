@@ -237,7 +237,80 @@ x = x + 1
 > Names can contain letters and underscores, like `radius` or `my_total`.
 > They cannot contain spaces or start with a number.
 
-### 1.6 Decisions with if
+### 1.6 Constants: names that never change
+
+A *constant* is a name for a value that never changes — like the built-in
+`pi`, but chosen by you. Define one with `const`:
+
+```epher
+const tax = 0.2
+```
+
+```text
+0.2
+```
+
+Use it anywhere a number can go:
+
+```epher
+100 * (1 + tax)
+```
+
+```text
+120
+```
+
+The value is fixed: changing it with `=` is an error,
+
+```epher
+tax = 0.25
+```
+
+```text
+error: cannot assign to constant tax
+```
+
+and so is defining the same constant twice:
+
+```epher
+const tax = 0.25
+```
+
+```text
+error: constant already defined: tax
+```
+
+Constants are different from variables in one more way: like `pi`, they
+work inside your own functions.
+
+```epher
+const g = 9.81
+```
+
+```text
+9.81
+```
+
+```epher
+def weight(m) = m * g
+```
+
+```epher
+weight(80)
+```
+
+```text
+784.8000000000001
+```
+
+Save a constant for future sessions with `save tax`, exactly like a
+function (chapter 4.4).
+
+> A variable and a constant cannot share a name: after
+> `const tax = 0.2`, `tax = ...` is always an error. Pick a fresh name or
+> start a new session.
+
+### 1.7 Decisions with if
 
 `if` chooses between two values:
 
@@ -266,7 +339,7 @@ if price > 50 then 2 else 1
 > epher does not have text values — both branches of an `if` must be numbers
 > (or the results of comparisons).
 
-### 1.7 Loops with while
+### 1.8 Loops with while
 
 `while` repeats a statement as long as a condition holds:
 
@@ -285,7 +358,7 @@ show x.* The result is 5 because the loop ran five times.
 > `error: step limit exceeded`. That protects you from loops that would
 > never end. If you see it, your condition probably never became false.
 
-### 1.8 Your own functions with def
+### 1.9 Your own functions with def
 
 A function is a calculation with a name and parameters:
 
@@ -325,7 +398,7 @@ answer()
 42
 ```
 
-### 1.9 Recursion: a function that calls itself
+### 1.10 Recursion: a function that calls itself
 
 The most famous example — the Fibonacci numbers:
 
@@ -348,7 +421,7 @@ smaller arguments until it reaches `n <= 1`. This works because the
 > A function's body is a single expression — one line. Combine several
 > calculations with `;` in a script instead (next section).
 
-### 1.10 Scripts: several statements at once
+### 1.11 Scripts: several statements at once
 
 A *script* is several statements joined with `;`, executed one after another:
 
@@ -363,7 +436,7 @@ x = 10; y = x + 5; x + y
 Scripts are how you build small programs: set up variables, loop, and show a
 final result.
 
-### 1.11 Exact results: frac, dec and big
+### 1.12 Exact results: frac, dec and big
 
 Normally epher calculates with decimal numbers like a pocket calculator.
 Some numbers look better exact.
@@ -428,7 +501,7 @@ big(10 ^ 20)
 100000000000000000000
 ```
 
-### 1.12 Built-in functions
+### 1.13 Built-in functions
 
 epher has the functions of a scientific calculator, grouped by family.
 
@@ -483,7 +556,7 @@ Statistics take any number of arguments:
 | `min(...)` / `max(...)` | smallest / largest | `max(4, 1, 3)` | `4` |
 | `variance(...)` / `stdev(...)` | spread of the values | `stdev(2, 4)` | `1` |
 
-The exact layers from section 1.11 stay:
+The exact layers from section 1.12 stay:
 
 | Function | Meaning | Example | Result |
 |---|---|---|---|
@@ -501,7 +574,7 @@ min(sqrt(16), 5)
 4
 ```
 
-### 1.13 Reading errors
+### 1.14 Reading errors
 
 When something goes wrong, epher tells you instead of guessing:
 
@@ -540,7 +613,7 @@ error: unknown name: foo
 The last example is important: epher tells you exactly which name it does
 not know, so you can fix your expression.
 
-### 1.14 Quick reference
+### 1.15 Quick reference
 
 | What | Syntax | Example |
 |---|---|---|
@@ -553,6 +626,7 @@ not know, so you can fix your expression.
 | Compare | `> < >= <= == !=` | `3 >= 2` |
 | Logic | `and or not` | `a > 1 and a < 10` |
 | Variable | `name = value` | `x = 5` |
+| Constant | `const name = value` | `const tax = 0.2` |
 | Decision | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Loop | `while c do statement` | `while x < 5 do x = x + 1` |
 | Function | `def name(params) = expr` | `def f(x) = x ^ 2` |
@@ -684,7 +758,7 @@ the app to put `epher` on your terminal PATH.
 ### 3.3 Storage: one store with the CLI and TUI
 
 The desktop app shares its storage with the command line and terminal
-versions. Functions, scripts, history, and the language preference live in
+versions. Functions, constants, scripts, history, and the language preference live in
 one place — `~/.epher` on your computer (or `EPHER_STORE_DIR`, chapter
 4.6) — and everything saved in one version is available in the others:
 
@@ -798,7 +872,7 @@ epher> quit
 Your history is remembered: the next time you run `epher repl`, the previous
 session's lines are still there.
 
-### 4.4 Saving functions and scripts
+### 4.4 Saving functions, constants and scripts
 
 Define a function, then save it:
 
@@ -814,6 +888,15 @@ session, `fib` is already defined:
 ```text
 epher> fib(10)
 = 55
+```
+
+Constants save the same way — `save` on the constant's name:
+
+```text
+epher> const tax = 0.2
+= 0.2
+epher> save tax
+saved tax
 ```
 
 To save a whole script (the last line you typed) use `save script`:

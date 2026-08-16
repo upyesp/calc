@@ -39,7 +39,7 @@ const CHROME = {
 // strings, function calls); epher has no comment syntax.
 
 const KEYWORDS = new Set([
-  "def", "if", "then", "else", "while", "do", "and", "or", "not",
+  "def", "const", "if", "then", "else", "while", "do", "and", "or", "not",
   "graph", "save", "language", "quit",
 ]);
 const CONSTANTS = new Set(["pi", "e", "tau", "phi", "true", "false"]);
