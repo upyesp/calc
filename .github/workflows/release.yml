@@ -128,13 +128,13 @@ jobs:
           body: |
             epher ${{ github.ref_name }} — one install, every frontend.
 
-            Each platform ships a single download containing the one `epher`
-            executable: the one-shot CLI, the REPL (`epher repl`), piped
-            scripts (`epher -`), the terminal UI (`epher tui`), and the
-            desktop app (bare `epher` / `epher gui`).
+            Each platform ships a single download: the one-shot CLI, the
+            REPL (`epher repl`), piped scripts (`epher -`), the terminal UI
+            (`epher tui`), and the desktop app (bare `epher` / `epher gui`).
 
             - **Windows**: run `epher-windows-x86_64.exe` — the installer puts
               `epher` on your PATH (open a new terminal, then `epher "2 + 2"`).
+              Desktop launches open the window with no console flash.
             - **macOS**: open `epher-macos-aarch64.dmg` and drag epher to
               Applications. In the app, "Install the epher command" puts
               `epher` on your terminal PATH.

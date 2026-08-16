@@ -87,8 +87,8 @@ the option to the `lang-select` in `site/index.html`.
 Push a version tag and the `release` workflow builds and attaches everything:
 
 ```
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 One download per platform (ADR-0011): every installer carries the unified
