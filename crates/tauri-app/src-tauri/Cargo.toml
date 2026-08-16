@@ -11,7 +11,7 @@ rust-version = "1.77.2"
 # On macOS/Linux tauri's mainBinaryName (tauri.conf.json) renames it to
 # `epher`, so those platforms ship the usual single unified binary; on
 # Windows the overlay keeps the name epher-gui and the console build
-# (epher.exe) is bundled alongside it as a resource.
+# (epher.exe) is installed alongside it by the NSIS hook in nsis-hooks.nsh.
 default-run = "epher-gui"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

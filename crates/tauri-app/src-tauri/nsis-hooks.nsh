@@ -26,9 +26,32 @@
 
 !include "WinMessages.nsh" ; HWND_BROADCAST, WM_SETTINGCHANGE
 
+; Where the installer finds the console build to File next to the GUI main
+; binary (ADR-0011, W2). Resolved relative to installer.nsi, which Tauri
+; writes to target/<triple>/release/nsis/<arch> — two levels up is the
+; release dir where cargo left both epher builds. The nsis-check harness
+; overrides this define with a repo-relative path (and the CI check drops a
+; dummy file there). Forward slashes: valid in NSIS on every platform.
+!ifndef EPHER_CONSOLE_SRC
+  !define EPHER_CONSOLE_SRC "../../epher.exe"
+!endif
+
 ; ---------------------------------------------------------------------------
 ; Hooks (called by Tauri's installer.nsi at the marked points)
 ; ---------------------------------------------------------------------------
+
+!macro NSIS_HOOK_PREINSTALL
+  ; The console build rides along with the GUI main binary: PATH resolves
+  ; `epher` to this file, so CLI/REPL/TUI keep full terminal semantics
+  ; while double-clicks hit the GUI-subsystem main binary.
+  File "/oname=$INSTDIR\epher.exe" "${EPHER_CONSOLE_SRC}"
+!macroend
+
+!macro NSIS_HOOK_PREUNINSTALL
+  ; Tauri's uninstaller deletes the main binary and RMDir's $INSTDIR —
+  ; remove our extra file first so the directory can be removed.
+  Delete "$INSTDIR\epher.exe"
+!macroend
 
 !macro NSIS_HOOK_POSTINSTALL
   ReadRegStr $0 HKCU "Environment" "Path"

@@ -57,8 +57,12 @@ lives in the dispatcher:
     (`EPHER_GUI_CHILD=1`, detached, null stdio) and exits, so a
     double-click on `epher.exe` or a `epher gui` from a terminal both
     leave no lingering console. The installer carries both binaries — the
-    GUI one as `mainBinaryName`, the console one as a `bundle.resources`
-    entry in `tauri.windows.conf.json` (the NSIS PATH hook is unchanged).
+    GUI one as `mainBinaryName`, the console one File'd by the NSIS
+    PREINSTALL hook in `nsis-hooks.nsh` (the PATH hook is unchanged). Not
+    `bundle.resources`: tauri-build copies resources *during* cargo build,
+    before the sibling binary exists — only an installer-time `File` can
+    ship a binary from the same cargo invocation. A matching PREUNINSTALL
+    hook deletes it so `RMDir $INSTDIR` succeeds.
     Cargo-side, `default-run = "epher-gui"` selects which bin tauri
     bundles; `mainBinaryName` names the installed file (macOS/Linux keep
     the single `epher` name, so the same GUI-subsystem source compiles

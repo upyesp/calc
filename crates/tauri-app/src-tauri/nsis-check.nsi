@@ -20,10 +20,18 @@
 OutFile "nsis-check.exe"
 Name "epher nsis check"
 
+; The harness compiles from src-tauri; the real installer.nsi compiles from
+; target/<triple>/release/nsis/<arch>. Override the console-exe source with
+; a repo-relative path (the CI check creates a dummy file there) so both
+; locations compile.
+!define EPHER_CONSOLE_SRC "../../../target/release/epher.exe"
+
 !include "nsis-hooks.nsh"
 
 Section
-  ; The install hook, in installer context.
+  ; The install hooks, in installer context (mirrors the template order:
+  ; PREINSTALL, then the main-binary File, then POSTINSTALL).
+  !insertmacro NSIS_HOOK_PREINSTALL
   !insertmacro NSIS_HOOK_POSTINSTALL
 
   ; Direct helper calls with representative stack usage.
@@ -39,7 +47,8 @@ Section
 SectionEnd
 
 Section Uninstall
-  ; The uninstall hook, in uninstaller context (un. helpers only).
+  ; The uninstall hooks, in uninstaller context (un. helpers only).
+  !insertmacro NSIS_HOOK_PREUNINSTALL
   !insertmacro NSIS_HOOK_POSTUNINSTALL
 
   Push "C:\tools;C:\Program Files\epher;C:\bin"
