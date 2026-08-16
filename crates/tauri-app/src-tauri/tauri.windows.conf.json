@@ -1,6 +1,6 @@
 {
   "mainBinaryName": "epher-gui",
   "build": {
-    "beforeBundleCommand": "mkdir ..\\..\\target\\release\\nsis\\x64 2>nul & copy /Y ..\\..\\target\\release\\epher.exe ..\\..\\target\\release\\nsis\\x64\\epher.exe"
+    "beforeBundleCommand": "dir ..\\..\\target\\release\\epher*.exe & mkdir ..\\..\\target\\release\\nsis 2>nul & copy /Y ..\\..\\target\\release\\epher.exe ..\\..\\target\\release\\nsis\\epher.exe & dir ..\\..\\target\\release\\nsis\\epher.exe"
   }
 }

@@ -28,14 +28,15 @@
 
 ; Where the installer finds the console build to File next to the GUI main
 ; binary (ADR-0011, W2). Tauri writes installer.nsi to
-; target/<triple>/release/nsis/<arch> and compiles it with that directory
-; as the working directory; the windows overlay's beforeBundleCommand
-; copies cargo's console build (target/release/epher.exe) into that same
-; directory right before bundling, so the plain file name resolves for
-; makensis. The nsis-check harness overrides this define with a
+; target/<triple>/release/nsis/<arch> and compiles it there; the windows
+; overlay's beforeBundleCommand copies cargo's console build into the
+; PARENT (target/release/nsis/epher.exe) right before bundling — the NSIS
+; bundler wipes nsis/<arch> itself when it starts, the parent survives —
+; and `..\epher.exe` reaches it under either NSIS path-resolution
+; semantic. The nsis-check harness overrides this define with a
 ; repo-relative path (and the CI check drops a dummy file there).
 !ifndef EPHER_CONSOLE_SRC
-  !define EPHER_CONSOLE_SRC "epher.exe"
+  !define EPHER_CONSOLE_SRC "..\epher.exe"
 !endif
 
 ; ---------------------------------------------------------------------------
