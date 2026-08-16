@@ -25,7 +25,7 @@ epher 有四种使用方式——选择最适合你的那一种：
 
 输入：
 
-```text
+```epher
 2 + 3 * 4
 ```
 
@@ -48,7 +48,7 @@ epher 回答：
 
 用括号改变顺序：
 
-```text
+```epher
 (2 + 3) * 4
 ```
 
@@ -58,7 +58,7 @@ epher 回答：
 
 `^` 运算符计算乘方，并且从右向左结合：
 
-```text
+```epher
 2 ^ 10
 ```
 
@@ -66,7 +66,7 @@ epher 回答：
 1024
 ```
 
-```text
+```epher
 2 ^ 3 ^ 2
 ```
 
@@ -78,7 +78,7 @@ epher 回答：
 
 乘方可以是分数——`2 ^ 0.5` 就是 2 的平方根：
 
-```text
+```epher
 2 ^ 0.5
 ```
 
@@ -88,7 +88,7 @@ epher 回答：
 
 减法和除法从左向右计算：
 
-```text
+```epher
 10 - 3 - 2
 ```
 
@@ -100,7 +100,7 @@ epher 回答：
 
 著名的常数都已经内置：
 
-```text
+```epher
 pi
 ```
 
@@ -108,7 +108,7 @@ pi
 3.141592653589793
 ```
 
-```text
+```epher
 2 * pi
 ```
 
@@ -116,7 +116,7 @@ pi
 6.283185307179586
 ```
 
-```text
+```epher
 e
 ```
 
@@ -126,7 +126,7 @@ e
 
 还有两个：`tau` 是一整圈（2 pi），`phi` 是黄金比例：
 
-```text
+```epher
 tau
 ```
 
@@ -134,7 +134,7 @@ tau
 6.283185307179586
 ```
 
-```text
+```epher
 phi
 ```
 
@@ -155,7 +155,7 @@ phi
 | `a == b` | a 等于 b（注意是两个 `=`） |
 | `a != b` | a 不等于 b |
 
-```text
+```epher
 3 > 2
 ```
 
@@ -163,7 +163,7 @@ phi
 true
 ```
 
-```text
+```epher
 1 != 2
 ```
 
@@ -173,7 +173,7 @@ true
 
 用 `and`、`or` 和 `not` 组合比较：
 
-```text
+```epher
 3 > 2 and 2 < 3
 ```
 
@@ -181,7 +181,7 @@ true
 true
 ```
 
-```text
+```epher
 not 3 > 2
 ```
 
@@ -193,7 +193,7 @@ false
 
 用一个 `=` 给值命名：
 
-```text
+```epher
 x = 5
 ```
 
@@ -203,7 +203,7 @@ x = 5
 
 epher 会把值重复给你。从现在起，`x` 可以随处使用：
 
-```text
+```epher
 x ^ 2
 ```
 
@@ -213,7 +213,7 @@ x ^ 2
 
 你可以随时更改变量——它一直保持自己的值，直到你更改它：
 
-```text
+```epher
 x = x + 1
 ```
 
@@ -227,7 +227,7 @@ x = x + 1
 
 `if` 在两个值之间选择：
 
-```text
+```epher
 if 3 > 2 then 10 else 20
 ```
 
@@ -239,7 +239,7 @@ if 3 > 2 then 10 else 20
 
 带变量的更有用示例：
 
-```text
+```epher
 price = 100
 if price > 50 then 2 else 1
 ```
@@ -254,7 +254,7 @@ if price > 50 then 2 else 1
 
 只要条件成立，`while` 就重复执行一条语句：
 
-```text
+```epher
 x = 0; while x < 5 do x = x + 1; x
 ```
 
@@ -270,13 +270,13 @@ x = 0; while x < 5 do x = x + 1; x
 
 函数是带有名称和参数的计算：
 
-```text
+```epher
 def f(x) = x ^ 2
 ```
 
 然后使用它：
 
-```text
+```epher
 f(7)
 ```
 
@@ -286,7 +286,7 @@ f(7)
 
 函数可以有多个参数：
 
-```text
+```epher
 def area(w, h) = w * h
 area(3, 4)
 ```
@@ -297,7 +297,7 @@ area(3, 4)
 
 也可以定义没有参数的函数：
 
-```text
+```epher
 def answer() = 42
 answer()
 ```
@@ -310,11 +310,11 @@ answer()
 
 最著名的例子——斐波那契数列：
 
-```text
+```epher
 def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
 ```
 
-```text
+```epher
 fib(10)
 ```
 
@@ -330,7 +330,7 @@ fib(10)
 
 *脚本*是用 `;` 连接、依次执行的若干语句：
 
-```text
+```epher
 x = 10; y = x + 5; x + y
 ```
 
@@ -346,7 +346,7 @@ x = 10; y = x + 5; x + y
 
 **frac(n, d)** 生成精确分数：
 
-```text
+```epher
 1 / 3
 ```
 
@@ -354,7 +354,7 @@ x = 10; y = x + 5; x + y
 0.3333333333333333
 ```
 
-```text
+```epher
 frac(1, 3)
 ```
 
@@ -364,7 +364,7 @@ frac(1, 3)
 
 分数在计算过程中保持精确：
 
-```text
+```epher
 frac(1, 3) * 3
 ```
 
@@ -374,7 +374,7 @@ frac(1, 3) * 3
 
 **dec(x)** 生成精确小数。比较这两个：
 
-```text
+```epher
 0.1 + 0.2
 ```
 
@@ -382,7 +382,7 @@ frac(1, 3) * 3
 0.30000000000000004
 ```
 
-```text
+```epher
 dec(0.1) + dec(0.2)
 ```
 
@@ -394,7 +394,7 @@ dec(0.1) + dec(0.2)
 
 **big(x)** 生成精确整数，用于超出袖珍计算器范围的数值：
 
-```text
+```epher
 big(10 ^ 20)
 ```
 
@@ -467,7 +467,7 @@ epher 拥有科学计算器的全部函数，按家族分组。
 
 它们可以像其他一切一样组合：
 
-```text
+```epher
 min(sqrt(16), 5)
 ```
 
@@ -479,7 +479,7 @@ min(sqrt(16), 5)
 
 出问题时，epher 会告诉你，而不是猜测：
 
-```text
+```epher
 1 / 0
 ```
 
@@ -487,7 +487,7 @@ min(sqrt(16), 5)
 error: division by zero
 ```
 
-```text
+```epher
 sqrt(-4)
 ```
 
@@ -495,7 +495,7 @@ sqrt(-4)
 error: domain error: sqrt of negative number -4
 ```
 
-```text
+```epher
 unknown_name
 ```
 
@@ -503,7 +503,7 @@ unknown_name
 error: unknown name: unknown_name
 ```
 
-```text
+```epher
 foo(1)
 ```
 
@@ -541,7 +541,7 @@ error: unknown name: foo
 网页应用位于：
 
 ```text
-https://upyesp.github.io/epher/pwa/
+https://epher.org/pwa/
 ```
 
 无需安装——它在任何现代浏览器中都能运行，无论是电脑、手机还是平板。
@@ -562,13 +562,13 @@ https://upyesp.github.io/epher/pwa/
 
 输入 `graph` 加一个表达式，然后按**回车**：
 
-```text
+```epher
 graph x ^ 2
 ```
 
 epher 会从 x = −10 到 x = 10 对曲线 y = f(x) 取样，并将其绘制在输入框下方，附有说明文字显示所绘内容。你可以绘制任何表达式，包括自己的函数：
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
@@ -601,19 +601,19 @@ graph f(x)
 - **macOS：** 打开 `epher-macos-aarch64.dmg` 并把 epher 拖入应用程序文件夹。由于构建未签名，首次启动需要右键 → **打开**。
 - **Linux（Debian/Ubuntu）：** `.deb` 包
 
-```text
+```sh
 sudo apt install ./epher-linux-x86_64.deb
 ```
 
 - **Linux（Fedora/RHEL）：** `.rpm` 包
 
-```text
+```sh
 sudo dnf install ./epher-linux-x86_64.rpm
 ```
 
 - **Linux（任何发行版，包括 Arch）：** AppImage——赋予执行权限并运行：
 
-```text
+```sh
 chmod +x epher-linux-x86_64.AppImage
 ./epher-linux-x86_64.AppImage
 ```
@@ -647,7 +647,7 @@ CLI 是与桌面应用同一个 `epher` 程序的文本一面。它有三种模�
 
 把表达式作为参数传入：
 
-```text
+```sh
 epher "2 + 3 * 4"
 ```
 
@@ -657,7 +657,7 @@ epher "2 + 3 * 4"
 
 第 1 章中任何单一表达式都可以：
 
-```text
+```sh
 epher "if 3 > 2 then 10 else 20"
 ```
 
@@ -667,7 +667,7 @@ epher "if 3 > 2 then 10 else 20"
 
 以减号开头的表达式可以直接使用：
 
-```text
+```sh
 epher "-2 + 5"
 ```
 
@@ -681,7 +681,7 @@ epher "-2 + 5"
 
 `epher -` 从标准输入逐行读取表达式——就像脚本语言在管道中的用法：
 
-```text
+```sh
 printf "x = 3\nx * 10\n" | epher -
 ```
 
@@ -696,7 +696,7 @@ printf "x = 3\nx * 10\n" | epher -
 
 用 `epher repl` 启动：
 
-```text
+```sh
 epher repl
 ```
 
@@ -774,7 +774,7 @@ language set to fr
 
 删除该文件夹即可完全重新开始。要使用其他位置，请在启动 epher 前设置环境变量 `EPHER_STORE_DIR`：
 
-```text
+```sh
 EPHER_STORE_DIR=/tmp/my-epher epher repl
 ```
 
@@ -782,7 +782,7 @@ EPHER_STORE_DIR=/tmp/my-epher epher repl
 
 TUI 是交互式会话的全屏版本，运行在终端内。它与桌面应用同属一个 `epher` 程序——用以下命令启动：
 
-```text
+```sh
 epher tui
 ```
 
@@ -810,7 +810,7 @@ epher tui
 
 输入 `graph` 加一个表达式，然后按**回车**：
 
-```text
+```epher
 graph x ^ 2
 ```
 
@@ -818,7 +818,7 @@ epher 在 x = −10 到 x = 10 之间取样曲线，并以 ASCII 图形绘制在
 
 你可以绘制任何表达式，包括自己的函数——先定义一个，再绘制它：
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```

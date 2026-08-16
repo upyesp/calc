@@ -1,14 +1,15 @@
 # Website and GitHub Pages
 
-The project is published at **https://upyesp.github.io/epher/** via GitHub
-Pages, built and deployed by the `pages` workflow (`.github/workflows/pages.yml`).
+The project is published at **https://epher.org/** (custom domain on
+GitHub Pages), built and deployed by the `pages` workflow
+(`.github/workflows/pages.yml`).
 
 ## Site layout
 
 | Path | Content | Source |
 |---|---|---|
-| `/epher/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
-| `/epher/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
+| `/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
+| `/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
 | GitHub Releases | unified platform installers (ADR-0011) | built by `.github/workflows/release.yml` |
 
 The PWA dist is laid out by `crates/web/index.html`: `copy-file` puts the
@@ -59,6 +60,15 @@ which is gitignored and generated in CI — run `npm run build:guide`
 locally to preview. The landing page links to `guide/<lang>/` and the link
 follows the visitor's active language.
 
+Fenced code blocks have three kinds (keep the examples identical across
+translations, and add new ones in the same order so the kinds stay aligned):
+
+- ` ```epher ` / ` ```sh ` — what the reader types: rendered as a code block
+  with lightweight epher syntax highlighting and a copy-to-clipboard button
+  (labels localized in `CHROME` in `build-guide.mjs`)
+- ` ```text ` — what epher answers, REPL/TUI transcripts, URLs, paths: the
+  plain box
+
 Adding a guide language: add `<lang>.md`, add chrome strings in
 `build-guide.mjs`, add the landing page strings in `site/app.js`, and add
 the option to the `lang-select` in `site/index.html`.
@@ -103,6 +113,12 @@ links need to change (e.g. a new platform), change the names here and in
 
 1. Enable Pages with the workflow source:
    `gh api repos/upyesp/epher/pages -f build_type=workflow`
-2. Push `main` — the `pages` workflow builds and deploys.
-3. If the repository ever gets recreated, redo step 1; nothing else is
-   configured outside the repo.
+2. Set the custom domain (DNS: apex A records to GitHub's Pages IPs,
+   `www` CNAME to `upyesp.github.io`):
+   `gh api repos/upyesp/epher/pages -X PUT -f cname=epher.org`
+3. Re-enable "Enforce HTTPS" once the certificate state is `approved`
+   (the setting resets when a domain is added).
+4. Push `main` — the `pages` workflow builds and deploys.
+If the repository ever gets recreated, redo steps 1–3; the custom domain
+is repo Pages settings, not stored in the repo (no `CNAME` file is needed
+with the workflow deploy).

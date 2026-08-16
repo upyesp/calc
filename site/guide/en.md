@@ -36,7 +36,7 @@ the `epher>` prompt. In the TUI (`epher tui`), just type and press **Enter**. In
 
 Type this:
 
-```text
+```epher
 2 + 3 * 4
 ```
 
@@ -60,7 +60,7 @@ The full precedence order, from strongest to weakest:
 
 Use parentheses to change the order:
 
-```text
+```epher
 (2 + 3) * 4
 ```
 
@@ -70,7 +70,7 @@ Use parentheses to change the order:
 
 The `^` operator computes powers, and it works right-to-left:
 
-```text
+```epher
 2 ^ 10
 ```
 
@@ -78,7 +78,7 @@ The `^` operator computes powers, and it works right-to-left:
 1024
 ```
 
-```text
+```epher
 2 ^ 3 ^ 2
 ```
 
@@ -90,7 +90,7 @@ The `^` operator computes powers, and it works right-to-left:
 
 Powers can be fractional — `2 ^ 0.5` is the square root of 2:
 
-```text
+```epher
 2 ^ 0.5
 ```
 
@@ -100,7 +100,7 @@ Powers can be fractional — `2 ^ 0.5` is the square root of 2:
 
 Subtraction and division work left-to-right:
 
-```text
+```epher
 10 - 3 - 2
 ```
 
@@ -112,7 +112,7 @@ Subtraction and division work left-to-right:
 
 The famous constants are built in:
 
-```text
+```epher
 pi
 ```
 
@@ -120,7 +120,7 @@ pi
 3.141592653589793
 ```
 
-```text
+```epher
 2 * pi
 ```
 
@@ -128,7 +128,7 @@ pi
 6.283185307179586
 ```
 
-```text
+```epher
 e
 ```
 
@@ -138,7 +138,7 @@ e
 
 Two more: `tau` is a full turn (2 pi), and `phi` is the golden ratio:
 
-```text
+```epher
 tau
 ```
 
@@ -146,7 +146,7 @@ tau
 6.283185307179586
 ```
 
-```text
+```epher
 phi
 ```
 
@@ -167,7 +167,7 @@ You can compare numbers. The result is either `true` or `false`:
 | `a == b` | a equals b (note the double `=`) |
 | `a != b` | a does not equal b |
 
-```text
+```epher
 3 > 2
 ```
 
@@ -175,7 +175,7 @@ You can compare numbers. The result is either `true` or `false`:
 true
 ```
 
-```text
+```epher
 1 != 2
 ```
 
@@ -185,7 +185,7 @@ true
 
 Combine comparisons with `and`, `or` and `not`:
 
-```text
+```epher
 3 > 2 and 2 < 3
 ```
 
@@ -193,7 +193,7 @@ Combine comparisons with `and`, `or` and `not`:
 true
 ```
 
-```text
+```epher
 not 3 > 2
 ```
 
@@ -205,7 +205,7 @@ false
 
 Give a name to a value with a single `=`:
 
-```text
+```epher
 x = 5
 ```
 
@@ -215,7 +215,7 @@ x = 5
 
 epher repeats the value back to you. From now on, `x` can be used anywhere:
 
-```text
+```epher
 x ^ 2
 ```
 
@@ -226,7 +226,7 @@ x ^ 2
 You can change a variable whenever you like — it keeps its value until you
 change it:
 
-```text
+```epher
 x = x + 1
 ```
 
@@ -241,7 +241,7 @@ x = x + 1
 
 `if` chooses between two values:
 
-```text
+```epher
 if 3 > 2 then 10 else 20
 ```
 
@@ -254,7 +254,7 @@ The `else` part is required.
 
 A more useful example with a variable:
 
-```text
+```epher
 price = 100
 if price > 50 then 2 else 1
 ```
@@ -270,7 +270,7 @@ if price > 50 then 2 else 1
 
 `while` repeats a statement as long as a condition holds:
 
-```text
+```epher
 x = 0; while x < 5 do x = x + 1; x
 ```
 
@@ -289,13 +289,13 @@ show x.* The result is 5 because the loop ran five times.
 
 A function is a calculation with a name and parameters:
 
-```text
+```epher
 def f(x) = x ^ 2
 ```
 
 Then use it:
 
-```text
+```epher
 f(7)
 ```
 
@@ -305,7 +305,7 @@ f(7)
 
 Functions can take several parameters:
 
-```text
+```epher
 def area(w, h) = w * h
 area(3, 4)
 ```
@@ -316,7 +316,7 @@ area(3, 4)
 
 You can also define a function with no parameters:
 
-```text
+```epher
 def answer() = 42
 answer()
 ```
@@ -329,11 +329,11 @@ answer()
 
 The most famous example — the Fibonacci numbers:
 
-```text
+```epher
 def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
 ```
 
-```text
+```epher
 fib(10)
 ```
 
@@ -352,7 +352,7 @@ smaller arguments until it reaches `n <= 1`. This works because the
 
 A *script* is several statements joined with `;`, executed one after another:
 
-```text
+```epher
 x = 10; y = x + 5; x + y
 ```
 
@@ -370,7 +370,7 @@ Some numbers look better exact.
 
 **frac(n, d)** makes an exact fraction:
 
-```text
+```epher
 1 / 3
 ```
 
@@ -378,7 +378,7 @@ Some numbers look better exact.
 0.3333333333333333
 ```
 
-```text
+```epher
 frac(1, 3)
 ```
 
@@ -388,7 +388,7 @@ frac(1, 3)
 
 Fractions stay exact through calculations:
 
-```text
+```epher
 frac(1, 3) * 3
 ```
 
@@ -398,7 +398,7 @@ frac(1, 3) * 3
 
 **dec(x)** makes an exact decimal. Compare these two:
 
-```text
+```epher
 0.1 + 0.2
 ```
 
@@ -406,7 +406,7 @@ frac(1, 3) * 3
 0.30000000000000004
 ```
 
-```text
+```epher
 dec(0.1) + dec(0.2)
 ```
 
@@ -420,7 +420,7 @@ decimal numbers. `dec()` removes it.
 **big(x)** makes an exact whole number, for values too large for a pocket
 calculator:
 
-```text
+```epher
 big(10 ^ 20)
 ```
 
@@ -493,7 +493,7 @@ The exact layers from section 1.11 stay:
 
 They combine like everything else:
 
-```text
+```epher
 min(sqrt(16), 5)
 ```
 
@@ -505,7 +505,7 @@ min(sqrt(16), 5)
 
 When something goes wrong, epher tells you instead of guessing:
 
-```text
+```epher
 1 / 0
 ```
 
@@ -513,7 +513,7 @@ When something goes wrong, epher tells you instead of guessing:
 error: division by zero
 ```
 
-```text
+```epher
 sqrt(-4)
 ```
 
@@ -521,7 +521,7 @@ sqrt(-4)
 error: domain error: sqrt of negative number -4
 ```
 
-```text
+```epher
 unknown_name
 ```
 
@@ -529,7 +529,7 @@ unknown_name
 error: unknown name: unknown_name
 ```
 
-```text
+```epher
 foo(1)
 ```
 
@@ -568,7 +568,7 @@ not know, so you can fix your expression.
 The web app lives at:
 
 ```text
-https://upyesp.github.io/epher/pwa/
+https://epher.org/pwa/
 ```
 
 No installation is needed — it works in any modern browser on a computer,
@@ -593,7 +593,7 @@ open.
 
 Type `graph` followed by an expression and press **Enter**:
 
-```text
+```epher
 graph x ^ 2
 ```
 
@@ -601,7 +601,7 @@ epher draws the curve y = f(x) from x = −10 to x = 10 beneath the input,
 with a caption showing what was plotted. You can graph any expression,
 including your own functions:
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
@@ -648,20 +648,20 @@ Download one installer for your system from the epher website:
   **Open**.
 - **Linux (Debian/Ubuntu):** the `.deb` package
 
-```text
+```sh
 sudo apt install ./epher-linux-x86_64.deb
 ```
 
 - **Linux (Fedora/RHEL):** the `.rpm` package
 
-```text
+```sh
 sudo dnf install ./epher-linux-x86_64.rpm
 ```
 
 - **Linux (any distro, including Arch):** the AppImage — make it executable
   and run it:
 
-```text
+```sh
 chmod +x epher-linux-x86_64.AppImage
 ./epher-linux-x86_64.AppImage
 ```
@@ -713,7 +713,7 @@ session for longer work.
 
 Give the expression as an argument:
 
-```text
+```sh
 epher "2 + 3 * 4"
 ```
 
@@ -723,7 +723,7 @@ epher "2 + 3 * 4"
 
 You can do anything from chapter 1 that is a single expression:
 
-```text
+```sh
 epher "if 3 > 2 then 10 else 20"
 ```
 
@@ -733,7 +733,7 @@ epher "if 3 > 2 then 10 else 20"
 
 An expression that starts with a minus sign works directly:
 
-```text
+```sh
 epher "-2 + 5"
 ```
 
@@ -750,7 +750,7 @@ functions, loops — need the interactive session or a piped script
 `epher -` reads expressions from standard input, one line at a time — the way
 scripting languages are used in pipelines:
 
-```text
+```sh
 printf "x = 3\nx * 10\n" | epher -
 ```
 
@@ -767,7 +767,7 @@ store as always. Errors print and the script keeps going.
 
 Start it with `epher repl`:
 
-```text
+```sh
 epher repl
 ```
 
@@ -854,7 +854,7 @@ folder on your computer:
 Delete that folder to start completely fresh. To use a different location,
 set the environment variable `EPHER_STORE_DIR` before starting epher:
 
-```text
+```sh
 EPHER_STORE_DIR=/tmp/my-epher epher repl
 ```
 
@@ -863,7 +863,7 @@ EPHER_STORE_DIR=/tmp/my-epher epher repl
 The TUI is a full-screen version of the interactive session, inside your
 terminal. It is part of the same `epher` program — start it with:
 
-```text
+```sh
 epher tui
 ```
 
@@ -891,7 +891,7 @@ The screen is divided into panels:
 
 Type `graph` followed by an expression, and press **Enter**:
 
-```text
+```epher
 graph x ^ 2
 ```
 
@@ -902,7 +902,7 @@ in the Graph panel. The caption above the plot shows what is plotted:
 You can graph any expression, including your own functions — first define
 one, then graph it:
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```

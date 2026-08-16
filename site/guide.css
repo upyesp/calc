@@ -146,6 +146,102 @@
   font-size: 0.9rem;
 }
 
+/* --- example code blocks (```epher / ```sh) ------------------------------
+
+   What the reader types: highlighted code plus a copy button at the end.
+   Token colors are theme vars; contrast vs --panel (WCAG 1.4.3, ≥ 4.5:1):
+     light: kw #a626a4 5.6:1, num/const #8a5f01 5.2:1, fn #2456b8 6.2:1,
+            str #1a7f37 4.7:1
+     dark:  kw #d386d4 5.4:1, num/const #d19a66 5.7:1, fn #61afef 5.9:1,
+            str #56b6c2 5.9:1                                                            */
+
+:root {
+  --tok-kw: #a626a4;
+  --tok-num: #8a5f01;
+  --tok-fn: #2456b8;
+  --tok-str: #1a7f37;
+}
+
+[data-theme="dark"] {
+  --tok-kw: #d386d4;
+  --tok-num: #d19a66;
+  --tok-fn: #61afef;
+  --tok-str: #56b6c2;
+}
+
+.example {
+  margin: 0.75rem 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--code-bg, var(--panel));
+  overflow: hidden; /* keep the pre inside the rounded corners */
+}
+
+.example pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  direction: ltr; /* code stays LTR inside the RTL (Arabic) page */
+  text-align: left;
+}
+
+.example-bar {
+  display: flex;
+  justify-content: flex-end; /* inline end in both LTR and RTL */
+  padding: 0.3rem 0.45rem;
+  border-top: 1px solid var(--border);
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 32px; /* target size (WCAG 2.5.8, ≥ 24px) */
+  padding: 0.2rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: var(--panel);
+}
+
+.copy-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* success state: icon and label swap (never color alone, WCAG 1.4.1) */
+.copy-btn .icon-check {
+  display: none;
+}
+
+.copy-btn.copied .icon-copy {
+  display: none;
+}
+
+.copy-btn.copied .icon-check {
+  display: block;
+  stroke: var(--link); /* 5.1:1 light / 7.8:1 dark vs --bg */
+}
+
+.example .tok-kw { color: var(--tok-kw); }
+.example .tok-num { color: var(--tok-num); }
+.example .tok-fn { color: var(--tok-fn); }
+.example .tok-str { color: var(--tok-str); }
+
 /* --- notes (blockquote) ------------------------------------------------- */
 
 .guide-body blockquote {

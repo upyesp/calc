@@ -37,7 +37,7 @@ puedes escribir `epher "expresión"` para evaluar una expresión directamente.
 
 Escribe esto:
 
-```text
+```epher
 2 + 3 * 4
 ```
 
@@ -61,7 +61,7 @@ El orden completo de precedencia, de más fuerte a más débil:
 
 Usa paréntesis para cambiar el orden:
 
-```text
+```epher
 (2 + 3) * 4
 ```
 
@@ -71,7 +71,7 @@ Usa paréntesis para cambiar el orden:
 
 El operador `^` calcula potencias y funciona de derecha a izquierda:
 
-```text
+```epher
 2 ^ 10
 ```
 
@@ -79,7 +79,7 @@ El operador `^` calcula potencias y funciona de derecha a izquierda:
 1024
 ```
 
-```text
+```epher
 2 ^ 3 ^ 2
 ```
 
@@ -91,7 +91,7 @@ El operador `^` calcula potencias y funciona de derecha a izquierda:
 
 Las potencias pueden ser fraccionarias — `2 ^ 0.5` es la raíz cuadrada de 2:
 
-```text
+```epher
 2 ^ 0.5
 ```
 
@@ -101,7 +101,7 @@ Las potencias pueden ser fraccionarias — `2 ^ 0.5` es la raíz cuadrada de 2:
 
 La resta y la división funcionan de izquierda a derecha:
 
-```text
+```epher
 10 - 3 - 2
 ```
 
@@ -113,7 +113,7 @@ La resta y la división funcionan de izquierda a derecha:
 
 Las constantes famosas están integradas:
 
-```text
+```epher
 pi
 ```
 
@@ -121,7 +121,7 @@ pi
 3.141592653589793
 ```
 
-```text
+```epher
 2 * pi
 ```
 
@@ -129,7 +129,7 @@ pi
 6.283185307179586
 ```
 
-```text
+```epher
 e
 ```
 
@@ -139,7 +139,7 @@ e
 
 Dos más: `tau` es una vuelta completa (2 pi) y `phi` es el número áureo:
 
-```text
+```epher
 tau
 ```
 
@@ -147,7 +147,7 @@ tau
 6.283185307179586
 ```
 
-```text
+```epher
 phi
 ```
 
@@ -169,7 +169,7 @@ Puedes comparar números. El resultado es `true` (verdadero) o `false`
 | `a == b` | a es igual a b (nota el doble `=`) |
 | `a != b` | a no es igual a b |
 
-```text
+```epher
 3 > 2
 ```
 
@@ -177,7 +177,7 @@ Puedes comparar números. El resultado es `true` (verdadero) o `false`
 true
 ```
 
-```text
+```epher
 1 != 2
 ```
 
@@ -187,7 +187,7 @@ true
 
 Combina comparaciones con `and`, `or` y `not`:
 
-```text
+```epher
 3 > 2 and 2 < 3
 ```
 
@@ -195,7 +195,7 @@ Combina comparaciones con `and`, `or` y `not`:
 true
 ```
 
-```text
+```epher
 not 3 > 2
 ```
 
@@ -207,7 +207,7 @@ false
 
 Dale un nombre a un valor con un solo `=`:
 
-```text
+```epher
 x = 5
 ```
 
@@ -217,7 +217,7 @@ x = 5
 
 epher te repite el valor. Desde ahora, `x` se puede usar en cualquier parte:
 
-```text
+```epher
 x ^ 2
 ```
 
@@ -228,7 +228,7 @@ x ^ 2
 Puedes cambiar una variable cuando quieras — conserva su valor hasta que la
 cambies:
 
-```text
+```epher
 x = x + 1
 ```
 
@@ -243,7 +243,7 @@ x = x + 1
 
 `if` elige entre dos valores:
 
-```text
+```epher
 if 3 > 2 then 10 else 20
 ```
 
@@ -256,7 +256,7 @@ else valor_si_falso`. La parte `else` es obligatoria.
 
 Un ejemplo más útil con una variable:
 
-```text
+```epher
 price = 100
 if price > 50 then 2 else 1
 ```
@@ -272,7 +272,7 @@ if price > 50 then 2 else 1
 
 `while` repite una instrucción mientras se cumpla una condición:
 
-```text
+```epher
 x = 0; while x < 5 do x = x + 1; x
 ```
 
@@ -292,13 +292,13 @@ luego muestra x.* El resultado es 5 porque el bucle se ejecutó cinco veces.
 
 Una función es un cálculo con nombre y parámetros:
 
-```text
+```epher
 def f(x) = x ^ 2
 ```
 
 Luego úsala:
 
-```text
+```epher
 f(7)
 ```
 
@@ -308,7 +308,7 @@ f(7)
 
 Las funciones pueden tener varios parámetros:
 
-```text
+```epher
 def area(w, h) = w * h
 area(3, 4)
 ```
@@ -319,7 +319,7 @@ area(3, 4)
 
 También puedes definir una función sin parámetros:
 
-```text
+```epher
 def answer() = 42
 answer()
 ```
@@ -332,11 +332,11 @@ answer()
 
 El ejemplo más famoso — los números de Fibonacci:
 
-```text
+```epher
 def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)
 ```
 
-```text
+```epher
 fib(10)
 ```
 
@@ -356,7 +356,7 @@ forma `if ... then ... else ...` solo calcula la rama que necesita.
 Un *script* es varias instrucciones unidas con `;`, ejecutadas una tras
 otra:
 
-```text
+```epher
 x = 10; y = x + 5; x + y
 ```
 
@@ -374,7 +374,7 @@ bolsillo. Algunos números se ven mejor exactos.
 
 **frac(n, d)** crea una fracción exacta:
 
-```text
+```epher
 1 / 3
 ```
 
@@ -382,7 +382,7 @@ bolsillo. Algunos números se ven mejor exactos.
 0.3333333333333333
 ```
 
-```text
+```epher
 frac(1, 3)
 ```
 
@@ -392,7 +392,7 @@ frac(1, 3)
 
 Las fracciones se mantienen exactas a través de los cálculos:
 
-```text
+```epher
 frac(1, 3) * 3
 ```
 
@@ -402,7 +402,7 @@ frac(1, 3) * 3
 
 **dec(x)** crea un decimal exacto. Compara estos dos:
 
-```text
+```epher
 0.1 + 0.2
 ```
 
@@ -410,7 +410,7 @@ frac(1, 3) * 3
 0.30000000000000004
 ```
 
-```text
+```epher
 dec(0.1) + dec(0.2)
 ```
 
@@ -424,7 +424,7 @@ comete con los decimales. `dec()` lo elimina.
 **big(x)** crea un número entero exacto, para valores demasiado grandes para
 una calculadora de bolsillo:
 
-```text
+```epher
 big(10 ^ 20)
 ```
 
@@ -497,7 +497,7 @@ Las capas exactas de la sección 1.11 se mantienen:
 
 Se combinan como todo lo demás:
 
-```text
+```epher
 min(sqrt(16), 5)
 ```
 
@@ -509,7 +509,7 @@ min(sqrt(16), 5)
 
 Cuando algo sale mal, epher te lo dice en lugar de adivinar:
 
-```text
+```epher
 1 / 0
 ```
 
@@ -517,7 +517,7 @@ Cuando algo sale mal, epher te lo dice en lugar de adivinar:
 error: division by zero
 ```
 
-```text
+```epher
 sqrt(-4)
 ```
 
@@ -525,7 +525,7 @@ sqrt(-4)
 error: domain error: sqrt of negative number -4
 ```
 
-```text
+```epher
 unknown_name
 ```
 
@@ -533,7 +533,7 @@ unknown_name
 error: unknown name: unknown_name
 ```
 
-```text
+```epher
 foo(1)
 ```
 
@@ -572,7 +572,7 @@ conoce, para que puedas arreglar tu expresión.
 La aplicación web está en:
 
 ```text
-https://upyesp.github.io/epher/pwa/
+https://epher.org/pwa/
 ```
 
 No necesita instalación — funciona en cualquier navegador moderno, en
@@ -597,7 +597,7 @@ conserva mientras la página está abierta.
 
 Escribe `graph` seguido de una expresión y pulsa **Intro**:
 
-```text
+```epher
 graph x ^ 2
 ```
 
@@ -605,7 +605,7 @@ epher dibuja la curva y = f(x) desde x = −10 hasta x = 10 debajo del
 campo de entrada, con un rótulo que muestra lo representado. Puedes
 graficar cualquier expresión, incluidas tus propias funciones:
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
@@ -657,20 +657,20 @@ Descarga un instalador para tu sistema desde el sitio web de epher:
   derecho → **Abrir**.
 - **Linux (Debian/Ubuntu):** el paquete `.deb`
 
-```text
+```sh
 sudo apt install ./epher-linux-x86_64.deb
 ```
 
 - **Linux (Fedora/RHEL):** el paquete `.rpm`
 
-```text
+```sh
 sudo dnf install ./epher-linux-x86_64.rpm
 ```
 
 - **Linux (cualquier distro, incluida Arch):** el AppImage — hazlo ejecutable
   y ejecútalo:
 
-```text
+```sh
 chmod +x epher-linux-x86_64.AppImage
 ./epher-linux-x86_64.AppImage
 ```
@@ -725,7 +725,7 @@ y una sesión interactiva para trabajos más largos.
 
 Pasa la expresión como argumento:
 
-```text
+```sh
 epher "2 + 3 * 4"
 ```
 
@@ -735,7 +735,7 @@ epher "2 + 3 * 4"
 
 Puedes hacer cualquier cosa del capítulo 1 que sea una sola expresión:
 
-```text
+```sh
 epher "if 3 > 2 then 10 else 20"
 ```
 
@@ -745,7 +745,7 @@ epher "if 3 > 2 then 10 else 20"
 
 Una expresión que empieza con un signo menos funciona directamente:
 
-```text
+```sh
 epher "-2 + 5"
 ```
 
@@ -762,7 +762,7 @@ por tubería (sección 4.2).
 `epher -` lee expresiones de la entrada estándar, línea a línea — como se
 usan los lenguajes de script en las tuberías:
 
-```text
+```sh
 printf "x = 3\nx * 10\n" | epher -
 ```
 
@@ -780,7 +780,7 @@ sigue.
 
 Iníciala con `epher repl`:
 
-```text
+```sh
 epher repl
 ```
 
@@ -871,7 +871,7 @@ Borra esa carpeta para empezar completamente de cero. Para usar otra
 ubicación, define la variable de entorno `EPHER_STORE_DIR` antes de iniciar
 epher:
 
-```text
+```sh
 EPHER_STORE_DIR=/tmp/my-epher epher repl
 ```
 
@@ -880,7 +880,7 @@ EPHER_STORE_DIR=/tmp/my-epher epher repl
 La TUI es una versión a pantalla completa de la sesión interactiva, dentro
 de tu terminal. Forma parte del mismo programa `epher` — iníciala con:
 
-```text
+```sh
 epher tui
 ```
 
@@ -908,7 +908,7 @@ La pantalla está dividida en paneles:
 
 Escribe `graph` seguido de una expresión y pulsa **Intro**:
 
-```text
+```epher
 graph x ^ 2
 ```
 
@@ -919,7 +919,7 @@ representa: `y = x ^ 2`.
 Puedes graficar cualquier expresión, incluidas tus propias funciones —
 primero define una y luego grafícala:
 
-```text
+```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
