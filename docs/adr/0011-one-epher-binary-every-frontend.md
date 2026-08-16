@@ -41,26 +41,52 @@ lives in the dispatcher:
   `epher "1+1" repl` errors instead of silently merging meanings;
   `allow_hyphen_values` keeps `-` (stdin convention, like `sh -`) and `-5`
   (negative literals) working while `--help`/`--version` stay flags.
-- **The binary is a console application on Windows** (no
-  `windows_subsystem = "windows"`): `epher "2 + 2"` must print into
-  CMD/PowerShell and pipe. The cost — a console window on a double-click —
-  is paid off with the **detach dance**: on GUI launch the process re-spawns
-  itself (`EPHER_GUI_CHILD=1`, `DETACHED_PROCESS`, null stdio) and exits
-  immediately, so the double-click console flashes for milliseconds and the
-  terminal prompt returns instantly. macOS/Linux run the GUI in-process in
-  the foreground, like any GUI binary launched from a terminal.
+- **Windows ships two subsystem builds of the same program** (the console
+  flash problem, revisited in 2026): the PE subsystem is a compile-time
+  attribute, and Windows creates the console window before `main()` runs,
+  so one file cannot be both a flash-free double-click target *and* a
+  first-class terminal citizen (wait/redirect/pipe/exit-code semantics —
+  CMD and PowerShell don't wait for GUI-subsystem processes, and don't
+  inherit redirected handles to them). Therefore:
+  - `epher.exe` — console subsystem, installed on `PATH`: the terminal
+    product (`epher "2 + 2"`, `epher -`, `epher repl`, `epher tui`).
+  - `epher-gui.exe` — GUI subsystem (`windows_subsystem = "windows"`,
+    the Tauri template's default), the double-click/Start Menu target: no
+    console window ever exists for this process.
+  - The console binary hands GUI launches to its GUI sibling
+    (`EPHER_GUI_CHILD=1`, detached, null stdio) and exits, so a
+    double-click on `epher.exe` or a `epher gui` from a terminal both
+    leave no lingering console. The installer carries both binaries — the
+    GUI one as `mainBinaryName`, the console one as a `bundle.resources`
+    entry in `tauri.windows.conf.json` (the NSIS PATH hook is unchanged).
+    Cargo-side, `default-run = "epher-gui"` selects which bin tauri
+    bundles; `mainBinaryName` names the installed file (macOS/Linux keep
+    the single `epher` name, so the same GUI-subsystem source compiles
+    into the one shipped binary there — the subsystem attribute is a no-op
+    off Windows).
+  - macOS/Linux keep the literal single unified binary: their OSes have no
+    subsystem split — the `.app` bundle and the `Terminal=false` desktop
+    entry decide GUI vs terminal by launch context, not by the file.
+- **macOS/Linux run the GUI in-process in the foreground**, like any GUI
+  binary launched from a terminal (bare `epher` from a terminal opens the
+  window and blocks, as documented).
 - **The dev binaries stay** for fast iteration (`epher-cli`, `epher-tui`)
-  but releases ship only the unified binary inside each platform installer
-  (NSIS on Windows, dmg on macOS, deb/rpm/AppImage on Linux). The Windows
-  installer adds the install directory to the user `PATH` so `epher` works
-  from any terminal; macOS offers an in-GUI "install the `epher` command"
-  action (symlink into `/usr/local/bin`, osascript fallback for permission).
+  but releases ship only the unified binary (macOS/Linux) or the
+  two-build pair (Windows) inside each platform installer (NSIS on
+  Windows, dmg on macOS, deb/rpm/AppImage on Linux). The Windows installer
+  adds the install directory to the user `PATH` so `epher` works from any
+  terminal; macOS offers an in-GUI "install the `epher` command" action
+  (symlink into `/usr/local/bin`, osascript fallback for permission).
 - **The PWA is unchanged** — a browser cannot host native frontends.
 
 ## Consequences
 
 - One install per platform; every mode shares the Native Store (`~/.epher`)
   by construction, not convention (ADR-0002, ADR-0010).
+- On Windows the install directory holds two binaries
+  (`epher.exe` + `epher-gui.exe`); both are the same program, differing
+  only in PE subsystem. `mainBinaryName` points at the GUI build (shortcut
+  and uninstaller targets), `PATH` resolves `epher` to the console build.
 - The Tauri package (webkit dependencies) becomes a dependency of *every*
   mode for installed users; headless-server users still have the release
   archives of old versions or build from source. Acceptable: epher's

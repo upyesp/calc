@@ -1,0 +1,8 @@
+{
+  "mainBinaryName": "epher-gui",
+  "bundle": {
+    "resources": {
+      "../../../target/release/epher.exe": "epher.exe"
+    }
+  }
+}

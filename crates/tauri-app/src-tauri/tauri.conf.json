@@ -3,6 +3,7 @@
   "productName": "epher",
   "version": "0.3.0",
   "identifier": "com.epher.desktop",
+  "mainBinaryName": "epher",
   "build": {
     "frontendDist": "../../web/dist",
     "devUrl": "http://localhost:8080",

@@ -91,10 +91,15 @@ git tag v0.3.0
 git push origin v0.3.0
 ```
 
-One download per platform (ADR-0011): every installer carries the single
-unified `epher` executable — one-shot CLI, REPL (`epher repl`), piped
+One download per platform (ADR-0011): every installer carries the unified
+`epher` executable — one-shot CLI, REPL (`epher repl`), piped
 scripts (`epher -`), TUI (`epher tui`), and the desktop GUI (bare `epher` /
-`epher gui`). The old per-frontend archives (v0.1.x–v0.2.x) are gone.
+`epher gui`). Windows installs two subsystem builds of the same program
+(console `epher.exe` on PATH; GUI-subsystem `epher-gui.exe` as the
+double-click target — no console flash); macOS and Linux install the one
+binary, with the `.app` bundle and the `Terminal=false` desktop entry
+deciding GUI vs terminal. The old per-frontend archives (v0.1.x–v0.2.x)
+are gone.
 
 Stable asset names (the landing page depends on them):
 

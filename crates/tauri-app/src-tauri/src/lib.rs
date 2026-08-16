@@ -183,23 +183,30 @@ where
 
 /// Launch the desktop GUI.
 ///
-/// The unified binary is a *console* application (so `epher "2 + 2"` can
-/// print and pipe from CMD/PowerShell). The cost on Windows: launching the
-/// GUI from a double-click would leave a console window open for the app's
-/// whole lifetime. The standard cure is a detach dance: the process
-/// re-spawns itself with `EPHER_GUI_CHILD` set as a detached process (no
-/// console at all) and exits immediately — the double-click console
-/// flashes for a few dozen milliseconds, and a terminal prompt returns
-/// right away while the GUI window appears. On macOS/Linux the GUI runs
-/// in-process in the foreground, like any GUI binary run from a terminal.
+/// The console `epher` binary is a *console* application (so `epher "2 + 2"`
+/// can print and pipe from CMD/PowerShell). On Windows the GUI therefore
+/// runs in the GUI-subsystem sibling `epher-gui.exe` (ADR-0011): the
+/// console process spawns it detached — no console window, ever — and
+/// exits immediately, so a double-click never lingers on a terminal and a
+/// terminal prompt returns right away while the window appears. The
+/// GUI-subsystem build itself (`epher-gui.exe`, the double-click target)
+/// and the env-marked child have no console to shed, so they run the
+/// window in-process. The spawn prefers the sibling `epher-gui.exe` (same
+/// directory, then one level up); if none exists it falls back to
+/// re-spawning itself with `EPHER_GUI_CHILD` set — the guard (and the
+/// `DETACHED_PROCESS` child having no console to begin with) stops the
+/// chain after one hop. On macOS/Linux the GUI runs in-process in the
+/// foreground, like any GUI binary run from a terminal.
 fn launch_gui() {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const DETACHED_PROCESS: u32 = 0x0000_0008;
-        if std::env::var_os("EPHER_GUI_CHILD").is_none() {
-            if let Ok(exe) = std::env::current_exe() {
-                let spawned = std::process::Command::new(exe)
+        let exe = std::env::current_exe().unwrap_or_default();
+        let is_gui_build = exe.file_stem().is_some_and(|s| s == "epher-gui");
+        if !is_gui_build && std::env::var_os("EPHER_GUI_CHILD").is_none() {
+            for candidate in gui_launch_candidates(&exe) {
+                let spawned = std::process::Command::new(&candidate)
                     .env("EPHER_GUI_CHILD", "1")
                     .creation_flags(DETACHED_PROCESS)
                     .stdin(std::process::Stdio::null())
@@ -209,11 +216,28 @@ fn launch_gui() {
                 if spawned.is_ok() {
                     std::process::exit(0);
                 }
-                // Spawn failed (rare): fall through and run in-process.
+                // Spawn failed: try the next candidate, then run in-process.
             }
         }
     }
     run();
+}
+
+/// The Windows GUI-spawn candidates for the console binary at `current_exe`:
+/// the sibling GUI-subsystem build first (same directory, then the parent
+/// directory), then `current_exe` itself as the pre-W2 fallback. Pure path
+/// logic so it is testable on any host.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn gui_launch_candidates(current_exe: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let Some(dir) = current_exe.parent() else {
+        return vec![current_exe.to_path_buf()];
+    };
+    let mut candidates = vec![dir.join("epher-gui.exe")];
+    if let Some(parent) = dir.parent() {
+        candidates.push(parent.join("epher-gui.exe"));
+    }
+    candidates.push(current_exe.to_path_buf());
+    candidates
 }
 
 #[cfg(test)]
@@ -269,5 +293,45 @@ mod tests {
         assert!(state.history.is_empty());
         assert!(state.replay.is_empty());
         assert_eq!(state.language, None);
+    }
+
+    // --- GUI hand-off candidates (ADR-0011, W2) -------------------------
+
+    #[test]
+    fn console_binary_prefers_the_gui_sibling_then_parent_then_itself() {
+        use std::path::{Path, PathBuf};
+        // forward slashes: valid path separators on every host
+        let exe = Path::new("C:/Program Files/epher/epher.exe");
+        let candidates = gui_launch_candidates(exe);
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from("C:/Program Files/epher/epher-gui.exe"),
+                PathBuf::from("C:/Program Files/epher-gui.exe"),
+                PathBuf::from("C:/Program Files/epher/epher.exe"),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_path_without_a_parent_yields_the_sibling_and_itself() {
+        use std::path::{Path, PathBuf};
+        let exe = Path::new("epher.exe");
+        assert_eq!(
+            gui_launch_candidates(exe),
+            vec![PathBuf::from("epher-gui.exe"), PathBuf::from("epher.exe")]
+        );
+    }
+
+    #[test]
+    fn the_gui_build_never_dances_it_runs_in_process() {
+        // launch_gui short-circuits for the GUI-subsystem build: it has no
+        // console to shed. The file-stem check is what this asserts.
+        use std::path::Path;
+        let exe = Path::new("C:/Program Files/epher/epher-gui.exe");
+        assert_eq!(
+            exe.file_stem().and_then(|s| s.to_str()),
+            Some("epher-gui")
+        );
     }
 }

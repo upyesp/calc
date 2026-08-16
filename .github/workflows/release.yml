@@ -2,11 +2,14 @@
 # a GitHub Release. Triggered by pushing a tag:
 #   git tag v0.3.0 && git push origin v0.3.0
 #
-# One download per platform (ADR-0011): each installer contains the single
-# `epher` executable that hosts every frontend — one-shot CLI, REPL
-# (`epher repl`), piped scripts (`epher -`), TUI (`epher tui`), and the
-# desktop GUI (bare `epher` / `epher gui`). On Windows the NSIS installer
-# adds the install directory to the user PATH (nsis-hooks.nsh).
+# One download per platform (ADR-0011): each installer carries the unified
+# `epher` executable — one-shot CLI, REPL (`epher repl`), piped scripts
+# (`epher -`), TUI (`epher tui`), and the desktop GUI (bare `epher` /
+# `epher gui`). Windows installs two subsystem builds of the same program
+# (console `epher.exe` on PATH; GUI-subsystem `epher-gui.exe` as the
+# double-click target — no console flash); macOS/Linux install the single
+# binary. On Windows the NSIS installer adds the install directory to the
+# user PATH (nsis-hooks.nsh).
 #
 # Asset names (stable — the landing page links to these):
 #   epher-windows-x86_64.exe        Windows installer (NSIS)

@@ -1,10 +1,9 @@
-// The unified `epher` binary (ADR-0011): one executable hosts every
-// frontend — one-shot evaluation, REPL, piped scripts, the TUI, and the
-// desktop GUI. Deliberately a *console* application on Windows (no
-// `windows_subsystem = "windows"` attribute): console mode is what lets
-// `epher "2 + 2"` print into CMD/PowerShell and pipe cleanly. The GUI path
-// handles its own detach dance (see app_lib::launch_gui), so double-click
-// launches only flash a console for milliseconds.
+// The console entry point of the unified `epher` binary (ADR-0011): the
+// build terminal users get on PATH — one-shot evaluation, REPL, piped
+// scripts, and the TUI, with real stdout/stderr, pipes, and exit codes.
+// On Windows, a bare invocation (double-click) hands the GUI action off to
+// the GUI-subsystem sibling `epher-gui.exe` (see app_lib::launch_gui), so
+// the console only ever exists while a terminal mode is actually running.
 
 fn main() {
     app_lib::run_with_args(std::env::args_os());

@@ -7,6 +7,12 @@ license = "MIT"
 repository = "https://github.com/upyesp/epher"
 edition = "2021"
 rust-version = "1.77.2"
+# Which bin tauri bundles as the app (ADR-0011, W2): the GUI-subsystem build.
+# On macOS/Linux tauri's mainBinaryName (tauri.conf.json) renames it to
+# `epher`, so those platforms ship the usual single unified binary; on
+# Windows the overlay keeps the name epher-gui and the console build
+# (epher.exe) is bundled alongside it as a resource.
+default-run = "epher-gui"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,6 +25,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [[bin]]
 name = "epher"
 path = "src/main.rs"
+
+# The GUI-subsystem sibling for Windows (ADR-0011): the double-click/Start
+# Menu target — no console window, ever. macOS/Linux don't bundle it.
+[[bin]]
+name = "epher-gui"
+path = "src/bin/epher-gui.rs"
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
