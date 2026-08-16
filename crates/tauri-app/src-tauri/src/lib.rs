@@ -28,7 +28,7 @@ impl DesktopStore {
     }
 
     /// Everything the webview needs at startup: history, the replay lines
-    /// (functions, then scripts), and the language preference.
+    /// (functions, then constants, then scripts), and the language preference.
     pub fn init(&self) -> epher_store::StoreResult<InitState> {
         Ok(InitState {
             history: persist::history(&self.store)?,
@@ -39,6 +39,10 @@ impl DesktopStore {
 
     pub fn save_function(&self, name: &str, source: &str) -> epher_store::StoreResult<()> {
         persist::save_function(&self.store, name, source)
+    }
+
+    pub fn save_constant(&self, name: &str, source: &str) -> epher_store::StoreResult<()> {
+        persist::save_constant(&self.store, name, source)
     }
 
     pub fn save_script(&self, name: &str, source: &str) -> epher_store::StoreResult<()> {
@@ -71,6 +75,11 @@ fn init(state: State<DesktopStore>) -> Result<InitState, String> {
 #[tauri::command]
 fn save_function(state: State<DesktopStore>, name: String, source: String) -> Result<(), String> {
     state.save_function(&name, &source).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_constant(state: State<DesktopStore>, name: String, source: String) -> Result<(), String> {
+    state.save_constant(&name, &source).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -122,6 +131,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             init,
             save_function,
+            save_constant,
             save_script,
             save_history,
             save_language,
@@ -218,6 +228,7 @@ mod tests {
         desktop
             .save_function("fib", "def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)")
             .unwrap();
+        desktop.save_constant("k", "const k = 41").unwrap();
         desktop
             .save_script("count", "x = 0; while x < 5 do x = x + 1; x")
             .unwrap();
@@ -227,9 +238,10 @@ mod tests {
         let state = desktop.init().unwrap();
         assert_eq!(state.history, vec!["2 + 3  = 5".to_string()]);
         assert_eq!(state.language, Some("fr".to_string()));
-        assert_eq!(state.replay.len(), 2);
+        assert_eq!(state.replay.len(), 3);
         assert!(state.replay[0].starts_with("def fib"));
-        assert!(state.replay[1].starts_with("x = 0"));
+        assert_eq!(state.replay[1], "const k = 41");
+        assert!(state.replay[2].starts_with("x = 0"));
     }
 
     #[test]
@@ -239,12 +251,15 @@ mod tests {
         // by a saved script.
         let dir = tempfile::tempdir().unwrap();
         let desktop = DesktopStore::with_dir(dir.path());
-        desktop.save_function("f", "def f(x) = x ^ 2").unwrap();
+        // the function body uses the constant: proves constants replay and
+        // are visible inside functions (ADR-0012)
+        desktop.save_function("f", "def f(x) = x ^ 2 + c").unwrap();
+        desktop.save_constant("c", "const c = 5").unwrap();
         desktop.save_script("vars", "y = 7").unwrap();
 
         let mut session = load_session(&DocStore::new(FsStore::new(dir.path()))).unwrap();
         assert!(session.def_sources().contains_key("f"));
-        assert_eq!(session.submit("f(3) + y"), "= 16");
+        assert_eq!(session.submit("f(3) + y"), "= 21");
     }
 
     #[test]

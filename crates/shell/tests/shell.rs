@@ -14,7 +14,7 @@ fn en() -> Localizer {
 fn classifies_the_three_commands() {
     assert_eq!(
         classify("save fib"),
-        Some(Command::SaveFunction { name: "fib".into() })
+        Some(Command::Save { name: "fib".into() })
     );
     assert_eq!(
         classify("  save script   count  "),
@@ -45,7 +45,7 @@ fn non_command_lines_are_none() {
 fn prepare_resolves_function_source_from_the_session() {
     let mut s = Session::new();
     s.submit("def f(x) = x ^ 2");
-    let p = prepare(&Command::SaveFunction { name: "f".into() }, &s, &en()).unwrap();
+    let p = prepare(&Command::Save { name: "f".into() }, &s, &en()).unwrap();
     assert_eq!(
         p,
         epher_shell::Prepared::SaveFunction { name: "f".into(), source: "def f(x) = x ^ 2".into() }
@@ -53,9 +53,50 @@ fn prepare_resolves_function_source_from_the_session() {
 }
 
 #[test]
+fn prepare_resolves_constant_source_from_the_session() {
+    let mut s = Session::new();
+    s.submit("const tax = 0.2");
+    let p = prepare(&Command::Save { name: "tax".into() }, &s, &en()).unwrap();
+    assert_eq!(
+        p,
+        epher_shell::Prepared::SaveConstant { name: "tax".into(), source: "const tax = 0.2".into() }
+    );
+}
+
+#[test]
+fn run_command_persists_a_constant() {
+    let mut s = Session::new();
+    s.submit("const g = 9.81");
+    let store = DocStore::new(MemoryStore::default());
+    let out = plain(run_command(
+        &Command::Save { name: "g".into() },
+        &mut s,
+        &store,
+        &en(),
+    )
+    .message);
+    assert_eq!(out, "saved g");
+    let docs = store.list_constants().unwrap();
+    assert_eq!(docs.len(), 1);
+    assert_eq!(docs[0].name, "g");
+    assert_eq!(docs[0].source, "const g = 9.81");
+}
+
+#[test]
+fn replay_lines_put_constants_between_functions_and_scripts() {
+    use epher_store::persist::{replay_lines, save_constant, save_function, save_script};
+    let store = DocStore::new(MemoryStore::default());
+    save_function(&store, "f", "def f(x) = x + k").unwrap();
+    save_script(&store, "use", "f(1)").unwrap();
+    save_constant(&store, "k", "const k = 41").unwrap();
+    let lines = replay_lines(&store).unwrap();
+    assert_eq!(lines, vec!["def f(x) = x + k", "const k = 41", "f(1)"]);
+}
+
+#[test]
 fn prepare_reports_missing_definition() {
     let s = Session::new();
-    let err = plain(prepare(&Command::SaveFunction { name: "g".into() }, &s, &en()).unwrap_err());
+    let err = plain(prepare(&Command::Save { name: "g".into() }, &s, &en()).unwrap_err());
     assert_eq!(err, "no definition for g in this session");
 }
 
@@ -95,7 +136,7 @@ fn run_command_persists_a_function() {
     s.submit("def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2)");
     let store = DocStore::new(MemoryStore::default());
     let out = plain(run_command(
-        &Command::SaveFunction { name: "fib".into() },
+        &Command::Save { name: "fib".into() },
         &mut s,
         &store,
         &en(),
@@ -127,7 +168,7 @@ fn run_command_surfaces_prepare_errors_without_persisting() {
     let mut s = Session::new();
     let store = DocStore::new(MemoryStore::default());
     let out = plain(
-        run_command(&Command::SaveFunction { name: "nope".into() }, &mut s, &store, &en()).message,
+        run_command(&Command::Save { name: "nope".into() }, &mut s, &store, &en()).message,
     );
     assert_eq!(out, "no definition for nope in this session");
     assert!(store.list_functions().unwrap().is_empty());

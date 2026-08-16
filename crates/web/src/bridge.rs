@@ -56,6 +56,12 @@ impl Bridge {
         self.spawn("save_function", args);
     }
 
+    pub fn save_constant(self, name: &str, source: &str) {
+        let args = serde_wasm_bindgen::to_value(&SaveArgs { name, source })
+            .unwrap_or(JsValue::UNDEFINED);
+        self.spawn("save_constant", args);
+    }
+
     pub fn save_script(self, name: &str, source: &str) {
         let args = serde_wasm_bindgen::to_value(&SaveArgs { name, source })
             .unwrap_or(JsValue::UNDEFINED);

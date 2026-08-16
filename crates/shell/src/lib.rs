@@ -3,9 +3,10 @@
 //!
 //! One policy for shell commands: [`classify`] recognizes `save`,
 //! `save script`, and `language` lines; [`prepare`] resolves them against
-//! the session (validation and source lookups); [`run_command`] additionally
-//! persists through the store for native shells. The webview reuses
-//! classify/prepare and persists through its IPC bridge instead.
+//! the session (validation and source lookups — `save name` finds functions
+//! and constants); [`run_command`] additionally persists through the store
+//! for native shells. The webview reuses classify/prepare and persists
+//! through its IPC bridge instead.
 
 use epher_core::Session;
 use epher_i18n::Localizer;
@@ -15,7 +16,8 @@ use epher_store::{DocStore, Storage};
 /// A shell command recognized in an input line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    SaveFunction { name: String },
+    /// `save name` — save the named function or constant.
+    Save { name: String },
     SaveScript { name: String },
     Language { code: String },
 }
@@ -24,6 +26,7 @@ pub enum Command {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prepared {
     SaveFunction { name: String, source: String },
+    SaveConstant { name: String, source: String },
     SaveScript { name: String, source: String },
     Language { code: String },
 }
@@ -44,7 +47,7 @@ pub fn classify(line: &str) -> Option<Command> {
     if let Some(name) = line.strip_prefix("save ") {
         let name = name.trim();
         if !name.is_empty() {
-            return Some(Command::SaveFunction { name: name.to_string() });
+            return Some(Command::Save { name: name.to_string() });
         }
         return None;
     }
@@ -68,13 +71,22 @@ fn savable(source: &str) -> bool {
 /// `Err` carries the localized message to show the user.
 pub fn prepare(cmd: &Command, session: &Session, localizer: &Localizer) -> Result<Prepared, String> {
     match cmd {
-        Command::SaveFunction { name } => match session.def_sources().get(name) {
-            Some(source) => Ok(Prepared::SaveFunction {
-                name: name.clone(),
-                source: source.clone(),
-            }),
-            None => Err(localizer.lookup_args("no-definition", &[("name", name)])),
-        },
+        Command::Save { name } => {
+            // a function first, then a constant (ADR-0012)
+            if let Some(source) = session.def_sources().get(name) {
+                return Ok(Prepared::SaveFunction {
+                    name: name.clone(),
+                    source: source.clone(),
+                });
+            }
+            match session.const_sources().get(name) {
+                Some(source) => Ok(Prepared::SaveConstant {
+                    name: name.clone(),
+                    source: source.clone(),
+                }),
+                None => Err(localizer.lookup_args("no-definition", &[("name", name)])),
+            }
+        }
         Command::SaveScript { name } => match session.last_line() {
             Some(source) if savable(source) => Ok(Prepared::SaveScript {
                 name: name.clone(),
@@ -102,6 +114,7 @@ pub fn prepare(cmd: &Command, session: &Session, localizer: &Localizer) -> Resul
 pub fn message(prepared: &Prepared, localizer: &Localizer) -> String {
     match prepared {
         Prepared::SaveFunction { name, .. } => localizer.lookup_args("saved", &[("name", name)]),
+        Prepared::SaveConstant { name, .. } => localizer.lookup_args("saved", &[("name", name)]),
         Prepared::SaveScript { name, .. } => {
             localizer.lookup_args("saved-script", &[("name", name)])
         }
@@ -144,6 +157,7 @@ pub fn run_command<S: Storage>(
     };
     let result = match &prepared {
         Prepared::SaveFunction { name, source } => persist::save_function(store, name, source),
+        Prepared::SaveConstant { name, source } => persist::save_constant(store, name, source),
         Prepared::SaveScript { name, source } => persist::save_script(store, name, source),
         Prepared::Language { code } => persist::save_language(store, code),
     };

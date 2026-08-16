@@ -1,0 +1,34 @@
+# User-defined constants: `const name = value`, visible like `pi`
+
+Users can define their own constants with `const name = value`. The value is
+evaluated once, at the definition, and the name is immutable afterwards.
+
+We chose `const name = value` because it is the syntax users already know:
+JavaScript, C, C++, Java (`final`), Rust, Go, Kotlin, and Julia all introduce
+immutable named values with a `const`-shaped keyword statement, and the
+calculator languages that don't have it (TI-BASIC, most desktop calculators)
+have no immutability to express at all. Alternatives rejected: an
+uppercase-naming convention (Python style) is invisible to the language and
+unenforceable; overloading `def` (a zero-parameter function already fills that
+niche, and "constant" and "function" are different domain nouns in
+`CONTEXT.md`).
+
+Semantics:
+
+- **Evaluated once, immediately** — `const area = pi * r ^ 2` captures the
+  value, not the expression (JavaScript semantics).
+- **Immutable** — assigning with `=` after `const` is an error
+  (`cannot assign to constant tax`), and so is defining the same constant
+  twice (`constant already defined: tax`); both match what `const` users
+  expect. A name is either a variable or a constant, never both, so lookups
+  stay unambiguous.
+- **Visible inside functions, like `pi`** — the built-in constants are visible
+  in function bodies; session variables are not. User constants follow the
+  built-ins (`new_child` copies them), which is what makes them useful:
+  `const g = 9.81; def weight(m) = m * g` works. A parameter still shadows a
+  constant.
+- **Persisted like functions** — `save tax` stores the `const` source line in
+  the Store (kind `constant`, ADR-0002), and startup replay orders functions,
+  then constants, then scripts, so constants may call functions and scripts
+  may use both. The web/PWA has no Store yet, exactly like functions
+  (ADR-0003).

@@ -57,6 +57,7 @@ impl std::fmt::Display for Value {
 #[derive(Debug, Clone, Default)]
 pub struct Env {
     bindings: HashMap<String, Value>,
+    constants: HashMap<String, Value>,
     functions: HashMap<String, Function>,
 }
 
@@ -71,6 +72,17 @@ impl Env {
         self.bindings.insert(name.into(), value);
     }
 
+    /// Look up a user-defined constant (ADR-0012).
+    pub fn constant(&self, name: &str) -> Option<&Value> {
+        self.constants.get(name)
+    }
+
+    /// Define a user-defined constant. The guards (no redefinition, no
+    /// taking a variable's name) live in the script runner, not here.
+    pub fn set_constant(&mut self, name: impl Into<String>, value: Value) {
+        self.constants.insert(name.into(), value);
+    }
+
     /// Look up a user-defined function.
     pub fn function(&self, name: &str) -> Option<&Function> {
         self.functions.get(name)
@@ -81,11 +93,13 @@ impl Env {
         self.functions.insert(name.into(), function);
     }
 
-    /// A child environment for a function call: the function table is visible
-    /// (so recursion works); the caller's bindings are not.
+    /// A child environment for a function call: the function table and the
+    /// constants are visible (so recursion works and constants act like the
+    /// built-in `pi`); the caller's bindings are not.
     fn new_child(&self) -> Env {
         Env {
             bindings: HashMap::new(),
+            constants: self.constants.clone(),
             functions: self.functions.clone(),
         }
     }
@@ -126,10 +140,12 @@ pub enum CmpOp {
 }
 
 /// One statement of a [`Script`] — the unit of the script seam (CONTEXT.md).
-/// Assignment mutates the [`Env`]; plain expressions just evaluate.
+/// Assignment mutates the [`Env`]; a constant definition binds an immutable
+/// name (ADR-0012); plain expressions just evaluate.
 #[derive(Debug, Clone)]
 pub enum Statement {
     Assign(String, Expression),
+    Const(String, Expression),
     FunctionDef(String, Vec<String>, Expression),
     While(Expression, Box<Statement>),
     Expr(Expression),
@@ -157,6 +173,12 @@ pub enum EpherError {
     ZeroDivision,
     #[error("step limit exceeded")]
     StepLimit,
+    #[error("cannot assign to constant {0}")]
+    AssignToConstant(String),
+    #[error("constant already defined: {0}")]
+    ConstantAlreadyDefined(String),
+    #[error("cannot define constant {0}: the name is already a variable")]
+    ConstantNameTaken(String),
     #[error("io error: {0}")]
     Io(String),
 }
@@ -473,7 +495,8 @@ impl Parser {
     }
 
     /// A statement is `while cond do stmt` (loop), `def name(params) = expr`
-    /// (function definition), `name = expr` (assignment), or `expr`.
+    /// (function definition), `const name = expr` (constant definition,
+    /// ADR-0012), `name = expr` (assignment), or `expr`.
     fn parse_statement(&mut self) -> Result<Statement, EpherError> {
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "while") {
             self.next(); // consume 'while'
@@ -481,6 +504,13 @@ impl Parser {
             self.expect_keyword("do")?;
             let body = Box::new(self.parse_statement()?);
             return Ok(Statement::While(cond, body));
+        }
+        if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "const") {
+            self.next(); // consume 'const'
+            let name = self.expect_ident("constant name")?;
+            self.expect_token(Token::Equals, "'='")?;
+            let expr = self.parse_expression()?;
+            return Ok(Statement::Const(name, expr));
         }
         if matches!(self.peek(), Some(Token::Ident(kw)) if kw == "def") {
             self.next(); // consume 'def'
@@ -755,6 +785,7 @@ pub fn eval(expr: &Expression, env: &Env) -> Result<Value, EpherError> {
         Expression::Var(name) => env
             .get(name)
             .cloned()
+            .or_else(|| env.constant(name).cloned())
             .or_else(|| builtin_const(name))
             .ok_or_else(|| EpherError::UnknownName(name.clone())),
         Expression::Neg(inner) => match eval(inner, env)? {
@@ -1366,11 +1397,8 @@ fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Opt
         consume_step(steps)?;
         match stmt {
             Statement::Expr(expr) => result = Some(eval(expr, env)?),
-            Statement::Assign(name, expr) => {
-                let value = eval(expr, env)?;
-                env.set(name.clone(), value.clone());
-                result = Some(value);
-            }
+            Statement::Assign(name, expr) => result = Some(assign(env, name, expr)?),
+            Statement::Const(name, expr) => result = Some(define_constant(env, name, expr)?),
             Statement::FunctionDef(name, params, body) => {
                 env.set_function(
                     name.clone(),
@@ -1387,6 +1415,31 @@ fn run_inner(script: &[Statement], env: &mut Env, steps: &mut u64) -> Result<Opt
     Ok(result)
 }
 
+/// Assign to a variable, refusing to rebind a constant (ADR-0012).
+fn assign(env: &mut Env, name: &str, expr: &Expression) -> Result<Value, EpherError> {
+    if env.constant(name).is_some() {
+        return Err(EpherError::AssignToConstant(name.to_string()));
+    }
+    let value = eval(expr, env)?;
+    env.set(name.to_string(), value.clone());
+    Ok(value)
+}
+
+/// Define a constant, refusing to redefine an existing constant or to take
+/// a variable's name — a name is either a variable or a constant, never
+/// both (ADR-0012).
+fn define_constant(env: &mut Env, name: &str, expr: &Expression) -> Result<Value, EpherError> {
+    if env.constant(name).is_some() {
+        return Err(EpherError::ConstantAlreadyDefined(name.to_string()));
+    }
+    if env.get(name).is_some() {
+        return Err(EpherError::ConstantNameTaken(name.to_string()));
+    }
+    let value = eval(expr, env)?;
+    env.set_constant(name.to_string(), value.clone());
+    Ok(value)
+}
+
 /// Execute one statement for its effect (used by loop bodies; loops produce no
 /// value).
 fn execute_stmt(stmt: &Statement, env: &mut Env, steps: &mut u64) -> Result<(), EpherError> {
@@ -1397,8 +1450,11 @@ fn execute_stmt(stmt: &Statement, env: &mut Env, steps: &mut u64) -> Result<(), 
             Ok(())
         }
         Statement::Assign(name, expr) => {
-            let value = eval(expr, env)?;
-            env.set(name.clone(), value);
+            assign(env, name, expr)?;
+            Ok(())
+        }
+        Statement::Const(name, expr) => {
+            define_constant(env, name, expr)?;
             Ok(())
         }
         Statement::FunctionDef(name, params, body) => {
@@ -1438,13 +1494,14 @@ fn run_while(
 
 /// An interactive session: a persistent [`Env`] plus history — the shared
 /// "submit a line" logic for the CLI REPL, TUI, and web frontends, so it
-/// exists once. Also records the source of each `def` line so frontends can
-/// save user-defined functions.
+/// exists once. Also records the source of each `def` and `const` line so
+/// frontends can save user-defined functions and constants.
 #[derive(Debug, Clone, Default)]
 pub struct Session {
     env: Env,
     history: Vec<String>,
     defs: HashMap<String, String>,
+    consts: HashMap<String, String>,
     last_line: Option<String>,
 }
 
@@ -1485,7 +1542,10 @@ impl Session {
         }
         self.last_line = Some(line.clone());
         if let Some(name) = def_name(&line) {
-            self.defs.insert(name, line);
+            self.defs.insert(name, line.clone());
+        }
+        if let Some(name) = const_name(&line) {
+            self.consts.insert(name, line);
         }
         output
     }
@@ -1506,7 +1566,10 @@ impl Session {
             Err(e) => format!("error: {e}"),
         };
         if let Some(name) = def_name(&line) {
-            self.defs.insert(name, line);
+            self.defs.insert(name, line.clone());
+        }
+        if let Some(name) = const_name(&line) {
+            self.consts.insert(name, line);
         }
         output
     }
@@ -1525,6 +1588,11 @@ impl Session {
         &self.defs
     }
 
+    /// The source text of every `const` line submitted this session, by name.
+    pub fn const_sources(&self) -> &HashMap<String, String> {
+        &self.consts
+    }
+
     /// The last interactive line submitted (used by `save script`).
     pub fn last_line(&self) -> Option<&str> {
         self.last_line.as_deref()
@@ -1535,6 +1603,26 @@ impl Session {
 fn def_name(line: &str) -> Option<String> {
     let rest = line.trim().strip_prefix("def")?.trim_start();
     let name: String = rest.chars().take_while(|c| c.is_alphabetic() || *c == '_').collect();
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+/// The name defined by a `const name = ...` line, if any. The `const` must
+/// stand alone as a word (so a variable named `const_tax` still parses as an
+/// assignment).
+fn const_name(line: &str) -> Option<String> {
+    let rest = line.trim().strip_prefix("const")?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let name: String = rest
+        .trim_start()
+        .chars()
+        .take_while(|c| c.is_alphabetic() || *c == '_')
+        .collect();
     if name.is_empty() {
         None
     } else {

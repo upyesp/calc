@@ -17,6 +17,11 @@ _Avoid_: formula, equation, calculation, term
 The result of evaluating an Expression.
 _Avoid_: result, answer, output, number
 
+**Constant**:
+A named, immutable Value defined by the user with `const`; like the built-in
+pi, it is visible inside Functions (ADR-0012).
+_Avoid_: literal, fixed number, named number
+
 **Function**:
 A named, parameterized, reusable computation that returns a Value.
 _Avoid_: macro, routine, procedure
@@ -34,8 +39,8 @@ _Avoid_: plot, chart, figure
 ### Persistence
 
 **Store**:
-The persisted collection of a user's data — Functions, Scripts, history, and
-settings.
+The persisted collection of a user's data — Functions, Constants, Scripts,
+history, and settings.
 _Avoid_: database, save file, cache
 
 **Native Store**:

@@ -155,6 +155,9 @@ fn epher_app() -> Html {
                                 epher_shell::Prepared::SaveFunction { name, source } => {
                                     bridge.save_function(name, source);
                                 }
+                                epher_shell::Prepared::SaveConstant { name, source } => {
+                                    bridge.save_constant(name, source);
+                                }
                                 epher_shell::Prepared::SaveScript { name, source } => {
                                     bridge.save_script(name, source);
                                 }

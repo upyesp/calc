@@ -3,12 +3,13 @@ use serde::{Deserialize, Serialize};
 use crate::{Storage, StoreError, StoreResult};
 
 /// A persisted user document — the single schema (ADR-0002). Documents are
-/// JSON; functions and scripts are stored as source text so the grammar can
-/// evolve without breaking saved data.
+/// JSON; functions, constants, and scripts are stored as source text so the
+/// grammar can evolve without breaking saved data.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Doc {
     Function(FunctionDoc),
+    Constant(ConstantDoc),
     Script(ScriptDoc),
     Setting(SettingDoc),
 }
@@ -16,6 +17,13 @@ pub enum Doc {
 /// A saved user-defined function, stored as its `def` source.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FunctionDoc {
+    pub name: String,
+    pub source: String,
+}
+
+/// A saved user-defined constant, stored as its `const` source (ADR-0012).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConstantDoc {
     pub name: String,
     pub source: String,
 }
@@ -63,6 +71,18 @@ impl<S: Storage> DocStore<S> {
 
     pub fn list_functions(&self) -> StoreResult<Vec<FunctionDoc>> {
         self.list_docs("function/")
+    }
+
+    pub fn get_constant(&self, name: &str) -> StoreResult<Option<ConstantDoc>> {
+        self.get_json(&key("constant", name))
+    }
+
+    pub fn put_constant(&self, doc: &ConstantDoc) -> StoreResult<()> {
+        self.put_json(&key("constant", &doc.name), doc)
+    }
+
+    pub fn list_constants(&self) -> StoreResult<Vec<ConstantDoc>> {
+        self.list_docs("constant/")
     }
 
     pub fn get_script(&self, name: &str) -> StoreResult<Option<ScriptDoc>> {

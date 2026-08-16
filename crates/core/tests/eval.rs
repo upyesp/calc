@@ -623,3 +623,129 @@ fn eval_str_checked(src: &str) -> Result<Value, epher_core::EpherError> {
     let env = Env::default();
     eval(&parse(src)?, &env)
 }
+
+// --- user-defined constants (ADR-0012) ----------------------------------
+
+/// Run script lines against a fresh Env, returning the last value's display.
+fn run_script(src: &str) -> Result<Value, epher_core::EpherError> {
+    let mut env = Env::default();
+    run(&parse_script(src)?, &mut env)?.ok_or(epher_core::EpherError::Parse("no value".into()))
+}
+
+#[test]
+fn constant_defines_and_evaluates_to_its_value() {
+    assert_eq!(run_script("const tax = 0.2").unwrap(), Value::float(0.2));
+}
+
+#[test]
+fn constant_is_usable_in_later_statements() {
+    assert_eq!(
+        run_script("const tax = 0.2; 100 * (1 + tax)").unwrap(),
+        Value::float(120.0)
+    );
+}
+
+#[test]
+fn constant_expression_is_evaluated_once_at_definition() {
+    assert_eq!(
+        run_script("const r = 2; const area = pi * r ^ 2; area").unwrap(),
+        run_script("pi * 4").unwrap()
+    );
+}
+
+#[test]
+fn constant_cannot_be_reassigned() {
+    let err = run_script("const tax = 0.2; tax = 0.25").unwrap_err();
+    assert_eq!(err.to_string(), "cannot assign to constant tax");
+}
+
+#[test]
+fn constant_cannot_be_redefined() {
+    let err = run_script("const tax = 0.2; const tax = 0.25").unwrap_err();
+    assert_eq!(err.to_string(), "constant already defined: tax");
+}
+
+#[test]
+fn constant_cannot_take_a_variables_name() {
+    let err = run_script("x = 5; const x = 6").unwrap_err();
+    assert_eq!(
+        err.to_string(),
+        "cannot define constant x: the name is already a variable"
+    );
+}
+
+#[test]
+fn variable_cannot_be_defined_where_a_constant_exists() {
+    // the reverse direction is the assign guard
+    let err = run_script("const g = 9.81; g = 9.8").unwrap_err();
+    assert_eq!(err.to_string(), "cannot assign to constant g");
+}
+
+#[test]
+fn constant_is_visible_inside_functions_like_pi() {
+    // variables are not visible in function bodies; constants are (ADR-0012)
+    assert_eq!(
+        run_script("const g = 9.81; def weight(m) = m * g; weight(80)").unwrap(),
+        run_script("80 * 9.81").unwrap()
+    );
+}
+
+#[test]
+fn function_parameter_shadows_a_constant() {
+    assert_eq!(
+        run_script("const x = 100; def f(x) = x + 1; f(1)").unwrap(),
+        Value::float(2.0)
+    );
+}
+
+#[test]
+fn constant_survives_across_statements_and_in_while_bodies() {
+    assert_eq!(
+        run_script("const step = 2; x = 0; while x < 10 do x = x + step; x").unwrap(),
+        Value::float(10.0)
+    );
+}
+
+#[test]
+fn assignment_inside_a_loop_to_a_constant_is_an_error() {
+    let err = run_script("const x = 0; while x < 5 do x = x + 1").unwrap_err();
+    assert_eq!(err.to_string(), "cannot assign to constant x");
+}
+
+#[test]
+fn user_constant_can_shadow_a_builtin() {
+    // same as variables today: bindings and user constants win over pi/e
+    assert_eq!(run_script("const pi = 3; pi * 2").unwrap(), Value::float(6.0));
+}
+
+#[test]
+fn const_prefixed_variable_names_are_still_assignments() {
+    assert_eq!(run_script("const_tax = 5; const_tax").unwrap(), Value::float(5.0));
+}
+
+#[test]
+fn session_tracks_const_sources_for_save() {
+    let mut session = Session::new();
+    session.submit("const tax = 0.2");
+    session.submit("tax");
+    assert_eq!(
+        session.const_sources().get("tax").map(String::as_str),
+        Some("const tax = 0.2")
+    );
+    assert!(session.const_sources().get("const_tax").is_none());
+}
+
+#[test]
+fn const_in_a_fresh_child_env_only_shadows_via_params() {
+    // new_child copies constants: a direct env probe of the same guarantee
+    let mut env = Env::default();
+    run(
+        &parse_script("const k = 7; def f() = k").expect("parse"),
+        &mut env,
+    )
+    .unwrap();
+    assert_eq!(
+        run(&parse_script("f()").unwrap(), &mut env).unwrap(),
+        Some(Value::float(7.0))
+    );
+}

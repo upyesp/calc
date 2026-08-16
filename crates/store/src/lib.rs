@@ -11,7 +11,7 @@ mod memory;
 mod fs;
 pub mod persist;
 
-pub use docs::{Doc, DocStore, FunctionDoc, ScriptDoc, SettingDoc};
+pub use docs::{ConstantDoc, Doc, DocStore, FunctionDoc, ScriptDoc, SettingDoc};
 pub use memory::MemoryStore;
 #[cfg(feature = "fs")]
 pub use fs::FsStore;

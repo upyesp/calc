@@ -3,7 +3,7 @@
 //! once — the web frontend uses the same [`DocStore`] seam with its own
 //! backend.
 
-use crate::{DocStore, FunctionDoc, ScriptDoc, Storage, StoreError, StoreResult};
+use crate::{ConstantDoc, DocStore, FunctionDoc, ScriptDoc, Storage, StoreError, StoreResult};
 use epher_core::Session;
 
 pub const HISTORY_SETTING: &str = "history";
@@ -24,11 +24,15 @@ pub fn default_store_dir() -> std::path::PathBuf {
 }
 
 /// The saved lines to replay at startup, in load order: functions first,
-/// then scripts (the recipe [`load_session`] applies natively; the desktop
-/// webview replays them into its own Session — ADR-0010).
+/// then constants, then scripts (the recipe [`load_session`] applies
+/// natively; the desktop webview replays them into its own Session —
+/// ADR-0010). Constants may call functions; scripts may use both.
 pub fn replay_lines<S: Storage>(store: &DocStore<S>) -> StoreResult<Vec<String>> {
     let mut lines = Vec::new();
     for doc in store.list_functions()? {
+        lines.push(doc.source);
+    }
+    for doc in store.list_constants()? {
         lines.push(doc.source);
     }
     for doc in store.list_scripts()? {
@@ -37,8 +41,8 @@ pub fn replay_lines<S: Storage>(store: &DocStore<S>) -> StoreResult<Vec<String>>
     Ok(lines)
 }
 
-/// Rebuild a session from the store: history plus saved functions and scripts
-/// (re-run as definitions).
+/// Rebuild a session from the store: history plus saved functions,
+/// constants, and scripts (re-run as definitions).
 pub fn load_session<S: Storage>(store: &DocStore<S>) -> StoreResult<Session> {
     let history = history(store)?;
     let mut session = Session::with_history(history);
@@ -68,6 +72,17 @@ pub fn save_function<S: Storage>(
     source: &str,
 ) -> StoreResult<()> {
     store.put_function(&FunctionDoc {
+        name: name.to_string(),
+        source: source.to_string(),
+    })
+}
+
+pub fn save_constant<S: Storage>(
+    store: &DocStore<S>,
+    name: &str,
+    source: &str,
+) -> StoreResult<()> {
+    store.put_constant(&ConstantDoc {
         name: name.to_string(),
         source: source.to_string(),
     })
