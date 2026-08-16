@@ -2,7 +2,7 @@
   "name": "epher-site",
   "private": true,
   "type": "module",
-  "description": "Build tooling for the epher.github.io landing page and user guides",
+  "description": "Build tooling for the epher.org landing page and user guides",
   "scripts": {
     "build:guide": "node scripts/build-guide.mjs"
   },

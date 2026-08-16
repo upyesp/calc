@@ -138,7 +138,7 @@ jobs:
             - **Linux**: Debian/Ubuntu → `.deb`; Fedora/RHEL → `.rpm`;
               Arch and everything else → `.AppImage` (chmod +x and run).
 
-            - **Web app (PWA)**: https://upyesp.github.io/epher/pwa/ — works
+            - **Web app (PWA)**: https://epher.org/pwa/ — works
               fully offline.
 
             > Note: the macOS and Windows builds are unsigned; your OS may
