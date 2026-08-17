@@ -130,7 +130,7 @@ fn sections() -> Vec<Roff> {
         tagged(roff, "printf \"x = 3\\nx * 10\\n\" | epher -", "read a script from standard input, line by line");
         tagged(roff, "printf \"def f(x) = x ^ 2\\nf(9)\\n\" | epher -", "lines share one session: prints = 81");
         tagged(roff, "epher repl", "interactive session; answers print as `= result`");
-        tagged(roff, "epher tui", "full-screen interface with graphing (graph x ^ 2)");
+        tagged(roff, "epher tui", "full-screen interface with graphing (graph x ^ 2, graph3d x ^ 2 - y ^ 2, space animates)");
     }));
 
     v

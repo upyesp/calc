@@ -52,6 +52,19 @@ The x/y rows of an Expression over a range, blank where the expression has
 no value (`table` command).
 _Avoid_: value list, spreadsheet
 
+**3D surface**:
+A `z = f(x, y)` mesh sampled over a square domain (`graph3d` command),
+projected to 2D lines in core and drawn by the same renderers as curves
+(ADR-0015).
+_Avoid_: plot3d, height field, mesh (as the product term)
+
+**Animation (parameter playback)**:
+Stepping a user-defined Constant through a bounded range while everything
+referencing it re-samples — the play button on a slider (web/desktop) or
+the space bar (TUI). Always user-started, one control to pause; reduced
+motion degrades it to stepping (ADR-0015).
+_Avoid_: movie, animated plot, time series
+
 ### Persistence
 
 **Store**:

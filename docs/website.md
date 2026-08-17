@@ -75,6 +75,10 @@ translations, and add new ones in the same order so the kinds stay aligned):
 - ` ```epher ` / ` ```sh ` — what the reader types: rendered as a code block
   with lightweight epher syntax highlighting and a copy-to-clipboard button
   (labels localized in `CHROME` in `build-guide.mjs`)
+
+The web app's graphing (ADR-0014/0015) is documented in guide section 2.4:
+curves, points of interest, sliders with play/pause animation, 3D surfaces
+(`graph3d`), and export.
 - ` ```text ` — what epher answers, REPL/TUI transcripts, URLs, paths: the
   plain box
 
