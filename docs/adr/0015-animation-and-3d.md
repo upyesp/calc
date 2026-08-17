@@ -88,3 +88,28 @@ how to add playback and a third dimension without a renderer rewrite.
   button instead of motion.
 - The TUI event loop polls with a timeout only while playing; idle behavior
   is unchanged.
+
+## Amendment (2026-08-17): near-plane clipping and SVG-namespace injection
+
+Two defects surfaced in the first end-user test of `graph3d` (Android Edge,
+but reproducible in every browser):
+
+1. **The plot was blank.** The mesh HTML was injected with Yew's
+   `Html::from_html_unchecked`, which parses fragments inside a plain HTML
+   `<div>` — so the polyline nodes carried the HTML namespace and the SVG
+   renderer never painted them. Structural tests counted DOM nodes, not
+   pixels, and missed this. The mesh is now injected imperatively with
+   `Element::set_inner_html` on an SVG `<g>` (NodeRef + effect), which parses
+   in the SVG context and produces painted, SVG-namespace geometry. Test
+   verification now includes pixel-color sampling, not just node counts.
+2. **The projection could explode.** With the camera at 12 units and typical
+   surfaces reaching z = ±25, the camera plane cuts through the default plot;
+   points near it made the perspective divide blow up (viewBox in the
+   thousands) and squashed the surface to a sliver. `project_point` gains
+   `project_clipped`, which clips segments against a near plane
+   (`NEAR_DIST = 1.0` in front of the camera) before the divide; whole grid
+   lines are split into visible runs at the crossings, and the frame and both
+   renderers inherit the fix. The default camera moved to 30 units so it
+   sits beyond typical surface z values — the default view shows the whole
+   surface, and near-plane clipping engages only when the user orbits in
+   close.
