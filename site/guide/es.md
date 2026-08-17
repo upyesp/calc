@@ -676,7 +676,7 @@ graph x ^ 2
 ```
 
 epher dibuja la curva y = f(x) desde x = −10 hasta x = 10 debajo del
-campo de entrada, con un rótulo que muestra lo representado. Puedes
+campo de entrada, sobre una cuadrícula con ejes etiquetados. Puedes
 graficar cualquier expresión, incluidas tus propias funciones:
 
 ```epher
@@ -684,8 +684,70 @@ def f(x) = x ^ 3
 graph f(x)
 ```
 
+Cada línea `graph` añade otra curva al mismo gráfico, cada una con su
+propio color y patrón de trazos, y una leyenda que las nombra.
+`graph clear` vacía el gráfico.
+
+```epher
+graph x ^ 2
+graph x ^ 3
+```
+
 Los puntos donde la expresión no tiene valor (una división por cero, por
-ejemplo) se omiten, dejando un hueco en la curva.
+ejemplo) se omiten, dejando un hueco en la curva — y un salto que en
+realidad es una asíntota vertical nunca se dibuja como línea conectora.
+
+#### 2.4.1 Qué puedes representar
+
+- **Un dominio a tu elección:** `graph sin(x) from 0 to 2*pi`
+- **Curvas paramétricas:** `graph param 2*cos(t), 3*sin(t)` (t va de 0 a 2π)
+- **Curvas polares:** `graph polar 1 + cos(theta)`
+- **Regiones:** `graph y < x ^ 2` sombrea el área bajo la curva; `y >`
+  sombrea la de encima.
+
+#### 2.4.2 Leer la gráfica
+
+**Seguimiento:** mueve el puntero sobre la gráfica — o enfócala y pulsa
+las teclas de flecha — y se marca el punto más cercano de una curva, con
+sus coordenadas mostradas debajo de la gráfica.
+
+**Puntos de interés:** tras cada comando graph, epher encuentra las
+raíces y los máximos y mínimos de cada curva y las intersecciones entre
+curvas, los marca en la gráfica y los lista debajo de ella:
+
+```text
+root (-1, 0)   minimum (0, 0)   root (1, 0)
+```
+
+**Tablas:** el comando `table` imprime una tabla de valores (las filas
+donde la expresión no tiene valor quedan en blanco):
+
+```epher
+table x ^ 2 from -2 to 2 points 5
+```
+
+```text
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
+#### 2.4.3 Deslizadores y exportación
+
+Define una constante, úsala en una gráfica y aparece un deslizador debajo
+de la gráfica — arrástralo (o muévelo con las teclas de flecha) y cada
+curva se redibuja:
+
+```epher
+const a = 1
+graph a * x ^ 2
+```
+
+**Copiar SVG** copia la gráfica actual como imagen SVG para pegarla en
+documentos.
 
 ### 2.5 Instalarla y usarla sin conexión
 
@@ -705,12 +767,12 @@ abre al instante, incluso sin conexión a internet.
 
 ### 2.6 Lo que la aplicación web no hace
 
-La aplicación web es intencionadamente simple: evalúa expresiones y guarda
-un historial de sesión. Los comandos **save**, **save script** y
-**language** funcionan en las versiones de escritorio, línea de comandos y
-terminal (capítulos 3, 4 y 5) — en la aplicación web responden con una
-nota de que guardar funciona allí. El historial no se guarda entre
-visitas.
+La aplicación web conserva tu trabajo en la sesión actual: evalúa
+expresiones, las grafica (sección 2.4) y mantiene un historial. Los
+comandos **save**, **save script** y **language** funcionan en las
+versiones de escritorio, línea de comandos y terminal (capítulos 3, 4 y
+5) — en la aplicación web responden con una nota de que guardar funciona
+allí. El historial no se guarda entre visitas.
 
 ## 3. La aplicación de escritorio
 
@@ -880,6 +942,19 @@ epher> x ^ 2
 = 25
 ```
 
+El comando `table` (sección 2.4.2) también imprime aquí una tabla de
+valores:
+
+```text
+epher> table x ^ 2 from -2 to 2 points 5
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
 Cada respuesta se muestra como `= resultado`. Para salir, escribe `quit` (o
 `exit`):
 
@@ -975,10 +1050,10 @@ epher tui
 
 La pantalla está dividida en paneles:
 
-- **Expression** — la línea de entrada (arriba).
+- **Expresión** — la línea de entrada (arriba).
 - El **resultado** actual justo debajo.
-- **History** — cada línea que escribiste, con su respuesta.
-- **Graph** — la gráfica del comando `graph` (abajo).
+- **Historial** — cada línea que escribiste, con su respuesta.
+- **Gráfica** — la gráfica del comando `graph` (abajo).
 - Una línea de pistas muestra los atajos de teclado.
 
 ### 5.2 Teclas
@@ -1000,8 +1075,8 @@ graph x ^ 2
 ```
 
 epher muestrea la curva de x = −10 a x = 10 y la dibuja como una gráfica
-ASCII en el panel Graph. El título sobre la gráfica muestra lo que se
-representa: `y = x ^ 2`.
+ASCII en el panel Graph; la leyenda sobre la gráfica nombra lo que se
+representa.
 
 Puedes graficar cualquier expresión, incluidas tus propias funciones —
 primero define una y luego grafícala:
@@ -1011,8 +1086,19 @@ def f(x) = x ^ 3
 graph f(x)
 ```
 
+Cada línea `graph` añade una curva a la gráfica, dibujada con su propio
+símbolo (`o`, `x`, `+`, `*`); `graph clear` vacía la gráfica. Se aplica
+la misma gramática que en la aplicación web: un dominio
+(`graph sin(x) from 0 to 2*pi`), curvas paramétricas
+(`graph param 2*cos(t), 3*sin(t)`), curvas polares
+(`graph polar 1 + cos(theta)`) y regiones (`graph y < x ^ 2` sombrea el
+área bajo la curva).
+
 Los puntos donde la expresión no tiene valor (por ejemplo división entre
-cero) simplemente se omiten, dejando un hueco en la gráfica.
+cero) simplemente se omiten, dejando un hueco en la gráfica. Tras cada
+comando graph, la TUI lista los puntos de interés — raíces, máximos y
+mínimos e intersecciones — bajo la gráfica. El comando `table`
+(sección 2.4.2) también funciona aquí.
 
 ### 5.4 Guardar y persistencia
 

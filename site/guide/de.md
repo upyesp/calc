@@ -682,17 +682,80 @@ Tippe `graph`, gefolgt von einem Ausdruck, und drücke **Enter**:
 graph x ^ 2
 ```
 
-epher zeichnet die Kurve y = f(x) von x = −10 bis x = 10 unter das
-Eingabefeld, mit einer Beschriftung, die zeigt, was gezeichnet wurde. Du
-kannst jeden Ausdruck zeichnen, auch deine eigenen Funktionen:
+epher zeichnet die Kurve y = f(x) von x = −10 bis x = 10 unterhalb des
+Eingabefelds, auf einem Raster mit beschrifteten Achsen. Du kannst jeden
+Ausdruck zeichnen, auch deine eigenen Funktionen:
 
 ```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
 
+Jede `graph`-Zeile fügt demselben Plot eine weitere Kurve hinzu, jede mit
+eigener Farbe und eigenem Strichmuster, und eine Legende benennt sie.
+`graph clear` leert den Plot.
+
+```epher
+graph x ^ 2
+graph x ^ 3
+```
+
 Punkte, an denen der Ausdruck keinen Wert hat (zum Beispiel eine Division
-durch null), werden übersprungen und hinterlassen eine Lücke in der Kurve.
+durch null), werden übersprungen und hinterlassen eine Lücke in der
+Kurve — und ein Sprung, der eigentlich eine senkrechte Asymptote ist,
+wird nie als Verbindungslinie gezeichnet.
+
+#### 2.4.1 Was du zeichnen kannst
+
+- **Ein Definitionsbereich deiner Wahl:** `graph sin(x) from 0 to 2*pi`
+- **Parametrische Kurven:** `graph param 2*cos(t), 3*sin(t)` (t läuft von 0 bis 2π)
+- **Polarkurven:** `graph polar 1 + cos(theta)`
+- **Bereiche:** `graph y < x ^ 2` schattiert die Fläche unter der Kurve; `y >`
+  schattiert darüber.
+
+#### 2.4.2 Den Plot lesen
+
+**Verfolgen:** Bewege den Zeiger über den Plot — oder fokussiere ihn und
+drücke die Pfeiltasten — und der nächstgelegene Punkt auf einer Kurve
+wird markiert, seine Koordinaten werden unter dem Plot angezeigt.
+
+**Besondere Punkte:** Nach jedem graph-Befehl findet epher die Nullstellen
+und Extrempunkte jeder Kurve und die Schnittpunkte zwischen Kurven,
+markiert sie im Plot und listet sie darunter auf:
+
+```text
+root (-1, 0)   minimum (0, 0)   root (1, 0)
+```
+
+**Tabellen:** Der Befehl `table` druckt eine Wertetabelle (Zeilen, an
+denen der Ausdruck keinen Wert hat, bleiben leer):
+
+```epher
+table x ^ 2 from -2 to 2 points 5
+```
+
+```text
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
+#### 2.4.3 Schieberegler und Export
+
+Definiere eine Konstante, verwende sie in einem Graphen, und unter dem
+Plot erscheint ein Schieberegler — ziehe ihn (oder bewege ihn mit den
+Pfeiltasten) und jede Kurve wird neu gezeichnet:
+
+```epher
+const a = 1
+graph a * x ^ 2
+```
+
+**SVG kopieren** kopiert den aktuellen Plot als SVG-Bild zum Einfügen in
+Dokumente.
 
 ### 2.5 Installieren und offline nutzen
 
@@ -711,12 +774,13 @@ deine App-Liste — sie öffnet sich sofort, auch ohne Internetverbindung.
 
 ### 2.6 Was die Web-App nicht kann
 
-Die Web-App ist bewusst einfach: Sie wertet Ausdrücke aus und führt einen
-Sitzungsverlauf. Die Befehle **save**, **save script** und **language**
+Die Web-App hält deine Arbeit in der aktuellen Sitzung: Sie wertet
+Ausdrücke aus, zeichnet ihre Graphen (Abschnitt 2.4) und führt einen
+Verlauf. Die Befehle **save**, **save script** und **language**
 funktionieren in der Desktop-, Befehlszeilen- und Terminal-Version
 (Kapitel 3, 4 und 5) — in der Web-App antworten sie mit einem Hinweis,
-dass Speichern dort funktioniert. Der Verlauf wird zwischen Besuchen nicht
-gespeichert.
+dass Speichern dort funktioniert. Der Verlauf wird zwischen Besuchen
+nicht gespeichert.
 
 ## 3. Die Desktop-App
 
@@ -887,6 +951,18 @@ epher> x ^ 2
 = 25
 ```
 
+Der Befehl `table` (Abschnitt 2.4.2) druckt auch hier eine Wertetabelle:
+
+```text
+epher> table x ^ 2 from -2 to 2 points 5
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
 Jede Antwort wird als `= result` angezeigt. Zum Verlassen tippe `quit`
 (oder `exit`):
 
@@ -1008,8 +1084,8 @@ graph x ^ 2
 ```
 
 epher tastet die Kurve von x = −10 bis x = 10 ab und zeichnet sie als
-ASCII-Grafik in das Panel Graph. Die Beschriftung über der Zeichnung
-zeigt, was gezeichnet wird: `y = x ^ 2`.
+ASCII-Plot in das Panel Graph; die Legende über dem Plot benennt, was
+gezeichnet wird.
 
 Du kannst jeden Ausdruck zeichnen, auch deine eigenen Funktionen —
 definiere zuerst eine und zeichne sie dann:
@@ -1019,9 +1095,19 @@ def f(x) = x ^ 3
 graph f(x)
 ```
 
+Jede `graph`-Zeile fügt dem Plot eine Kurve hinzu, gezeichnet mit ihrem
+eigenen Symbol (`o`, `x`, `+`, `*`); `graph clear` leert den Plot.
+Dieselbe Grammatik wie in der Web-App gilt: ein Definitionsbereich
+(`graph sin(x) from 0 to 2*pi`), parametrische Kurven
+(`graph param 2*cos(t), 3*sin(t)`), Polarkurven
+(`graph polar 1 + cos(theta)`) und Bereiche (`graph y < x ^ 2` schattiert
+die Fläche unter der Kurve).
+
 Punkte, an denen der Ausdruck keinen Wert hat (zum Beispiel die Division
-durch null), werden einfach übersprungen und hinterlassen eine Lücke in
-der Zeichnung.
+durch null), werden einfach übersprungen und hinterlassen eine Lücke im
+Plot. Nach jedem graph-Befehl listet die TUI die besonderen Punkte —
+Nullstellen, Extrempunkte und Schnittpunkte — unter dem Plot auf. Der
+Befehl `table` (Abschnitt 2.4.2) funktioniert auch hier.
 
 ### 5.4 Speichern und Persistenz
 

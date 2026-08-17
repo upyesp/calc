@@ -672,16 +672,77 @@ graph x ^ 2
 ```
 
 epher draws the curve y = f(x) from x = −10 to x = 10 beneath the input,
-with a caption showing what was plotted. You can graph any expression,
-including your own functions:
+on a grid with labelled axes. You can graph any expression, including
+your own functions:
 
 ```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
 
-Points where the expression has no value (a division by zero, for example)
-are skipped, leaving a gap in the curve.
+Every `graph` line adds another curve to the same plot, each with its own
+colour and dash pattern, and a legend naming them. `graph clear` empties
+the plot.
+
+```epher
+graph x ^ 2
+graph x ^ 3
+```
+
+Points where the expression has no value (a division by zero, for
+example) are skipped, leaving a gap in the curve — and a jump that is
+really a vertical asymptote is never drawn as a connecting line.
+
+#### 2.4.1 What you can plot
+
+- **A domain of your choice:** `graph sin(x) from 0 to 2*pi`
+- **Parametric curves:** `graph param 2*cos(t), 3*sin(t)` (t runs from 0 to 2π)
+- **Polar curves:** `graph polar 1 + cos(theta)`
+- **Regions:** `graph y < x ^ 2` shades the area below the curve; `y >`
+  shades above.
+
+#### 2.4.2 Reading the plot
+
+**Trace:** move the pointer over the plot — or focus it and press the
+arrow keys — and the nearest point on a curve is marked, with its
+coordinates announced beneath the plot.
+
+**Points of interest:** after every graph command epher finds the roots
+and turning points of each curve and the intersections between curves,
+marks them on the plot, and lists them beneath it:
+
+```text
+root (-1, 0)   minimum (0, 0)   root (1, 0)
+```
+
+**Tables:** the `table` command prints a table of values (rows where the
+expression has no value are blank):
+
+```epher
+table x ^ 2 from -2 to 2 points 5
+```
+
+```text
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
+#### 2.4.3 Sliders and export
+
+Define a constant, use it in a graph, and a slider appears beneath the
+plot — drag it (or move it with the arrow keys) and every curve redraws:
+
+```epher
+const a = 1
+graph a * x ^ 2
+```
+
+**Copy SVG** copies the current plot as an SVG image for pasting into
+documents.
 
 ### 2.5 Installing it and using it offline
 
@@ -698,11 +759,12 @@ instantly, even with no internet connection.
 
 ### 2.6 What the web app does not do
 
-The web app is intentionally simple: it evaluates expressions and keeps a
-session history. The **save**, **save script**, and **language** commands
-work in the desktop, command line, and terminal versions (chapters 3, 4,
-and 5) — in the web app they answer with a note that saving works there.
-The history is not saved between visits.
+The web app keeps your work to the current session: it evaluates
+expressions, graphs them (section 2.4), and keeps a history. The **save**,
+**save script**, and **language** commands work in the desktop, command
+line, and terminal versions (chapters 3, 4, and 5) — in the web app they
+answer with a note that saving works there. The history is not saved
+between visits.
 
 ## 3. The desktop app
 
@@ -867,6 +929,18 @@ epher> x ^ 2
 = 25
 ```
 
+The `table` command (section 2.4.2) prints a table of values here too:
+
+```text
+epher> table x ^ 2 from -2 to 2 points 5
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
 Each answer is shown as `= result`. To leave, type `quit` (or `exit`):
 
 ```text
@@ -982,9 +1056,8 @@ Type `graph` followed by an expression, and press **Enter**:
 graph x ^ 2
 ```
 
-epher samples the curve from x = −10 to x = 10 and draws it as an ASCII plot
-in the Graph panel. The caption above the plot shows what is plotted:
-`y = x ^ 2`.
+epher samples the curve from x = −10 to x = 10 and draws it as an ASCII
+plot in the Graph panel; the legend above the plot names what is plotted.
 
 You can graph any expression, including your own functions — first define
 one, then graph it:
@@ -994,8 +1067,18 @@ def f(x) = x ^ 3
 graph f(x)
 ```
 
+Every `graph` line adds a curve to the plot, drawn with its own symbol
+(`o`, `x`, `+`, `*`); `graph clear` empties the plot. The same grammar as
+the web app applies: a domain (`graph sin(x) from 0 to 2*pi`), parametric
+curves (`graph param 2*cos(t), 3*sin(t)`), polar curves
+(`graph polar 1 + cos(theta)`), and regions (`graph y < x ^ 2` shades the
+area below the curve).
+
 Points where the expression has no value (for example division by zero)
-are simply skipped, leaving a gap in the plot.
+are simply skipped, leaving a gap in the plot. After every graph command
+the TUI lists the points of interest — roots, turning points, and
+intersections — under the plot. The `table` command (section 2.4.2) works
+here too.
 
 ### 5.4 Saving and persistence
 

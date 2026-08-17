@@ -685,17 +685,79 @@ graph x ^ 2
 ```
 
 epher échantillonne la courbe y = f(x) de x = −10 à x = 10 et la dessine
-sous le champ de saisie, avec une légende indiquant ce qui est tracé. Vous
-pouvez tracer n'importe quelle expression, y compris vos propres
-fonctions :
+sous le champ de saisie, sur une grille aux axes étiquetés. Vous pouvez
+tracer n'importe quelle expression, y compris vos propres fonctions :
 
 ```epher
 def f(x) = x ^ 3
 graph f(x)
 ```
 
+Chaque ligne `graph` ajoute une autre courbe au même tracé, chacune avec
+sa propre couleur et son propre motif de tirets, et une légende qui les
+nomme. `graph clear` vide le tracé.
+
+```epher
+graph x ^ 2
+graph x ^ 3
+```
+
 Les points où l'expression n'a pas de valeur (une division par zéro, par
-exemple) sont simplement ignorés, laissant un vide dans la courbe.
+exemple) sont ignorés, laissant un vide dans la courbe — et un saut qui
+est en réalité une asymptote verticale n'est jamais dessiné comme une
+ligne de liaison.
+
+#### 2.4.1 Ce que vous pouvez tracer
+
+- **Un domaine de votre choix :** `graph sin(x) from 0 to 2*pi`
+- **Courbes paramétriques :** `graph param 2*cos(t), 3*sin(t)` (t va de 0 à 2π)
+- **Courbes polaires :** `graph polar 1 + cos(theta)`
+- **Régions :** `graph y < x ^ 2` ombrage la zone sous la courbe ; `y >`
+  ombrage celle du dessus.
+
+#### 2.4.2 Lire le tracé
+
+**Suivi :** déplacez le pointeur sur le tracé — ou focalisez-le et
+appuyez sur les touches fléchées — et le point le plus proche d'une
+courbe est marqué, avec ses coordonnées affichées sous le tracé.
+
+**Points d'intérêt :** après chaque commande graph, epher trouve les
+racines et les extremums de chaque courbe et les intersections entre
+courbes, les marque sur le tracé et les liste en dessous :
+
+```text
+root (-1, 0)   minimum (0, 0)   root (1, 0)
+```
+
+**Tableaux :** la commande `table` affiche un tableau de valeurs (les
+lignes où l'expression n'a pas de valeur restent vides) :
+
+```epher
+table x ^ 2 from -2 to 2 points 5
+```
+
+```text
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
+#### 2.4.3 Curseurs et exportation
+
+Définissez une constante, utilisez-la dans un tracé, et un curseur
+apparaît sous le tracé — faites-le glisser (ou déplacez-le avec les
+touches fléchées) et chaque courbe se redessine :
+
+```epher
+const a = 1
+graph a * x ^ 2
+```
+
+**Copier le SVG** copie le tracé actuel comme image SVG à coller dans
+des documents.
 
 ### 2.5 L'installer et l'utiliser hors ligne
 
@@ -716,12 +778,13 @@ d'applications — elle s'ouvre instantanément, même sans connexion internet.
 
 ### 2.6 Ce que l'application web ne fait pas
 
-L'application web est volontairement simple : elle évalue des expressions et
-garde un historique de session. Les commandes **save**, **save script** et
-**language** fonctionnent dans les versions bureau, ligne de commande et
-terminal (chapitres 3, 4 et 5) — dans l'application web, elles répondent
-par une note expliquant que l'enregistrement y est possible. L'historique
-n'est pas conservé entre les visites.
+L'application web conserve votre travail dans la session en cours : elle
+évalue des expressions, les trace (section 2.4) et garde un historique.
+Les commandes **save**, **save script** et **language** fonctionnent dans
+les versions bureau, ligne de commande et terminal (chapitres 3, 4 et 5)
+— dans l'application web, elles répondent par une note indiquant que
+l'enregistrement y est possible. L'historique n'est pas conservé entre
+les visites.
 
 ## 3. L'application de bureau
 
@@ -892,6 +955,19 @@ epher> x ^ 2
 = 25
 ```
 
+La commande `table` (section 2.4.2) affiche ici aussi un tableau de
+valeurs :
+
+```text
+epher> table x ^ 2 from -2 to 2 points 5
+         x           y
+        -2           4
+        -1           1
+         0           0
+         1           1
+         2           4
+```
+
 Chaque réponse s'affiche sous la forme `= résultat`. Pour quitter, tapez
 `quit` (ou `exit`) :
 
@@ -989,8 +1065,8 @@ L'écran est divisé en panneaux :
 
 - **Expression** — la ligne de saisie (en haut).
 - Le **résultat** courant juste en dessous.
-- **History** — chaque ligne saisie, avec sa réponse.
-- **Graph** — le tracé de la commande `graph` (en bas).
+- **Historique** — chaque ligne saisie, avec sa réponse.
+- **Graphique** — le tracé de la commande `graph` (en bas).
 - Une ligne d'aide affiche les raccourcis clavier.
 
 ### 5.2 Touches
@@ -1011,9 +1087,9 @@ Tapez `graph` suivi d'une expression, puis appuyez sur **Entrée** :
 graph x ^ 2
 ```
 
-epher échantillonne la courbe de x = −10 à x = 10 et la dessine sous forme de
-graphique ASCII dans le panneau Graph. La légende au-dessus du tracé montre
-ce qui est tracé : `y = x ^ 2`.
+epher échantillonne la courbe de x = −10 à x = 10 et la dessine sous
+forme de graphique ASCII dans le panneau Graph ; la légende au-dessus du
+tracé nomme ce qui est tracé.
 
 Vous pouvez tracer n'importe quelle expression, y compris vos propres
 fonctions — définissez-en d'abord une, puis tracez-la :
@@ -1023,8 +1099,19 @@ def f(x) = x ^ 3
 graph f(x)
 ```
 
+Chaque ligne `graph` ajoute une courbe au tracé, dessinée avec son propre
+symbole (`o`, `x`, `+`, `*`) ; `graph clear` vide le tracé. La même
+grammaire que dans l'application web s'applique : un domaine
+(`graph sin(x) from 0 to 2*pi`), des courbes paramétriques
+(`graph param 2*cos(t), 3*sin(t)`), des courbes polaires
+(`graph polar 1 + cos(theta)`) et des régions (`graph y < x ^ 2` ombrage
+la zone sous la courbe).
+
 Les points où l'expression n'a pas de valeur (par exemple la division par
-zéro) sont simplement ignorés, laissant un vide dans le tracé.
+zéro) sont simplement ignorés, laissant un vide dans le tracé. Après
+chaque commande graph, la TUI liste les points d'intérêt — racines,
+extremums et intersections — sous le tracé. La commande `table`
+(section 2.4.2) fonctionne ici aussi.
 
 ### 5.4 Enregistrement et persistance
 
