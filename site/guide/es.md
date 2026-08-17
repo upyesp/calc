@@ -440,6 +440,13 @@ x = 10; y = x + 5; x + y
 Los scripts son la forma de construir pequeños programas: prepara
 variables, haz bucles y muestra un resultado final.
 
+Los ejemplos de varias líneas de esta guía son scripts, con una instrucción
+por línea. El botón **Copiar** situado encima de cada ejemplo copia el
+script completo, y puedes pegarlo directamente en epher: el campo de
+entrada de la aplicación web y de la aplicación de escritorio, la interfaz
+de terminal y `epher repl` ejecutan todas las líneas en orden, exactamente
+como si las hubieras escrito una a una.
+
 ### 1.12 Resultados exactos: frac, dec y big
 
 Normalmente epher calcula con números decimales como una calculadora de

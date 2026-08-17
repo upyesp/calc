@@ -436,6 +436,12 @@ x = 10; y = x + 5; x + y
 Scripts are how you build small programs: set up variables, loop, and show a
 final result.
 
+Multi-line examples in this guide are scripts, one statement per line. The
+**Copy** button above an example copies the whole script, and you can paste
+it straight into epher: the entry field on the web app and the desktop app,
+the terminal UI, and `epher repl` all run each line in order, exactly as if
+you had typed them one by one.
+
 ### 1.12 Exact results: frac, dec and big
 
 Normally epher calculates with decimal numbers like a pocket calculator.

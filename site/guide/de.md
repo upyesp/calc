@@ -443,6 +443,13 @@ x = 10; y = x + 5; x + y
 Mit Skripten baust du kleine Programme: Variablen einrichten, Schleifen
 laufen lassen und ein Endergebnis zeigen.
 
+Mehrzeilige Beispiele in diesem Handbuch sind Skripte, eine Anweisung pro
+Zeile. Der Button **Kopieren** über einem Beispiel kopiert das ganze
+Skript, und du kannst es direkt in epher einfügen: das Eingabefeld in der
+Web-App und in der Desktop-App, die Terminal-Oberfläche und `epher repl`
+führen alle jede Zeile der Reihe nach aus, genau so, als hättest du sie
+eine nach der anderen getippt.
+
 ### 1.12 Exakte Ergebnisse: frac, dec und big
 
 Normalerweise rechnet epher mit Dezimalzahlen wie ein Taschenrechner.
