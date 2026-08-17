@@ -3,7 +3,7 @@
 
 use epher_core::Session;
 use epher_i18n::Localizer;
-use epher_shell::{classify, plain, prepare, run_command, Command};
+use epher_shell::{classify, plain, prepare, run_command, Command, Prepared};
 use epher_store::{DocStore, MemoryStore};
 
 fn en() -> Localizer {
@@ -172,4 +172,80 @@ fn run_command_surfaces_prepare_errors_without_persisting() {
     );
     assert_eq!(out, "no definition for nope in this session");
     assert!(store.list_functions().unwrap().is_empty());
+}
+
+#[test]
+fn classify_recognizes_table() {
+    assert_eq!(
+        classify("table x ^ 2 from -2 to 2 points 5"),
+        Some(Command::Table {
+            source: "x ^ 2 from -2 to 2 points 5".into()
+        })
+    );
+    assert_eq!(classify("table"), None);
+}
+
+#[test]
+fn prepare_formats_a_table_with_blank_rows() {
+    let mut s = Session::new();
+    let out = prepare(
+        &Command::Table {
+            source: "x ^ 2 from -1 to 1 points 3".into(),
+        },
+        &s,
+        &en(),
+    )
+    .unwrap();
+    let Prepared::Table { text } = out else {
+        panic!("expected a table");
+    };
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines.len(), 4, "header + 3 rows");
+    assert!(lines[0].contains('x') && lines[0].contains('y'));
+    assert!(lines[1].contains("-1") && lines[1].contains('1'));
+    assert!(lines[3].contains('1'));
+
+    // Undefined rows show the blank marker, not a crash or a number.
+    s.submit("const k = 2");
+    let out = prepare(
+        &Command::Table {
+            source: "1 / x from -1 to 1 points 5".into(),
+        },
+        &s,
+        &en(),
+    )
+    .unwrap();
+    let Prepared::Table { text } = out else {
+        panic!("expected a table");
+    };
+    assert!(text.lines().nth(3).unwrap().contains('—'));
+}
+
+#[test]
+fn prepare_reports_table_errors() {
+    let s = Session::new();
+    assert!(prepare(
+        &Command::Table {
+            source: "x from 5 to 2".into()
+        },
+        &s,
+        &en(),
+    )
+    .is_err());
+    assert!(prepare(
+        &Command::Table {
+            source: "x points 0".into()
+        },
+        &s,
+        &en(),
+    )
+    .is_err());
+    assert!(prepare(
+        &Command::Table {
+            source: "x points 1.5".into()
+        },
+        &s,
+        &en(),
+    )
+    .is_err());
 }

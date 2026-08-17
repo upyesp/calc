@@ -20,6 +20,8 @@ pub enum Command {
     Save { name: String },
     SaveScript { name: String },
     Language { code: String },
+    /// `table <expr> [from a to b] [points n]` — a table of values (ADR-0014).
+    Table { source: String },
 }
 
 /// A command resolved against the session, ready to persist.
@@ -29,6 +31,8 @@ pub enum Prepared {
     SaveConstant { name: String, source: String },
     SaveScript { name: String, source: String },
     Language { code: String },
+    /// A preformatted table of values (monospace text, one row per line).
+    Table { text: String },
 }
 
 /// Recognize a shell command in an input line. Anything else (including
@@ -58,13 +62,25 @@ pub fn classify(line: &str) -> Option<Command> {
         }
         return None;
     }
+    if let Some(source) = line.strip_prefix("table ") {
+        let source = source.trim();
+        if !source.is_empty() {
+            return Some(Command::Table {
+                source: source.to_string(),
+            });
+        }
+        return None;
+    }
     None
 }
 
 /// A `last_line` qualifies as a savable script only if it was a real
 /// evaluation, not another shell command.
 fn savable(source: &str) -> bool {
-    !source.starts_with("save") && !source.starts_with("language") && !source.starts_with("quit")
+    !source.starts_with("save")
+        && !source.starts_with("language")
+        && !source.starts_with("table")
+        && !source.starts_with("quit")
 }
 
 /// Resolve a command against the session: validation and source lookups.
@@ -107,7 +123,49 @@ pub fn prepare(cmd: &Command, session: &Session, localizer: &Localizer) -> Resul
                 ))
             }
         }
+        Command::Table { source } => {
+            let spec = epher_core::graph::parse_table_source(source)
+                .map_err(|e| format!("error: {e}"))?;
+            let rows = epher_core::graph::table_rows(
+                &spec.expr,
+                spec.x_min,
+                spec.x_max,
+                spec.points,
+                session.env(),
+            );
+            Ok(Prepared::Table {
+                text: format_table(&rows),
+            })
+        }
     }
+}
+
+/// A trimmed, monospace-readable number for table columns (the same
+/// graph-scale formatting the renderers use).
+fn fmt(v: f64) -> String {
+    let s = format!("{v:.3}");
+    let s = s.trim_end_matches('0').trim_end_matches('.');
+    if s == "-0" {
+        "0".to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+/// Render table rows as aligned monospace text; undefined y cells show an
+/// em dash (TI-style blank rows).
+fn format_table(rows: &[(f64, Option<f64>)]) -> String {
+    const W: usize = 10;
+    let mut out = String::from(format!("{:>W$}  {:>W$}\n", "x", "y"));
+    for (x, y) in rows {
+        let y = match y {
+            Some(v) => fmt(*v),
+            None => "—".to_string(),
+        };
+        out.push_str(&format!("{:>W$}  {:>W$}\n", fmt(*x), y));
+    }
+    out.pop();
+    out
 }
 
 /// The localized success message for a prepared command.
@@ -121,6 +179,7 @@ pub fn message(prepared: &Prepared, localizer: &Localizer) -> String {
         Prepared::Language { code, .. } => {
             localizer.lookup_args("language-set", &[("code", code)])
         }
+        Prepared::Table { text } => text.clone(),
     }
 }
 
@@ -175,6 +234,8 @@ pub fn run_command<S: Storage>(
         Prepared::SaveConstant { name, source } => persist::save_constant(store, name, source),
         Prepared::SaveScript { name, source } => persist::save_script(store, name, source),
         Prepared::Language { code } => persist::save_language(store, code),
+        // A table is pure computation — nothing to persist.
+        Prepared::Table { .. } => Ok(()),
     };
     match result {
         Ok(()) => {
