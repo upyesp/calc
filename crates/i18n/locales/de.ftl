@@ -1,0 +1,17 @@
+app-name = epher
+prompt = epher>
+saved = { $name } gespeichert
+saved-script = Skript { $name } gespeichert
+nothing-to-save = nichts zu speichern (keine vorhergehende Skriptzeile)
+no-definition = keine Definition für { $name } in dieser Sitzung
+language-set = Sprache auf { $code } gesetzt
+unsupported-language = nicht unterstützte Sprache { $code } (unterstützt: { $supported })
+tui-expression = Ausdruck
+tui-history = Verlauf
+tui-graph = Graph
+tui-hints = Enter auswerten · Esc leeren · Ctrl+C beenden · q beenden
+web-session-only = die Web-App behält die Arbeit nur in dieser Sitzung; Speichern funktioniert in der Desktop-, Befehlszeilen- und Terminal-Version
+install-cli = epher-Befehl installieren
+install-cli-ok = Installiert — gib epher in einem beliebigen Terminal ein.
+install-cli-already = Der epher-Befehl ist bereits installiert.
+install-cli-failed = Der epher-Befehl konnte nicht installiert werden:

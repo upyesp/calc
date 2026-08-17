@@ -47,7 +47,7 @@ fn detected_locales_negotiate_with_region_matching() {
 
 #[test]
 fn unsupported_detected_locale_falls_back_to_english() {
-    let l = Localizer::resolve(None, &["de".to_string()]);
+    let l = Localizer::resolve(None, &["it".to_string()]);
     assert_eq!(l.locale(), "en");
 }
 

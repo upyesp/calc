@@ -1,0 +1,17 @@
+app-name = epher
+prompt = epher>
+saved = guardado { $name }
+saved-script = script guardado { $name }
+nothing-to-save = nada para guardar (sem linha de script anterior)
+no-definition = sem definição para { $name } nesta sessão
+language-set = idioma definido para { $code }
+unsupported-language = idioma não suportado { $code } (suportados: { $supported })
+tui-expression = Expressão
+tui-history = Histórico
+tui-graph = Gráfico
+tui-hints = Enter avaliar · Esc limpar · Ctrl+C sair · q sair
+web-session-only = a aplicação web mantém o trabalho apenas nesta sessão; guardar funciona nas versões de ambiente de trabalho, de linha de comandos e de terminal
+install-cli = Instalar o comando epher
+install-cli-ok = Instalado — escreva epher em qualquer terminal.
+install-cli-already = O comando epher já está instalado.
+install-cli-failed = Não foi possível instalar o comando epher:

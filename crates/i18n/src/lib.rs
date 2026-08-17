@@ -11,9 +11,11 @@ use fluent_langneg::{
 };
 use unic_langid::LanguageIdentifier as BundleLangId;
 
-/// Locales shipped in v1 (ADR-0008): the five most widely spoken languages plus
-/// Arabic for right-to-left support.
-pub const SUPPORTED_LOCALES: &[&str] = &["en", "zh-CN", "hi", "es", "fr", "ar"];
+/// Locales shipped in v1 (ADR-0008): English, Mandarin Chinese, Hindi,
+/// Spanish, French, Arabic (right-to-left), German, and Portuguese.
+pub const SUPPORTED_LOCALES: &[&str] = &[
+    "en", "zh-CN", "hi", "es", "fr", "ar", "de", "pt",
+];
 
 /// The default and always-complete fallback locale.
 pub const DEFAULT_LOCALE: &str = "en";
@@ -106,6 +108,8 @@ fn bundle_for(locale: &str) -> Option<FluentBundle<FluentResource>> {
         "es" => include_str!("../locales/es.ftl"),
         "fr" => include_str!("../locales/fr.ftl"),
         "ar" => include_str!("../locales/ar.ftl"),
+        "de" => include_str!("../locales/de.ftl"),
+        "pt" => include_str!("../locales/pt.ftl"),
         _ => return None,
     };
     let resource = FluentResource::try_new(source.to_string()).ok()?;
