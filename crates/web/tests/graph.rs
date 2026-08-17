@@ -64,7 +64,11 @@ fn geometry_uses_the_union_of_domains_and_padded_y_range() {
 fn jump_splitting_breaks_asymptote_branches() {
     // 1 / x: the two branches must never be joined by a vertical line.
     let s = segments(&samples_of(&[-20.0, -10.0, f64::NAN, 10.0, 20.0]), 40.0);
-    assert_eq!(s.len(), 2, "both branches survive as separate segments: {s:?}");
+    assert_eq!(
+        s.len(),
+        2,
+        "both branches survive as separate segments: {s:?}"
+    );
     assert_eq!(s[0].len(), 2);
     assert_eq!(s[1].len(), 2);
 

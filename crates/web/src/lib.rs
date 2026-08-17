@@ -11,7 +11,7 @@
 mod bridge;
 pub mod graph;
 
-use crate::graph::Graph;
+use crate::graph::{Graph, Graph3D};
 use bridge::{Bridge, InitState};
 use epher_core::graph::{
     analyze, free_names, parse_graph_source, sample_spec, CurveKind, CurveSpec, InterestPoint,
@@ -39,9 +39,42 @@ struct GraphLive {
     trace: Option<graph::TracePoint>,
 }
 
+/// A running parameter animation (ADR-0015): the constant `name` steps by
+/// `step` between `lo` and `hi`, wrapping around; `value` is the next value
+/// to apply on the coming tick.
+#[derive(Debug, Clone, PartialEq)]
+struct PlaySpec {
+    name: String,
+    lo: f64,
+    hi: f64,
+    step: f64,
+    value: f64,
+    /// The 3D viewBox frozen at play start: while playing, the plot keeps
+    /// this box so the layout (and the pause button) stay put.
+    freeze: Option<String>,
+}
+
+impl PlaySpec {
+    fn ticked(&self) -> PlaySpec {
+        let mut next = self.value + self.step;
+        if next > self.hi {
+            next = self.lo;
+        }
+        PlaySpec {
+            value: next,
+            ..self.clone()
+        }
+    }
+}
+
 /// The names of session constants any plotted expression references — each
-/// becomes a live slider (ADR-0014).
-fn slider_names(curves: &[SampledCurve], session: &Session) -> Vec<String> {
+/// becomes a live slider (ADR-0014). Surfaces count too (ADR-0015): their
+/// constants animate the mesh the same way.
+fn slider_names(
+    curves: &[SampledCurve],
+    surfaces: &[epher_core::graph::Surface],
+    session: &Session,
+) -> Vec<String> {
     let mut names = std::collections::BTreeSet::new();
     for c in curves {
         let mut visit = |expr: &epher_core::Expression| {
@@ -62,6 +95,17 @@ fn slider_names(curves: &[SampledCurve], session: &Session) -> Vec<String> {
             CurveKind::Polar(e) => visit(e),
         }
     }
+    for surface in surfaces {
+        if let Ok((expr, _)) = epher_core::graph::parse_surface_source(&surface.source) {
+            let mut found = std::collections::BTreeSet::new();
+            free_names(&expr, &mut found);
+            for n in found {
+                if session.const_sources().contains_key(&n) {
+                    names.insert(n);
+                }
+            }
+        }
+    }
     names.into_iter().collect()
 }
 
@@ -79,6 +123,16 @@ fn resample(curves: &mut [SampledCurve], session: &Session) {
     for c in curves.iter_mut() {
         if let Ok(samples) = sample_spec(&curve_spec(c), 120, session.env()) {
             c.samples = samples;
+        }
+    }
+}
+
+/// Re-sample every surface against the current environment (a moved
+/// constant changes the mesh).
+fn resample_surfaces(surfaces: &mut [epher_core::graph::Surface], session: &Session) {
+    for surface in surfaces.iter_mut() {
+        if let Ok(fresh) = epher_core::graph::sample_surface(&surface.source, 30, session.env()) {
+            *surface = fresh;
         }
     }
 }
@@ -128,7 +182,14 @@ fn epher_app() -> Html {
     let pois = use_state(Vec::<graph::Poi>::new);
     let trace = use_state(|| Option::<graph::TracePoint>::None);
     let live = use_state(|| Rc::new(RefCell::new(GraphLive::default())));
-    let sliders = use_state(Vec::<String>::new);
+    let surface = use_state(Vec::<epher_core::graph::Surface>::new);
+    let view = use_state(epher_core::graph::View3D::default);
+    let play = use_state(|| Option::<PlaySpec>::None);
+    // The live cell behind `play`: the animation loop reads and advances
+    // it across ticks; Yew handles captured at spawn read stale snapshots.
+    let play_cell = use_state(|| Rc::new(RefCell::new(Option::<PlaySpec>::None)));
+    // The 3D viewBox from the latest render; play start freezes it.
+    let rendered_box = use_state(|| Rc::new(RefCell::new(None::<String>)));
     let show_install_cli = use_state(|| false);
     let bridge = Bridge::detect();
 
@@ -236,8 +297,8 @@ fn epher_app() -> Html {
         let graph = graph.clone();
         let pois = pois.clone();
         let trace = trace.clone();
-        let sliders = sliders.clone();
         let live = live.clone();
+        let surface = surface.clone();
         Callback::from(move |e: SubmitEvent| {
             e.prevent_default();
             // A submitted entry may be several lines (pasted from the
@@ -248,6 +309,7 @@ fn epher_app() -> Html {
             // on locals and the states are published once, after the loop.
             let mut s = (*session).clone();
             let mut curves = (*graph).clone();
+            let mut surfaces = (*surface).clone();
             for line in (*input).split('\n') {
                 let line = line.trim().to_string();
                 if line.is_empty() {
@@ -274,6 +336,24 @@ fn epher_app() -> Html {
                                 fill: spec.fill,
                             });
                             result.set(format!("graph: {source}"));
+                        }
+                        Err(e) => result.set(format!("error: {e}")),
+                    }
+                    continue;
+                }
+
+                // 3D surfaces (ADR-0015): z = f(x, y) over a square
+                // domain, overlaid like curves. History is untouched.
+                if let Some(source) = line.strip_prefix("graph3d ") {
+                    let source = source.trim();
+                    if source == "clear" {
+                        surfaces.clear();
+                        continue;
+                    }
+                    match epher_core::graph::sample_surface(source, 30, s.env()) {
+                        Ok(fresh) => {
+                            surfaces.push(fresh);
+                            result.set(format!("graph3d: {source}"));
                         }
                         Err(e) => result.set(format!("error: {e}")),
                     }
@@ -331,20 +411,20 @@ fn epher_app() -> Html {
             // slider set follow from the final curves and session.
             let found = analyze(&curves, s.env());
             let labels = poi_labels(&found, &localizer);
-            sliders.set(slider_names(&curves, &s));
             {
                 let mut l = (*live).borrow_mut();
                 l.curves = curves.clone();
                 l.trace = None;
             }
             graph.set(curves);
+            surface.set(surfaces);
             pois.set(labels);
             trace.set(None);
             session.set(s.clone());
             input.set(String::new());
             // Desktop apps are killed, not exited: persist per line (ADR-0010).
             if bridge == Bridge::Tauri {
-                bridge.save_history(&s.history().to_vec());
+                bridge.save_history(s.history());
             }
         })
     };
@@ -356,6 +436,7 @@ fn epher_app() -> Html {
         let graph = graph.clone();
         let pois = pois.clone();
         let localizer = localizer.clone();
+        let surface = surface.clone();
         Callback::from(move |(name, value): (String, f64)| {
             let mut s = (*session).clone();
             s.set_constant(
@@ -365,10 +446,121 @@ fn epher_app() -> Html {
             );
             let mut curves = (*graph).clone();
             resample(&mut curves, &s);
+            let mut surfaces = (*surface).clone();
+            resample_surfaces(&mut surfaces, &s);
             let found = analyze(&curves, s.env());
             session.set(s);
             graph.set(curves);
+            surface.set(surfaces);
             pois.set(poi_labels(&found, &localizer));
+        })
+    };
+
+    // The same resample logic, shared with the animation loop through a
+    // live cell (Yew handles captured by the loop would go stale). The
+    // cell is refreshed after every render.
+    let live_apply =
+        use_state(|| Rc::new(RefCell::new(None::<Rc<dyn Fn(String, f64)>>)));
+    {
+        let live_apply = live_apply.clone();
+        let on_slider = on_slider.clone();
+        use_effect(move || {
+            let apply: Rc<dyn Fn(String, f64)> = Rc::new(move |name: String, value: f64| {
+                on_slider.emit((name, value));
+            });
+            *live_apply.borrow_mut() = Some(apply);
+            || {}
+        });
+    }
+
+    // 3D orbit: drag or arrow keys rotate the view (ADR-0015).
+    let on_orbit = {
+        let view = view.clone();
+        Callback::from(move |(dyaw, dpitch): (f64, f64)| {
+            let v = *view;
+            view.set(epher_core::graph::View3D {
+                yaw: v.yaw + dyaw,
+                pitch: (v.pitch + dpitch).clamp(-1.4, 1.4),
+                camera: v.camera,
+            });
+        })
+    };
+
+    // Parameter animation (ADR-0015): the play button on a slider starts a
+    // loop that steps the constant within the slider's bounds and re-runs
+    // the same resample path as a drag. The loop talks to the live cell so
+    // it never reads stale state; `play` mirrors it for rendering.
+    {
+        let play_cell = play_cell.clone();
+        let live_apply = live_apply.clone();
+        use_effect(move || {
+            spawn_local(async move {
+                loop {
+                    if (*play_cell).borrow().is_none() {
+                        gloo_timers::future::sleep(std::time::Duration::from_millis(100)).await;
+                        continue;
+                    }
+                    // One step per 120 ms: a v±2 cycle (40 steps) takes
+                    // about 5 s — the vendor norm for playback speed.
+                    gloo_timers::future::sleep(std::time::Duration::from_millis(120)).await;
+                    let Some(spec) = (*play_cell).borrow().clone() else {
+                        continue;
+                    };
+                    let next = spec.ticked();
+                    *play_cell.borrow_mut() = Some(next.clone());
+                    if let Some(apply) = (*live_apply).borrow().as_ref() {
+                        apply(next.name.clone(), next.value);
+                    }
+                }
+            });
+            || {}
+        });
+    }
+    let start_play = {
+        let play = play.clone();
+        let play_cell = play_cell.clone();
+        let rendered_box = rendered_box.clone();
+        let live_apply = live_apply.clone();
+        Callback::from(move |(name, value): (String, f64)| {
+            let reduce = web_sys::window()
+                .and_then(|w| w.match_media("(prefers-reduced-motion: reduce)").ok())
+                .flatten()
+                .map(|m| m.matches())
+                .unwrap_or(false);
+            if reduce {
+                // No looping playback under reduced motion: each press
+                // steps the parameter once (WCAG 2.3.3).
+                let lo = f64::min(-10.0, value - 2.0);
+                let hi = f64::max(10.0, value + 2.0);
+                let mut next = value + 0.1;
+                if next > hi {
+                    next = lo;
+                }
+                if let Some(apply) = (*live_apply).borrow().as_ref() {
+                    apply(name.clone(), next);
+                }
+                return;
+            }
+            let lo = f64::min(-10.0, value - 2.0);
+            let hi = f64::max(10.0, value + 2.0);
+            let spec = PlaySpec {
+                name,
+                lo,
+                hi,
+                step: 0.1,
+                value,
+                freeze: (*rendered_box).borrow().clone(),
+            };
+            play.set(Some(spec.clone()));
+            *play_cell.borrow_mut() = Some(spec);
+        })
+    };
+    let stop_play = {
+        let play = play.clone();
+        let play_cell = play_cell.clone();
+        Callback::from(move |_: web_sys::MouseEvent| {
+            play.set(None);
+            *play_cell.borrow_mut() = None;
         })
     };
 
@@ -506,35 +698,80 @@ fn epher_app() -> Html {
     // numeric form, announced politely (the plot itself is an image).
     let trace_text = (*trace).map(|t| format!("x = {:.3}, y = {:.3}", t.x, t.y));
 
-    let slider_rows: Vec<Html> = (*sliders)
-        .iter()
-        .filter_map(|name| {
-            let v = const_value(&session, name)?;
-            let lo = f64::min(-10.0, v - 2.0);
-            let hi = f64::max(10.0, v + 2.0);
-            let on_slider = on_slider.clone();
-            let name_for_event = name.clone();
-            Some(html! {
-                <label class="slider">
-                    <span class="slider-name">{ name.clone() }</span>
-                    <input
-                        type="range"
-                        min={lo.to_string()}
-                        max={hi.to_string()}
-                        step="0.1"
-                        value={v.to_string()}
-                        oninput={Callback::from(move |e: InputEvent| {
-                            let target = e.target_unchecked_into::<HtmlInputElement>();
-                            if let Ok(value) = target.value().parse::<f64>() {
-                                on_slider.emit((name_for_event.clone(), value));
-                            }
-                        })}
-                    />
-                    <span class="slider-value">{ format!("{v:.3}") }</span>
-                </label>
+    // Slider rows for a list of constant names — the 2D plot gets the
+    // constants its curves reference, the 3D plot the constants its
+    // surfaces reference (ADR-0014/0015). Dragging the animated slider
+    // stops playback; the play button (re)starts it.
+    let build_rows = |names: &[String]| -> Vec<Html> {
+        names
+            .iter()
+            .filter_map(|name| {
+                let v = const_value(&session, name)?;
+                let lo = f64::min(-10.0, v - 2.0);
+                let hi = f64::max(10.0, v + 2.0);
+                let on_slider = on_slider.clone();
+                let playing_this = (*play).as_ref().is_some_and(|p| p.name == *name);
+                let stop_on_drag = {
+                    let play = play.clone();
+                    let play_cell = play_cell.clone();
+                    let name = name.clone();
+                    let on_slider = on_slider.clone();
+                    Callback::from(move |e: InputEvent| {
+                        let target = e.target_unchecked_into::<HtmlInputElement>();
+                        let Ok(value) = target.value().parse::<f64>() else {
+                            return;
+                        };
+                        if play.as_ref().is_some_and(|p| p.name == name) {
+                            play.set(None);
+                            *play_cell.borrow_mut() = None;
+                        }
+                        on_slider.emit((name.clone(), value));
+                    })
+                };
+                let name_for_play = name.clone();
+                let start_play = start_play.clone();
+                let stop_play = stop_play.clone();
+                let animate_label = if playing_this {
+                    localizer.lookup("animate-stop")
+                } else {
+                    localizer.lookup("animate")
+                };
+                Some(html! {
+                    <div class="slider">
+                        <span class="slider-name">{ name.clone() }</span>
+                        <input
+                            type="range"
+                            min={lo.to_string()}
+                            max={hi.to_string()}
+                            step="0.1"
+                            value={v.to_string()}
+                            oninput={stop_on_drag}
+                        />
+                        <span class="slider-value">{ format!("{v:.3}") }</span>
+                        <button
+                            type="button"
+                            class="play-btn"
+                            aria-pressed={playing_this.to_string()}
+                            aria-label={format!("{animate_label} {name}")}
+                            onclick={if playing_this {
+                                stop_play
+                            } else {
+                                Callback::from(move |_: web_sys::MouseEvent| {
+                                    start_play.emit((name_for_play.clone(), v))
+                                })
+                            }}
+                        >
+                            <span aria-hidden="true">{ if playing_this { "⏸" } else { "▶" } }</span>
+                        </button>
+                    </div>
+                })
             })
-        })
-        .collect();
+            .collect()
+    };
+    let curve_sliders = slider_names(&graph, &[], &session);
+    let surface_sliders = slider_names(&[], &surface, &session);
+    let curve_rows = build_rows(&curve_sliders);
+    let surface_rows = build_rows(&surface_sliders);
 
     let legend_items: Vec<Html> = (*graph)
         .iter()
@@ -624,12 +861,54 @@ fn epher_app() -> Html {
                                 }
                             }
                             <div class="sliders">
-                                { for slider_rows }
+                                { for curve_rows }
                             </div>
                             <button type="button" class="copy-svg" onclick={on_copy_svg}>
                                 { localizer.lookup("graph-copy") }
                             </button>
                         </section>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+            {
+                if !(*surface).is_empty() {
+                    let rendered = graph::surface_svg(&surface, &view);
+                    let aria = format!(
+                        "{}: {}",
+                        "3D",
+                        (*surface)
+                            .iter()
+                            .map(|s| format!("z = {}", s.source.trim()))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    if let Some((view_box, content)) = rendered {
+                        // Record for play-freeze; while playing, keep the
+                        // frozen box so the layout stays put.
+                        *rendered_box.borrow_mut() = Some(view_box.clone());
+                        let shown_box = (*play)
+                            .as_ref()
+                            .and_then(|p| p.freeze.clone())
+                            .unwrap_or(view_box);
+                        html! {
+                            <section class="graph graph3d">
+                                <h2 class="graph3d-title">{ "3D" }</h2>
+                                <Graph3D
+                                    view_box={shown_box}
+                                    content={content}
+                                    aria_label={aria}
+                                    on_orbit={on_orbit}
+                                />
+                                <p class="graph3d-hint">{ localizer.lookup("graph3d-hint") }</p>
+                                <div class="sliders">
+                                    { for surface_rows }
+                                </div>
+                            </section>
+                        }
+                    } else {
+                        html! {}
                     }
                 } else {
                     html! {}

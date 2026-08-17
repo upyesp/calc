@@ -44,56 +44,59 @@ impl Bridge {
 
     /// Load history, replay lines, and the language preference.
     pub async fn init(self) -> Result<InitState, String> {
-        let value = self.invoke("init", &JsValue::UNDEFINED).await.map_err(js_err)?;
+        let value = self
+            .invoke("init", &JsValue::UNDEFINED)
+            .await
+            .map_err(js_err)?;
         serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())
     }
 
     /// Fire-and-forget saves: the UI already showed the prepared message;
     /// a late failure is surfaced through the status region.
     pub fn save_function(self, name: &str, source: &str) {
-        let args = serde_wasm_bindgen::to_value(&SaveArgs { name, source })
-            .unwrap_or(JsValue::UNDEFINED);
+        let args =
+            serde_wasm_bindgen::to_value(&SaveArgs { name, source }).unwrap_or(JsValue::UNDEFINED);
         self.spawn("save_function", args);
     }
 
     pub fn save_constant(self, name: &str, source: &str) {
-        let args = serde_wasm_bindgen::to_value(&SaveArgs { name, source })
-            .unwrap_or(JsValue::UNDEFINED);
+        let args =
+            serde_wasm_bindgen::to_value(&SaveArgs { name, source }).unwrap_or(JsValue::UNDEFINED);
         self.spawn("save_constant", args);
     }
 
     pub fn save_script(self, name: &str, source: &str) {
-        let args = serde_wasm_bindgen::to_value(&SaveArgs { name, source })
-            .unwrap_or(JsValue::UNDEFINED);
+        let args =
+            serde_wasm_bindgen::to_value(&SaveArgs { name, source }).unwrap_or(JsValue::UNDEFINED);
         self.spawn("save_script", args);
     }
 
     pub fn save_history(self, history: &[String]) {
-        let args = serde_wasm_bindgen::to_value(&HistoryArgs { history })
-            .unwrap_or(JsValue::UNDEFINED);
+        let args =
+            serde_wasm_bindgen::to_value(&HistoryArgs { history }).unwrap_or(JsValue::UNDEFINED);
         self.spawn("save_history", args);
     }
 
     pub fn save_language(self, code: &str) {
-        let args = serde_wasm_bindgen::to_value(&CodeArgs { code })
-            .unwrap_or(JsValue::UNDEFINED);
+        let args = serde_wasm_bindgen::to_value(&CodeArgs { code }).unwrap_or(JsValue::UNDEFINED);
         self.spawn("save_language", args);
     }
 
     /// Can this desktop shell install the `epher` terminal command?
     /// (macOS only, ADR-0011.) The UI asks at startup.
     pub async fn cli_install_supported(self) -> Result<bool, String> {
-        let value =
-            self.invoke("cli_install_supported", &JsValue::UNDEFINED)
-                .await
-                .map_err(js_err)?;
+        let value = self
+            .invoke("cli_install_supported", &JsValue::UNDEFINED)
+            .await
+            .map_err(js_err)?;
         serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())
     }
 
     /// Install the `epher` terminal command. Ok carries a Fluent key;
     /// Err carries readable instructions to show.
     pub async fn install_cli(self) -> Result<String, String> {
-        let value = self.invoke("install_cli", &JsValue::UNDEFINED)
+        let value = self
+            .invoke("install_cli", &JsValue::UNDEFINED)
             .await
             .map_err(js_err)?;
         serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())

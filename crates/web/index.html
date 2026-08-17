@@ -247,6 +247,44 @@
       text-align: end;
       color: var(--muted);
     }
+    /* The parameter play/pause button (ADR-0015): square, keyboard-visible,
+       aria-pressed announces its state. */
+    .play-btn {
+      width: 2.4rem;
+      height: 2.4rem;
+      min-width: 2.4rem;
+      min-height: 2.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel);
+      color: var(--accent);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    /* The 3D plot section (ADR-0015). */
+    .graph3d-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .graph3d-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      color: var(--accent);
+      background: var(--panel);
+      border-radius: 12px;
+      touch-action: none;
+      cursor: grab;
+    }
+    .graph3d-svg:active { cursor: grabbing; }
+    .graph3d-hint {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
     /* Copy-SVG: a quiet secondary button, like install-cli. */
     .copy-svg {
       font-size: 0.95rem;

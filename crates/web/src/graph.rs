@@ -15,7 +15,7 @@
 //! (WCAG 1.4.1). Axes/gridlines inherit `currentColor` at recorded
 //! opacities (1.4.11).
 
-use epher_core::graph::{InterestKind, SampledCurve};
+use epher_core::graph::{InterestKind, SampledCurve, Segment3D, Surface, View3D};
 use epher_core::Sample;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
@@ -194,7 +194,12 @@ pub struct TracePoint {
 }
 
 /// The nearest sample point to a viewBox position, within a 100px radius.
-pub fn trace_nearest(curves: &[SampledCurve], geom: &Geometry, px: f64, py: f64) -> Option<TracePoint> {
+pub fn trace_nearest(
+    curves: &[SampledCurve],
+    geom: &Geometry,
+    px: f64,
+    py: f64,
+) -> Option<TracePoint> {
     const MAX_D2: f64 = 100.0 * 100.0;
     let mut best: Option<(f64, TracePoint)> = None;
     for (ci, c) in curves.iter().enumerate() {
@@ -418,16 +423,20 @@ pub fn graph_html(props: &GraphProps) -> Html {
             {
                 let el_closure = el.clone();
                 let on_trace = on_trace.clone();
-                bound.push(gloo_events::EventListener::new(&el, "mousemove", move |e| {
-                    let Some(me) = e.dyn_ref::<web_sys::MouseEvent>() else {
-                        return;
-                    };
-                    let w = el_closure.client_width().max(1) as f64;
-                    let h = el_closure.client_height().max(1) as f64;
-                    let px = me.offset_x() as f64 * WIDTH / w;
-                    let py = me.offset_y() as f64 * HEIGHT / h;
-                    on_trace.emit((px, py));
-                }));
+                bound.push(gloo_events::EventListener::new(
+                    &el,
+                    "mousemove",
+                    move |e| {
+                        let Some(me) = e.dyn_ref::<web_sys::MouseEvent>() else {
+                            return;
+                        };
+                        let w = el_closure.client_width().max(1) as f64;
+                        let h = el_closure.client_height().max(1) as f64;
+                        let px = me.offset_x() as f64 * WIDTH / w;
+                        let py = me.offset_y() as f64 * HEIGHT / h;
+                        on_trace.emit((px, py));
+                    },
+                ));
             }
             {
                 let el_closure = el.clone();
@@ -562,6 +571,190 @@ pub fn graph_html(props: &GraphProps) -> Html {
             { for curve_layers }
             { for poi_nodes }
             { trace_node }
+        </svg>
+    }
+}
+
+// ===== 3D surfaces (ADR-0015) =====
+
+/// Render the plotted surfaces as SVG content: mesh lines per grid row and
+/// column with per-line depth shading (nearer lines more opaque), the
+/// ground square and axes of the first surface on top, all painter-sorted
+/// far to near. Built as a string (not diffed elements) so orbiting a
+/// thousand-line mesh stays cheap. Returns (viewBox, inner content) — the
+/// component puts both on one <svg> element.
+pub fn surface_svg(surfaces: &[Surface], view: &View3D) -> Option<(String, String)> {
+    use epher_core::graph::{project_mesh, surface_frame, Polyline3D};
+    if surfaces.is_empty() {
+        return None;
+    }
+    let mut mesh: Vec<Polyline3D> = Vec::new();
+    for s in surfaces {
+        mesh.extend(project_mesh(s, view));
+    }
+    let frame: Vec<Segment3D> = surface_frame(&surfaces[0], view);
+    if mesh.is_empty() && frame.is_empty() {
+        return None;
+    }
+    let mut x_min = f64::INFINITY;
+    let mut x_max = f64::NEG_INFINITY;
+    let mut y_min = f64::INFINITY;
+    let mut y_max = f64::NEG_INFINITY;
+    let mut z_min = f64::INFINITY;
+    let mut z_max = f64::NEG_INFINITY;
+    for line in &mesh {
+        for &(x, y) in &line.points {
+            x_min = x_min.min(x);
+            x_max = x_max.max(x);
+            y_min = y_min.min(y);
+            y_max = y_max.max(y);
+        }
+        z_min = z_min.min(line.depth);
+        z_max = z_max.max(line.depth);
+    }
+    for seg in &frame {
+        x_min = x_min.min(seg.x1).min(seg.x2);
+        x_max = x_max.max(seg.x1).max(seg.x2);
+        y_min = y_min.min(seg.y1).min(seg.y2);
+        y_max = y_max.max(seg.y1).max(seg.y2);
+    }
+    if !x_min.is_finite() || x_max - x_min < 1e-9 || y_max - y_min < 1e-9 {
+        return None;
+    }
+    let pad = (x_max - x_min).max(y_max - y_min) * 0.06;
+    let x_min = x_min - pad;
+    let x_max = x_max + pad;
+    let y_min = y_min - pad;
+    let y_max = y_max + pad;
+    let span = z_max - z_min;
+    let view_box = format!("{x_min:.3} {y_min:.3} {:.3} {:.3}", x_max - x_min, y_max - y_min);
+    let mut parts = String::new();
+    // Painter's order: project_mesh already sorts far-to-near, so drawing
+    // in order lets nearer lines overpaint farther ones.
+    for line in &mesh {
+        let t = if span < 1e-9 {
+            1.0
+        } else {
+            ((line.depth - z_min) / span).clamp(0.0, 1.0)
+        };
+        // Depth cue without color: opacity 0.35 far → 0.95 near.
+        let opacity = 0.35 + 0.6 * t;
+        let points = line
+            .points
+            .iter()
+            .map(|(x, y)| format!("{x:.3},{y:.3}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        parts.push_str(&format!(
+            "<polyline points=\"{points}\" fill=\"none\" stroke=\"currentColor\" stroke-opacity=\"{opacity:.3}\" stroke-width=\"1.2\"/>"
+        ));
+    }
+    for seg in &frame {
+        parts.push_str(&format!(
+            "<line x1=\"{:.3}\" y1=\"{:.3}\" x2=\"{:.3}\" y2=\"{:.3}\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-opacity=\"0.9\"/>",
+            seg.x1, seg.y1, seg.x2, seg.y2
+        ));
+    }
+    Some((view_box, parts))
+}
+
+/// The orbit + keyboard interaction surface for a 3D plot: drag rotates,
+/// arrow keys rotate (ADR-0015, WCAG 2.1.1). The SVG content is raw HTML
+/// (innerHTML-style) so thousand-line meshes re-render without diffing.
+#[derive(Properties, PartialEq)]
+pub struct Graph3DProps {
+    pub view_box: String,
+    pub content: String,
+    pub aria_label: String,
+    /// (dyaw, dpitch) from a drag or arrow key.
+    pub on_orbit: Callback<(f64, f64)>,
+}
+
+#[function_component(Graph3D)]
+pub fn graph3d_html(props: &Graph3DProps) -> Html {
+    let svg_ref = use_node_ref();
+    let drag = use_state(|| std::rc::Rc::new(std::cell::RefCell::new(Option::<(f64, f64)>::None)));
+
+    {
+        let svg_ref = svg_ref.clone();
+        let on_orbit = props.on_orbit.clone();
+        let drag = drag.clone();
+        let listeners = use_state(Vec::<gloo_events::EventListener>::new);
+        use_effect_with((), move |_| {
+            let Some(el) = svg_ref.cast::<web_sys::Element>() else {
+                return;
+            };
+            let mut bound = Vec::new();
+            {
+                let el_closure = el.clone();
+                let drag = drag.clone();
+                bound.push(gloo_events::EventListener::new(&el, "pointerdown", move |e| {
+                    if let Some(pe) = e.dyn_ref::<web_sys::PointerEvent>() {
+                        el_closure.set_pointer_capture(pe.pointer_id()).ok();
+                        *drag.borrow_mut() = Some((pe.client_x() as f64, pe.client_y() as f64));
+                    }
+                }));
+            }
+            {
+                let el = el.clone();
+                let drag = drag.clone();
+                let on_orbit = on_orbit.clone();
+                bound.push(gloo_events::EventListener::new(&el, "pointermove", move |e| {
+                    if let Some(pe) = e.dyn_ref::<web_sys::PointerEvent>() {
+                        if let Some((lx, ly)) = *drag.borrow() {
+                            let dx = pe.client_x() as f64 - lx;
+                            let dy = pe.client_y() as f64 - ly;
+                            *drag.borrow_mut() = Some((pe.client_x() as f64, pe.client_y() as f64));
+                            if dx.abs() > 0.5 || dy.abs() > 0.5 {
+                                on_orbit.emit((dx * 0.01, dy * 0.01));
+                            }
+                        }
+                    }
+                }));
+            }
+            {
+                let drag = drag.clone();
+                bound.push(gloo_events::EventListener::new(&el, "pointerup", move |_| {
+                    *drag.borrow_mut() = None;
+                }));
+            }
+            {
+                let drag = drag.clone();
+                bound.push(gloo_events::EventListener::new(&el, "pointerleave", move |_| {
+                    *drag.borrow_mut() = None;
+                }));
+            }
+            {
+                let el = el.clone();
+                let on_orbit = on_orbit.clone();
+                bound.push(gloo_events::EventListener::new(&el, "keydown", move |e| {
+                    if let Some(ke) = e.dyn_ref::<web_sys::KeyboardEvent>() {
+                        let (dyaw, dpitch) = match ke.key().as_str() {
+                            "ArrowLeft" => (-0.15, 0.0),
+                            "ArrowRight" => (0.15, 0.0),
+                            "ArrowUp" => (0.0, 0.15),
+                            "ArrowDown" => (0.0, -0.15),
+                            _ => return,
+                        };
+                        ke.prevent_default();
+                        on_orbit.emit((dyaw, dpitch));
+                    }
+                }));
+            }
+            listeners.set(bound);
+        });
+    }
+
+    html! {
+        <svg
+            ref={svg_ref}
+            tabindex="0"
+            role="img"
+            aria-label={props.aria_label.clone()}
+            viewBox={props.view_box.clone()}
+            class="graph3d-svg"
+        >
+            { Html::from_html_unchecked(AttrValue::from(props.content.clone())) }
         </svg>
     }
 }
