@@ -284,6 +284,13 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
         terminal.draw(|frame| draw(frame, &app, &localizer))?;
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
+                // Pasted newlines arrive as LF, which crossterm parses as
+                // Ctrl+J (the terminal convention for line feed). Treat it
+                // as Enter so multi-line pastes submit line by line, like
+                // the REPL and piped scripts.
+                let is_enter = key.code == KeyCode::Enter
+                    || (key.code == KeyCode::Char('j')
+                        && key.modifiers.contains(KeyModifiers::CONTROL));
                 match key.code {
                     // Guarded arms must precede the generic `Char` arm — the
                     // catch-all would swallow Ctrl+C and type a 'c' instead.
@@ -291,16 +298,21 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                         return Ok(());
                     }
                     KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
-                    KeyCode::Char(c) => app.push_char(c),
+                    KeyCode::Char(c) if !is_enter => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
-                    KeyCode::Enter => {
-                        let line = app.input().trim().to_string();
-                        if let Some(code) = app.submit_line(&line, &store, &localizer) {
-                            localizer = Localizer::resolve(Some(&code), &[]);
-                        }
-                    }
                     KeyCode::Esc => app.clear_input(),
                     _ => {}
+                }
+                if is_enter {
+                    let line = app.input().trim().to_string();
+                    if let Some(code) = app.submit_line(&line, &store, &localizer) {
+                        localizer = Localizer::resolve(Some(&code), &[]);
+                    }
+                    // Every submit empties the line — including graph
+                    // commands, whose path doesn't clear it itself — so a
+                    // multi-line paste leaves a clean slate for the next
+                    // line instead of appending to the leftover.
+                    app.clear_input();
                 }
             }
         }
