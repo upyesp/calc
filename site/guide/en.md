@@ -2,7 +2,7 @@
 
 Welcome! epher is a programmable, scriptable calculator. You can use it for a
 quick calculation, or build up your own functions and small programs — and
-everything is available in six languages.
+everything is available in eight languages.
 
 This guide is for complete beginners. It starts with the simplest possible
 calculation and builds up to the full power of the language. Every example
@@ -919,7 +919,7 @@ ready for you.
 
 The interface language is chosen from the languages you set on your device.
 To override it, type `language` followed by one of: `en`, `zh-CN`, `hi`,
-`es`, `fr`, `ar`:
+`es`, `fr`, `ar`, `de`, `pt`:
 
 ```text
 epher> language fr

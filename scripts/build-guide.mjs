@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GUIDE = join(ROOT, "site", "guide");
 
-const LANGS = ["en", "zh-CN", "hi", "es", "fr", "ar"];
+const LANGS = ["en", "zh-CN", "hi", "es", "fr", "ar", "de", "pt"];
 
 // Per-language chrome strings (mirror the landing page dictionaries in
 // site/app.js; the guide page itself is single-language so no runtime i18n).
@@ -26,6 +26,8 @@ const CHROME = {
   es: { title: "epher — Guía de usuario", back: "Volver al inicio", contents: "Contenido", themeDark: "Usar tema oscuro", themeLight: "Usar tema claro", footer: "Guía de usuario de epher", copy: "Copiar", copied: "Copiado" },
   fr: { title: "epher — Guide de l'utilisateur", back: "Retour à l'accueil", contents: "Sommaire", themeDark: "Utiliser le thème sombre", themeLight: "Utiliser le thème clair", footer: "Guide de l'utilisateur de epher", copy: "Copier", copied: "Copié" },
   ar: { title: "epher — دليل المستخدم", back: "العودة إلى الصفحة الرئيسية", contents: "المحتويات", themeDark: "استخدام المظهر الداكن", themeLight: "استخدام المظهر الفاتح", footer: "دليل مستخدم epher", copy: "نسخ", copied: "تم النسخ" },
+  de: { title: "epher — Benutzerhandbuch", back: "Zurück zur Startseite", contents: "Inhalt", themeDark: "Dunkles Design verwenden", themeLight: "Helles Design verwenden", footer: "epher-Benutzerhandbuch", copy: "Kopieren", copied: "Kopiert" },
+  pt: { title: "epher — Guia de utilizador", back: "Voltar ao início", contents: "Índice", themeDark: "Usar tema escuro", themeLight: "Usar tema claro", footer: "Guia de utilizador do epher", copy: "Copiar", copied: "Copiado" },
 };
 
 // --- example code blocks ------------------------------------------------

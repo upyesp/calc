@@ -2,7 +2,7 @@
 
 ¡Bienvenido! epher es una calculadora programable y con scripts. Puedes usarla
 para un cálculo rápido o para construir tus propias funciones y pequeños
-programas, y todo está disponible en seis idiomas.
+programas, y todo está disponible en ocho idiomas.
 
 Esta guía es para principiantes absolutos. Empieza con el cálculo más simple
 posible y llega hasta todo el poder del lenguaje. Cada ejemplo muestra lo que
@@ -934,7 +934,7 @@ que todo lo que definen está listo para ti.
 
 El idioma de la interfaz se elige entre los idiomas configurados en tu
 dispositivo. Para cambiarlo, escribe `language` seguido de uno de: `en`,
-`zh-CN`, `hi`, `es`, `fr`, `ar`:
+`zh-CN`, `hi`, `es`, `fr`, `ar`, `de`, `pt`:
 
 ```text
 epher> language fr
