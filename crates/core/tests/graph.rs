@@ -2,9 +2,9 @@
 //! (ADR-0014) — pure math, no rendering.
 
 use epher_core::graph::{
-    analyze, free_names, nice_step, parse_graph_source, project_point, project_surface,
-    sample_spec, sample_surface, surface_frame, table_rows, CurveKind, Fill, InterestKind,
-    SampledCurve, View3D,
+    analyze, free_names, nice_step, parse_graph_source, project_clipped, project_mesh,
+    project_point, project_surface, sample_spec, sample_surface, surface_frame, table_rows,
+    CurveKind, Fill, InterestKind, SampledCurve, View3D, NEAR_DIST,
 };
 use epher_core::{parse, Env, Session, Value};
 
@@ -349,4 +349,50 @@ fn mesh_projection_splits_runs_at_undefined_cells() {
     for line in &lines {
         assert!(line.points.len() >= 2);
     }
+}
+
+#[test]
+fn saddle_projection_stays_bounded_at_the_camera_plane() {
+    let env = Env::default();
+    // z = x^2 - y^2 over [-5, 5] reaches z = -25; the camera plane cuts
+    // right through it, which used to blow the view box up to thousands of
+    // units and squash the plot to a sliver.
+    let s = sample_surface("x ^ 2 - y ^ 2", 20, &env).unwrap();
+    let view = View3D::default();
+    let lines = project_mesh(&s, &view);
+    assert!(lines.len() > 10);
+    for line in &lines {
+        for &(x, y) in &line.points {
+            assert!(x.is_finite() && x.abs() < 200.0, "x = {x}");
+            assert!(y.is_finite() && y.abs() < 200.0, "y = {y}");
+        }
+    }
+    let frame = surface_frame(&s, &view);
+    for seg in &frame {
+        for (x, y) in [(seg.x1, seg.y1), (seg.x2, seg.y2)] {
+            assert!(x.is_finite() && x.abs() < 200.0);
+            assert!(y.is_finite() && y.abs() < 200.0);
+        }
+    }
+}
+
+#[test]
+fn clipped_segments_drop_what_is_behind_the_camera() {
+    let view = View3D {
+        yaw: 0.0,
+        pitch: 0.0,
+        camera: 12.0,
+    };
+    // Both ends behind the camera (z > 12): dropped entirely.
+    assert!(project_clipped(0.0, 0.0, 13.0, 1.0, 0.0, 14.0, &view).is_none());
+    // One end behind: the visible part ends at the near plane, so the
+    // perspective divide stays bounded.
+    let seg = project_clipped(0.0, 0.0, 0.0, 1.0, 0.0, 20.0, &view).unwrap();
+    let (_, _, zp1, _, _, zp2) = seg;
+    assert!((zp2 - (view.camera - NEAR_DIST)).abs() < 1e-9);
+    assert!(zp1 < zp2);
+    let f = view.camera / (view.camera - zp2);
+    assert!(f.abs() < 20.0);
+    // Undefined cells are dropped.
+    assert!(project_clipped(0.0, 0.0, f64::NAN, 1.0, 0.0, 0.0, &view).is_none());
 }

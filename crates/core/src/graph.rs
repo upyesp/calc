@@ -568,7 +568,12 @@ impl Default for View3D {
         Self {
             yaw: 0.8,
             pitch: 0.6,
-            camera: 12.0,
+            // Far enough out that the camera plane sits beyond typical
+            // surface z values (|z| <= 25 over a ±5 domain), so the
+            // default view shows the whole surface instead of a near-
+            // plane cut; near-plane clipping still engages when the user
+            // orbits in close.
+            camera: 30.0,
         }
     }
 }
@@ -662,15 +667,82 @@ pub fn sample_surface(source: &str, grid: usize, env: &Env) -> Result<Surface, E
 /// Project one world point: yaw around z, pitch around the rotated x axis,
 /// then a perspective divide. Returns (screen x, screen y, view depth);
 /// screen y grows upward and depth grows toward the camera.
-pub fn project_point(x: f64, y: f64, z: f64, view: &View3D) -> (f64, f64, f64) {
+/// Distance of the near clipping plane from the camera, in view units.
+/// Segments closer to the camera than this (or behind it) are not
+/// projected: without clipping, a surface crossing the camera plane makes
+/// the perspective divide blow up to huge screen coordinates and the plot
+/// becomes a sliver in a giant (mostly empty) view box.
+pub const NEAR_DIST: f64 = 1.0;
+
+/// Rotate a world point into camera space (x right, y up, z toward the
+/// viewer): yaw around the z axis, then pitch around the rotated x axis.
+fn to_camera(x: f64, y: f64, z: f64, view: &View3D) -> (f64, f64, f64) {
     let (sy, cy) = view.yaw.sin_cos();
     let (sp, cp) = view.pitch.sin_cos();
     let xr = x * cy - y * sy;
     let yr = x * sy + y * cy;
     let yp = yr * cp - z * sp;
     let zp = yr * sp + z * cp;
+    (xr, yp, zp)
+}
+
+/// Perspective divide: map a camera-space point to screen coordinates.
+fn to_screen(xr: f64, yp: f64, zp: f64, view: &View3D) -> (f64, f64) {
     let f = view.camera / (view.camera - zp);
-    (xr * f, -yp * f, zp)
+    (xr * f, -yp * f)
+}
+
+/// Project one world point; raw, with no near-plane clipping. Callers that
+/// draw whole segments or meshes should use [`project_clipped`] instead so
+/// geometry crossing the camera plane does not explode.
+pub fn project_point(x: f64, y: f64, z: f64, view: &View3D) -> (f64, f64, f64) {
+    let (xr, yp, zp) = to_camera(x, y, z, view);
+    let (sx, sy) = to_screen(xr, yp, zp, view);
+    (sx, sy, zp)
+}
+
+/// Project a world-space segment to screen coordinates, clipping it against
+/// the near plane. Returns the clipped endpoints and their camera-space z
+/// values (`(sx1, sy1, zp1, sx2, sy2, zp2)`), or None when the segment is
+/// fully behind the near plane or touches an undefined (NaN) cell.
+pub fn project_clipped(
+    x1: f64,
+    y1: f64,
+    z1: f64,
+    x2: f64,
+    y2: f64,
+    z2: f64,
+    view: &View3D,
+) -> Option<(f64, f64, f64, f64, f64, f64)> {
+    if !z1.is_finite() || !z2.is_finite() {
+        return None;
+    }
+    let (mut xr1, mut yp1, mut zp1) = to_camera(x1, y1, z1, view);
+    let (mut xr2, mut yp2, mut zp2) = to_camera(x2, y2, z2, view);
+    // zp measures distance along the view axis toward the camera (which
+    // sits at zp = view.camera): points with zp > near are too close to
+    // (or behind) the camera to project stably.
+    let near = view.camera - NEAR_DIST;
+    if zp1 > near && zp2 > near {
+        return None;
+    }
+    if zp1 > near {
+        let t = (near - zp1) / (zp2 - zp1);
+        xr1 += t * (xr2 - xr1);
+        yp1 += t * (yp2 - yp1);
+        zp1 = near;
+    } else if zp2 > near {
+        let t = (near - zp1) / (zp2 - zp1);
+        xr2 = xr1 + t * (xr2 - xr1);
+        yp2 = yp1 + t * (yp2 - yp1);
+        zp2 = near;
+    }
+    let (sx1, sy1) = to_screen(xr1, yp1, zp1, view);
+    let (sx2, sy2) = to_screen(xr2, yp2, zp2, view);
+    if !sx1.is_finite() || !sy1.is_finite() || !sx2.is_finite() || !sy2.is_finite() {
+        return None;
+    }
+    Some((sx1, sy1, zp1, sx2, sy2, zp2))
 }
 
 /// Project a surface's mesh to screen segments, far-to-near (painter's
@@ -678,26 +750,23 @@ pub fn project_point(x: f64, y: f64, z: f64, view: &View3D) -> (f64, f64, f64) {
 /// a mesh; segments touching undefined cells are dropped.
 pub fn project_surface(surface: &Surface, view: &View3D) -> Vec<Segment3D> {
     let n = surface.xs.len();
-    let mut px = vec![vec![0.0; n]; n];
-    let mut py = vec![vec![0.0; n]; n];
-    let mut pz = vec![vec![0.0; n]; n];
-    for (r, row) in surface.zs.iter().enumerate() {
-        for (c, &z) in row.iter().enumerate() {
-            let (sx, sy, d) = project_point(surface.xs[c], surface.ys[r], z, view);
-            px[r][c] = sx;
-            py[r][c] = sy;
-            pz[r][c] = d;
-        }
-    }
     let mut segments = Vec::with_capacity(n * (n - 1) * 2);
     let mut push = |r1: usize, c1: usize, r2: usize, c2: usize| {
-        if pz[r1][c1].is_finite() && pz[r2][c2].is_finite() {
+        if let Some((x1, y1, zp1, x2, y2, zp2)) = project_clipped(
+            surface.xs[c1],
+            surface.ys[r1],
+            surface.zs[r1][c1],
+            surface.xs[c2],
+            surface.ys[r2],
+            surface.zs[r2][c2],
+            view,
+        ) {
             segments.push(Segment3D {
-                x1: px[r1][c1],
-                y1: py[r1][c1],
-                x2: px[r2][c2],
-                y2: py[r2][c2],
-                depth: (pz[r1][c1] + pz[r2][c2]) / 2.0,
+                x1,
+                y1,
+                x2,
+                y2,
+                depth: (zp1 + zp2) / 2.0,
             });
         }
     };
@@ -722,15 +791,15 @@ pub fn surface_frame(surface: &Surface, view: &View3D) -> Vec<Segment3D> {
     let (a, b) = surface.domain;
     let mut frame = Vec::with_capacity(8);
     let mut edge = |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64| {
-        let (sx1, sy1, d1) = project_point(x1, y1, z1, view);
-        let (sx2, sy2, d2) = project_point(x2, y2, z2, view);
-        if d1.is_finite() && d2.is_finite() {
+        if let Some((sx1, sy1, zp1, sx2, sy2, zp2)) =
+            project_clipped(x1, y1, z1, x2, y2, z2, view)
+        {
             frame.push(Segment3D {
                 x1: sx1,
                 y1: sy1,
                 x2: sx2,
                 y2: sy2,
-                depth: (d1 + d2) / 2.0,
+                depth: (zp1 + zp2) / 2.0,
             });
         }
     };
@@ -760,61 +829,71 @@ pub struct Polyline3D {
 /// algorithm at line granularity).
 pub fn project_mesh(surface: &Surface, view: &View3D) -> Vec<Polyline3D> {
     let n = surface.xs.len();
-    let mut px = vec![vec![0.0; n]; n];
-    let mut py = vec![vec![0.0; n]; n];
-    let mut pz = vec![vec![0.0; n]; n];
-    for (r, row) in surface.zs.iter().enumerate() {
-        for (c, &z) in row.iter().enumerate() {
-            let (sx, sy, d) = project_point(surface.xs[c], surface.ys[r], z, view);
-            px[r][c] = sx;
-            py[r][c] = sy;
-            pz[r][c] = d;
-        }
-    }
     let mut lines = Vec::new();
     // Rows: fixed y, varying x.
     for r in 0..n {
-        lines.extend(runs(&px[r], &py[r], &pz[r]));
+        let y = surface.ys[r];
+        lines.extend(line_runs(&surface.xs, &vec![y; n], &surface.zs[r], view));
     }
     // Columns: fixed x, varying y.
     for c in 0..n {
-        let mut cx = Vec::with_capacity(n);
-        let mut cy = Vec::with_capacity(n);
-        let mut cz = Vec::with_capacity(n);
-        for r in 0..n {
-            cx.push(px[r][c]);
-            cy.push(py[r][c]);
-            cz.push(pz[r][c]);
-        }
-        lines.extend(runs(&cx, &cy, &cz));
+        let x = surface.xs[c];
+        let zs: Vec<f64> = surface.zs.iter().map(|row| row[c]).collect();
+        lines.extend(line_runs(&vec![x; n], &surface.ys, &zs, view));
     }
     lines.sort_by(|a, b| b.depth.total_cmp(&a.depth));
     lines
 }
 
-/// Split one grid line into runs of finite points; each run becomes a
-/// polyline with the mean depth of its points.
-fn runs(px: &[f64], py: &[f64], pz: &[f64]) -> Vec<Polyline3D> {
+/// Project one grid line (a row or a column) into visible runs: undefined
+/// cells split runs, and segments crossing the near plane are clipped so
+/// coordinates stay bounded.
+fn line_runs(cx: &[f64], cy: &[f64], cz: &[f64], view: &View3D) -> Vec<Polyline3D> {
     let mut out = Vec::new();
-    let mut points = Vec::new();
-    let mut depth_sum = 0.0;
-    for i in 0..px.len() {
-        if pz[i].is_finite() {
-            points.push((px[i], py[i]));
-            depth_sum += pz[i];
-        } else if !points.is_empty() {
+    let mut run: Vec<(f64, f64, f64)> = Vec::new(); // (sx, sy, zp)
+    let flush = |out: &mut Vec<Polyline3D>, run: &mut Vec<(f64, f64, f64)>| {
+        if !run.is_empty() {
+            let depth = run.iter().map(|p| p.2).sum::<f64>() / run.len() as f64;
             out.push(Polyline3D {
-                depth: depth_sum / points.len() as f64,
-                points: std::mem::take(&mut points),
+                depth,
+                points: std::mem::take(run)
+                    .into_iter()
+                    .map(|(x, y, _)| (x, y))
+                    .collect(),
             });
-            depth_sum = 0.0;
+        }
+    };
+    let mut started = false;
+    for i in 0..cx.len() {
+        if !cz[i].is_finite() {
+            flush(&mut out, &mut run);
+            started = false;
+            continue;
+        }
+        if !started {
+            let (xr, yp, zp) = to_camera(cx[i], cy[i], cz[i], view);
+            if zp <= view.camera - NEAR_DIST {
+                let (sx, sy) = to_screen(xr, yp, zp, view);
+                if sx.is_finite() && sy.is_finite() {
+                    run.push((sx, sy, zp));
+                    started = true;
+                }
+            }
+            continue;
+        }
+        match project_clipped(cx[i - 1], cy[i - 1], cz[i - 1], cx[i], cy[i], cz[i], view) {
+            Some((sx1, sy1, zp1, sx2, sy2, zp2)) => {
+                // The clip may have moved the start point; replace the
+                // stored end of the run, then extend it.
+                *run.last_mut().unwrap() = (sx1, sy1, zp1);
+                run.push((sx2, sy2, zp2));
+            }
+            None => {
+                flush(&mut out, &mut run);
+                started = false;
+            }
         }
     }
-    if !points.is_empty() {
-        out.push(Polyline3D {
-            depth: depth_sum / points.len() as f64,
-            points,
-        });
-    }
+    flush(&mut out, &mut run);
     out
 }
