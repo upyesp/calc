@@ -1192,6 +1192,7 @@ dependencies = [
  "epher-i18n",
  "epher-shell",
  "epher-store",
+ "gloo-events 0.2.0",
  "js-sys",
  "serde",
  "serde-wasm-bindgen 0.6.5",

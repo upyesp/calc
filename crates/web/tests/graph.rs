@@ -1,9 +1,26 @@
-//! Pure tests for the web graph renderer (ADR-0006: the core samples, each
-//! frontend renders). SVG as a string so the tests run natively — no browser
-//! needed.
+//! Pure tests for the web graph renderer (ADR-0006/0014: the core samples,
+//! each frontend renders). SVG as a string so the tests run natively — no
+//! browser needed.
 
-use epher_core::Sample;
-use epher_web::graph::{graph_html, graph_svg, plot_data};
+use epher_core::graph::{parse_graph_source, sample_spec, CurveKind, InterestKind, SampledCurve};
+use epher_core::{Env, Sample};
+use epher_web::graph::{geometry, graph_svg, segments, ticks, trace_nearest, Poi, TracePoint};
+
+fn env() -> Env {
+    Env::default()
+}
+
+fn curve(source: &str) -> SampledCurve {
+    let spec = parse_graph_source(source).unwrap();
+    let samples = sample_spec(&spec, 120, &env()).unwrap();
+    SampledCurve {
+        source: source.to_string(),
+        kind: spec.kind,
+        domain: spec.domain,
+        samples,
+        fill: spec.fill,
+    }
+}
 
 fn samples_of(ys: &[f64]) -> Vec<Sample> {
     ys.iter()
@@ -16,97 +33,130 @@ fn samples_of(ys: &[f64]) -> Vec<Sample> {
 }
 
 #[test]
-fn empty_samples_render_nothing() {
-    assert_eq!(graph_svg(&[], "x ^ 2"), "");
+fn empty_curves_render_nothing() {
+    assert_eq!(graph_svg(&[], &[], None), "");
 }
 
 #[test]
 fn a_line_maps_the_domain_onto_the_plot_area() {
-    // y = x sampled from -10 to 10: the first point sits at the left edge
-    // and the bottom (y range is [-10, 10]), the last at the right edge top.
-    let svg = graph_svg(&samples_of(&[-10.0, 0.0, 10.0]), "x");
+    // y = x sampled from -10 to 10: with 6% y padding the curve still runs
+    // corner to corner (the padding lifts it 6% off the plot edges).
+    let svg = graph_svg(&[curve("x")], &[], None);
     assert!(svg.contains("viewBox=\"0 0 640 400\""));
-    assert!(svg.contains("points=\"45.0,365.0 "), "{svg}");
-    assert!(svg.contains(" 625.0,15.0\""), "{svg}");
+    assert!(svg.contains("48.0,348.9"), "{svg}");
+    assert!(svg.contains("632.0,31.1"), "{svg}");
 }
 
 #[test]
-fn non_finite_points_split_the_curve_into_segments() {
-    let svg = graph_svg(
-        &samples_of(&[-1.0, f64::NAN, 1.0]),
-        "1 / x",
-    );
-    assert_eq!(svg.matches("<polyline").count(), 2);
+fn geometry_uses_the_union_of_domains_and_padded_y_range() {
+    let curves = vec![curve("x from -5 to 5"), curve("x ^ 2")];
+    let g = geometry(&curves).unwrap();
+    assert_eq!(g.x_min, -10.0);
+    assert_eq!(g.x_max, 10.0);
+    // y range covers the parabola (0..=100) plus 6% padding of the whole
+    // span on each side.
+    assert!(g.y_min < -10.0 && g.y_min > -13.0, "y_min {}", g.y_min);
+    assert!(g.y_max > 105.0 && g.y_max < 112.0, "y_max {}", g.y_max);
+    assert!(g.zero_axis);
 }
 
 #[test]
-fn axes_appear_only_when_zero_is_in_range() {
-    // y from -10..10: both the vertical axis (x=0) and the horizontal one
-    let both = graph_svg(&samples_of(&[-10.0, 0.0, 10.0]), "x");
-    assert_eq!(both.matches("class=\"axis\"").count(), 2);
+fn jump_splitting_breaks_asymptote_branches() {
+    // 1 / x: the two branches must never be joined by a vertical line.
+    let s = segments(&samples_of(&[-20.0, -10.0, f64::NAN, 10.0, 20.0]), 40.0);
+    assert_eq!(s.len(), 2, "both branches survive as separate segments: {s:?}");
+    assert_eq!(s[0].len(), 2);
+    assert_eq!(s[1].len(), 2);
 
-    // y from 5..105: zero is outside — only the vertical axis
-    let pos = graph_svg(&samples_of(&[5.0, 105.0]), "x ^ 2 + 5");
-    assert_eq!(pos.matches("class=\"axis\"").count(), 1);
+    // A finite but huge jump (tan-style) also splits.
+    let s = segments(&samples_of(&[1.0, 2.0, -1000.0, 900.0]), 2000.0);
+    assert_eq!(s.len(), 2);
+
+    // A steep but continuous line stays in one piece.
+    let s = segments(&samples_of(&[0.0, 100.0, 200.0]), 2000.0);
+    assert_eq!(s.len(), 1);
 }
 
 #[test]
-fn the_source_is_escaped_everywhere_it_appears() {
-    let svg = graph_svg(&samples_of(&[0.0, 1.0]), "x & <y>");
-    assert!(svg.contains("x &amp; &lt;y&gt;"));
-    assert!(!svg.contains("x & <y>"));
+fn ticks_land_on_nice_steps_and_snap_zero() {
+    // Exact binary steps land on exact ticks, with the zero tick snapped.
+    assert_eq!(ticks(-1.0, 1.0, 0.5), vec![-1.0, -0.5, 0.0, 0.5, 1.0]);
+    assert_eq!(ticks(-0.5, 0.5, 0.25), vec![-0.5, -0.25, 0.0, 0.25, 0.5]);
+    // Even when float drift drops the boundary value, the middle of the
+    // range is intact and zero stays exactly 0.
+    let t = ticks(-0.3, 0.3, 0.1);
+    assert_eq!(t.len(), 5);
+    assert_eq!(t[2], 0.0);
 }
 
 #[test]
-fn the_svg_names_itself_for_assistive_tech() {
-    let svg = graph_svg(&samples_of(&[0.0, 1.0]), "x ^ 2");
-    assert!(svg.contains("role=\"img\""));
-    assert!(svg.contains("<title>y = x ^ 2</title>"));
-    assert!(svg.contains("aria-label=\"Graph of y = x ^ 2\""));
+fn fills_emit_polygons_closed_against_the_plot_edge() {
+    let svg = graph_svg(&[curve("y < x ^ 2 from -2 to 2")], &[], None);
+    assert!(svg.contains("<polygon class=\"fill curve-0\""), "{svg}");
+    assert!(svg.contains("368.0"), "closed against the bottom edge");
 }
 
 #[test]
-fn plot_data_describes_segments_axes_and_range() {
-    let data = plot_data(&samples_of(&[-10.0, 0.0, 10.0])).unwrap();
-    assert_eq!(data.y_min, -10.0);
-    assert_eq!(data.y_max, 10.0);
-    assert!(data.zero_axis);
-    assert_eq!(data.segments.len(), 1);
-    assert_eq!(data.segments[0].len(), 3);
-
-    // non-finite points split segments
-    let data = plot_data(&samples_of(&[-1.0, f64::NAN, 1.0])).unwrap();
-    assert_eq!(data.segments.len(), 2);
-
-    // zero outside the range: no horizontal axis
-    let data = plot_data(&samples_of(&[5.0, 105.0])).unwrap();
-    assert!(!data.zero_axis);
-
-    // nothing drawable
-    assert!(plot_data(&[]).is_none());
-    assert!(plot_data(&samples_of(&[f64::NAN])).is_none());
+fn curves_get_distinct_classes_for_color_and_dash() {
+    let svg = graph_svg(&[curve("x"), curve("x ^ 2")], &[], None);
+    assert!(svg.contains("class=\"curve curve-0\""), "{svg}");
+    assert!(svg.contains("class=\"curve curve-1\""), "{svg}");
 }
 
 #[test]
-fn graph_html_is_the_same_plot_as_the_svg_renderer() {
-    let samples = samples_of(&[-10.0, 0.0, 10.0]);
-    let html = format!("{:?}", graph_html(&samples, "x"));
-    // the same structural elements as graph_svg
-    assert!(html.contains("polyline"), "{html}");
-    assert!(html.contains("aria-label"), "{html}");
-    assert!(html.contains("title"), "{html}");
-    assert!(html.contains("line"), "{html}");
-
-    // empty input renders nothing
-    let empty = format!("{:?}", graph_html(&[], "x"));
-    assert!(!empty.contains("polyline"));
+fn points_of_interest_render_with_labels() {
+    let pois = vec![Poi {
+        kind: InterestKind::Root,
+        label: "root".to_string(),
+        x: 1.0,
+        y: 0.0,
+    }];
+    let svg = graph_svg(&[curve("x ^ 2 - 1")], &pois, None);
+    assert!(svg.contains("class=\"poi\""), "{svg}");
+    assert!(svg.contains("root (1, 0)"), "{svg}");
 }
 
 #[test]
-fn tick_labels_show_the_domain_and_the_value_range() {
-    let svg = graph_svg(&samples_of(&[-10.0, 0.0, 10.0]), "x");
-    assert!(svg.contains(">-10</text>"));
-    assert!(svg.contains(">10</text>"));
-    // y range labels at the extremes
-    assert!(svg.contains(">-10</text>") && svg.matches("</text>").count() >= 4);
+fn trace_finds_the_nearest_sample_within_radius() {
+    let curves = vec![curve("x")];
+    let g = geometry(&curves).unwrap();
+    let t = trace_nearest(&curves, &g, g.sx(2.0), g.sy(2.0));
+    let Some(TracePoint { curve, index, x, y }) = t else {
+        panic!("expected a trace point");
+    };
+    assert_eq!(curve, 0);
+    assert!(index > 0);
+    assert!((x - 2.0).abs() < 0.2, "nearest sample x ≈ 2, got {x}");
+    assert!((y - 2.0).abs() < 0.2);
+
+    // Far from any curve: nothing.
+    assert!(trace_nearest(&curves, &g, 640.0, 400.0).is_none());
+}
+
+#[test]
+fn trace_render_includes_the_cursor() {
+    let t = TracePoint {
+        curve: 0,
+        index: 60,
+        x: 0.0,
+        y: 0.0,
+    };
+    let svg = graph_svg(&[curve("x")], &[], Some(t));
+    assert!(svg.contains("class=\"trace\""), "{svg}");
+}
+
+#[test]
+fn parametric_and_polar_curves_share_the_plot() {
+    let svg = graph_svg(&[curve("param t, t ^ 2"), curve("polar 2")], &[], None);
+    assert!(svg.contains("class=\"curve curve-0\""), "{svg}");
+    assert!(svg.contains("class=\"curve curve-1\""), "{svg}");
+}
+
+#[test]
+fn legend_captions_keep_the_y_prefix_for_cartesian() {
+    let c = curve("x ^ 2");
+    assert_eq!(epher_web::graph::curve_caption(&c), "y = x ^ 2");
+    let p = curve("polar 2");
+    assert_eq!(epher_web::graph::curve_caption(&p), "polar 2");
+    assert!(matches!(p.kind, CurveKind::Polar(_)));
 }
