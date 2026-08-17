@@ -6,7 +6,8 @@
 //! library function so the unified `epher` binary can host it (`epher tui`).
 
 use epher_core::graph::{
-    analyze, parse_graph_source, sample_spec, InterestPoint, InterestKind, SampledCurve,
+    analyze, free_names, parse_graph_source, project_surface, sample_spec, sample_surface,
+    surface_frame, InterestPoint, InterestKind, SampledCurve, Surface, View3D,
 };
 use epher_core::Session;
 use epher_i18n::Localizer;
@@ -14,6 +15,16 @@ use epher_shell::{classify, plain, run_command};
 use epher_store::persist::{default_store_dir, load_language, load_session, save_history};
 use epher_store::{DocStore, FsStore};
 use unicode_width::UnicodeWidthStr;
+
+/// An active parameter animation: `name` steps by `step` within `lo..=hi`,
+/// wrapping around (Desmos-style loop).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Play {
+    pub name: String,
+    pub lo: f64,
+    pub hi: f64,
+    pub step: f64,
+}
 
 /// The TUI's application state — the testable seam. Rendering is thin.
 #[derive(Default)]
@@ -23,6 +34,9 @@ pub struct App {
     session: Session,
     graph: Vec<SampledCurve>,
     pois: Vec<InterestPoint>,
+    surface: Vec<Surface>,
+    view: View3D,
+    play: Option<Play>,
 }
 
 impl App {
@@ -33,6 +47,9 @@ impl App {
             session,
             graph: Vec::new(),
             pois: Vec::new(),
+            surface: Vec::new(),
+            view: View3D::default(),
+            play: None,
         }
     }
 
@@ -50,6 +67,12 @@ impl App {
 
     pub fn history(&self) -> &[String] {
         self.session.history()
+    }
+
+    /// The shared session (constants, history) — public so tests can read
+    /// animation state.
+    pub fn session(&self) -> &Session {
+        &self.session
     }
 
     /// The plotted curves of the current graph, if any (ADR-0014: the TUI
@@ -84,9 +107,9 @@ impl App {
 
     /// Handle one submitted line the way the event loop does: shell commands
     /// dispatch through the shared kernel (epher-shell), `graph ` samples,
-    /// anything else evaluates — and history persists. Returns the new
-    /// language preference when a `language` command changed it, so the
-    /// caller can re-resolve its Localizer.
+    /// `graph3d ` samples a surface, anything else evaluates — and history
+    /// persists. Returns the new language preference when a `language`
+    /// command changed it, so the caller can re-resolve its Localizer.
     pub fn submit_line(
         &mut self,
         line: &str,
@@ -96,6 +119,10 @@ impl App {
         let line = line.trim();
         if let Some(source) = line.strip_prefix("graph ") {
             let _ = self.submit_graph(source);
+            return None;
+        }
+        if let Some(source) = line.strip_prefix("graph3d ") {
+            let _ = self.submit_surface(source);
             return None;
         }
         if let Some(cmd) = classify(line) {
@@ -122,9 +149,20 @@ impl App {
             self.result.clear();
             return Ok(());
         }
-        let spec = parse_graph_source(source).map_err(|e| e.to_string())?;
-        let samples = sample_spec(&spec, 120, self.session.env())
-            .map_err(|e| e.to_string())?;
+        let spec = match parse_graph_source(source).map_err(|e| e.to_string()) {
+            Ok(s) => s,
+            Err(e) => {
+                self.result = format!("error: {e}");
+                return Err(e);
+            }
+        };
+        let samples = match sample_spec(&spec, 120, self.session.env()).map_err(|e| e.to_string()) {
+            Ok(samples) => samples,
+            Err(e) => {
+                self.result = format!("error: {e}");
+                return Err(e);
+            }
+        };
         self.graph.push(SampledCurve {
             source: source.to_string(),
             kind: spec.kind,
@@ -136,6 +174,242 @@ impl App {
         self.result = format!("graph: {source}");
         Ok(())
     }
+
+    /// Parse `source` as a `graph3d` command (ADR-0015 grammar:
+    /// `z = f(x, y)` over an optional square domain) and overlay it on the
+    /// current surface set; `graph3d clear` empties it.
+    pub fn submit_surface(&mut self, source: &str) -> Result<(), String> {
+        if source.trim() == "clear" {
+            self.surface.clear();
+            self.result.clear();
+            return Ok(());
+        }
+        let surface = match sample_surface(source, 40, self.session.env()).map_err(|e| e.to_string()) {
+            Ok(s) => s,
+            Err(e) => {
+                self.result = format!("error: {e}");
+                return Err(e);
+            }
+        };
+        self.result = format!("graph3d: {}", surface.source);
+        self.surface.push(surface);
+        Ok(())
+    }
+
+    /// The plotted surfaces, if any.
+    pub fn surfaces(&self) -> &[Surface] {
+        &self.surface
+    }
+
+    /// The 3D camera pose.
+    pub fn view(&self) -> &View3D {
+        &self.view
+    }
+
+    /// Orbit the 3D view by the given yaw/pitch deltas (radians).
+    pub fn rotate_view(&mut self, dyaw: f64, dpitch: f64) {
+        self.view = self.view.with_pitch(self.view.pitch + dpitch).with_yaw(self.view.yaw + dyaw);
+    }
+
+    /// The active animation, if any.
+    pub fn play(&self) -> Option<&Play> {
+        self.play.as_ref()
+    }
+
+    /// Start or stop the parameter animation. Playing animates the first
+    /// constant referenced by any plotted surface (or curve) within its
+    /// current value ±2, stepping 0.1 per tick and wrapping around — the
+    /// TUI's counterpart of the web sliders' play button (ADR-0015).
+    pub fn toggle_play(&mut self) -> bool {
+        if self.play.is_some() {
+            self.play = None;
+            return false;
+        }
+        let name = self.animated_constant();
+        let Some(v) = name.as_ref().and_then(|n| self.session.env().constant(n)) else {
+            return false;
+        };
+        let v = match v {
+            epher_core::Value::Float(f) => *f,
+            _ => return false,
+        };
+        self.play = Some(Play {
+            name: name.unwrap(),
+            lo: v - 2.0,
+            hi: v + 2.0,
+            step: 0.1,
+        });
+        true
+    }
+
+    /// The first constant referenced by a plotted surface, else a plotted
+    /// curve — the parameter animation steps it.
+    fn animated_constant(&self) -> Option<String> {
+        let mut names = std::collections::BTreeSet::new();
+        for s in &self.surface {
+            if let Ok((expr, _)) = epher_core::graph::parse_surface_source(&s.source) {
+                free_names(&expr, &mut names);
+            }
+        }
+        for c in &self.graph {
+            if let Ok(spec) = parse_graph_source(&c.source) {
+                match &spec.kind {
+                    epher_core::graph::CurveKind::Cartesian(e) => free_names(e, &mut names),
+                    epher_core::graph::CurveKind::Parametric { x, y } => {
+                        free_names(x, &mut names);
+                        free_names(y, &mut names);
+                    }
+                    epher_core::graph::CurveKind::Polar(e) => free_names(e, &mut names),
+                }
+            }
+        }
+        names
+            .into_iter()
+            .find(|n| self.session.env().constant(n.as_str()).is_some())
+    }
+
+    /// Advance the animation by one tick: step the constant, wrapping at the
+    /// bounds, and re-sample everything that references it.
+    pub fn tick(&mut self) {
+        let Some(play) = self.play.clone() else {
+            return;
+        };
+        let Some(v) = self.session.env().constant(&play.name) else {
+            self.play = None;
+            return;
+        };
+        let v = match v {
+            epher_core::Value::Float(f) => *f,
+            _ => {
+                self.play = None;
+                return;
+            }
+        };
+        let mut next = v + play.step;
+        if next > play.hi {
+            next = play.lo;
+        }
+        self.session
+            .set_constant(play.name.clone(), epher_core::Value::float(next), String::new());
+        self.resample_all();
+    }
+
+    /// Re-sample every plot against the current environment (after an
+    /// animation tick moved a constant).
+    fn resample_all(&mut self) {
+        let env = self.session.env().clone();
+        for c in &mut self.graph {
+            if let Ok(spec) = parse_graph_source(&c.source) {
+                if let Ok(samples) = sample_spec(&spec, 120, &env) {
+                    c.samples = samples;
+                }
+            }
+        }
+        self.pois = analyze(&self.graph, &env);
+        for s in &mut self.surface {
+            if let Ok(fresh) = sample_surface(&s.source, 40, &env) {
+                *s = fresh;
+            }
+        }
+    }
+}
+
+/// Render the projected 3D mesh as an ASCII wireframe (ADR-0015): depth-
+/// shaded Bresenham lines on a uniform grid — near segments `*`, middle
+/// `+`, far `.` — with the ground square and axes (`o`) drawn on top. The
+/// painter-sorted segments overpaint in draw order, so nearer mesh lines
+/// stay visible over farther ones.
+pub fn render_ascii3d(surfaces: &[Surface], view: &View3D, width: usize, height: usize) -> String {
+    if surfaces.is_empty() || width == 0 || height == 0 {
+        return String::new();
+    }
+    let mut all = Vec::new();
+    for (i, s) in surfaces.iter().enumerate() {
+        all.extend(project_surface(s, view));
+        if i == 0 {
+            all.extend(surface_frame(s, view));
+        }
+    }
+    if all.is_empty() {
+        return String::new();
+    }
+    let mut x_min = f64::INFINITY;
+    let mut x_max = f64::NEG_INFINITY;
+    let mut y_min = f64::INFINITY;
+    let mut y_max = f64::NEG_INFINITY;
+    for seg in &all {
+        x_min = x_min.min(seg.x1).min(seg.x2);
+        x_max = x_max.max(seg.x1).max(seg.x2);
+        y_min = y_min.min(seg.y1).min(seg.y2);
+        y_max = y_max.max(seg.y1).max(seg.y2);
+    }
+    let (x_min, x_max, y_min, y_max) = (x_min, x_max, y_min, y_max);
+    if !x_min.is_finite() || x_max - x_min < 1e-9 || y_max - y_min < 1e-9 {
+        return String::new();
+    }
+    let depth_min = all.iter().map(|s| s.depth).fold(f64::INFINITY, f64::min);
+    let depth_max = all.iter().map(|s| s.depth).fold(f64::NEG_INFINITY, f64::max);
+    let span = depth_max - depth_min;
+    let gw = width - 2;
+    let gh = height;
+    let scale = ((gw as f64) / (x_max - x_min)).min((gh as f64) / (y_max - y_min));
+    let ox = (gw as f64 - (x_max - x_min) * scale) / 2.0;
+    let oy = (gh as f64 - (y_max - y_min) * scale) / 2.0;
+    let to_grid = |x: f64, y: f64| {
+        let c = (x - x_min) * scale + ox;
+        let r = (y_max - y) * scale + oy;
+        (r as isize, c as isize)
+    };
+    let mut grid = vec![vec![' '; width]; height];
+    let mut stamp = |x1: f64, y1: f64, x2: f64, y2: f64, depth: f64, frame: bool| {
+        let (r1, c1) = to_grid(x1, y1);
+        let (r2, c2) = to_grid(x2, y2);
+        let glyph = if frame {
+            'o'
+        } else if span < 1e-9 {
+            '*'
+        } else {
+            let t = ((depth - depth_min) / span * 2.0).clamp(0.0, 2.0);
+            ['*', '+', '.'][t.floor() as usize]
+        };
+        // Bresenham
+        let (dr, dc) = (r2 - r1, c2 - c1);
+        let steps = dr.abs().max(dc.abs());
+        if steps == 0 {
+            if r1 >= 0 && r1 < height as isize && c1 >= 0 && c1 < width as isize {
+                grid[r1 as usize][c1 as usize] = glyph;
+            }
+            return;
+        }
+        for k in 0..=steps {
+            let r = r1 + (dr * k) / steps;
+            let c = c1 + (dc * k) / steps;
+            if r >= 0 && r < height as isize && c >= 0 && c < width as isize {
+                let cell = &mut grid[r as usize][c as usize];
+                // Nearer mesh overpaints farther mesh; the frame (drawn
+                // last) overpaints everything.
+                if frame || *cell != 'o' {
+                    *cell = glyph;
+                }
+            }
+        }
+    };
+    // Far to near: nearer (drawn later) overpaints.
+    let mut order = all.iter().collect::<Vec<_>>();
+    order.sort_by(|a, b| a.depth.total_cmp(&b.depth));
+    for seg in order {
+        stamp(seg.x1, seg.y1, seg.x2, seg.y2, seg.depth, false);
+    }
+    // Frame last, on top.
+    for s in surfaces.iter().take(1) {
+        for seg in surface_frame(s, view) {
+            stamp(seg.x1, seg.y1, seg.x2, seg.y2, seg.depth, true);
+        }
+    }
+    grid.into_iter()
+        .map(|row| row.into_iter().collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Render the plotted curves as an ASCII plot — the TUI's renderer
@@ -282,7 +556,21 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
     let mut app = App::with_session(session);
     loop {
         terminal.draw(|frame| draw(frame, &app, &localizer))?;
-        if let Event::Key(key) = event::read()? {
+        // While an animation plays, wait at most one tick for input so the
+        // plot advances on its own; otherwise block on the next event.
+        let event = if app.play().is_some() {
+            match event::poll(std::time::Duration::from_millis(50)) {
+                Ok(true) => Some(event::read()?),
+                Ok(false) => None,
+                Err(e) => return Err(e),
+            }
+        } else {
+            Some(event::read()?)
+        };
+        if app.play().is_some() {
+            app.tick();
+        }
+        if let Some(Event::Key(key)) = event {
             if key.kind == KeyEventKind::Press {
                 // Pasted newlines arrive as LF, which crossterm parses as
                 // Ctrl+J (the terminal convention for line feed). Treat it
@@ -298,6 +586,16 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                         return Ok(());
                     }
                     KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
+                    // 3D orbit (ADR-0015): arrows rotate when the input line
+                    // is empty, so typing never loses an arrow key.
+                    KeyCode::Left if app.input().is_empty() => app.rotate_view(-0.15, 0.0),
+                    KeyCode::Right if app.input().is_empty() => app.rotate_view(0.15, 0.0),
+                    KeyCode::Up if app.input().is_empty() => app.rotate_view(0.0, 0.15),
+                    KeyCode::Down if app.input().is_empty() => app.rotate_view(0.0, -0.15),
+                    // Space starts/stops the parameter animation (ADR-0015).
+                    KeyCode::Char(' ') if app.input().is_empty() => {
+                        app.toggle_play();
+                    }
                     KeyCode::Char(c) if !is_enter => app.push_char(c),
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Esc => app.clear_input(),
@@ -354,7 +652,17 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     // Legend + plot + points of interest, capped to the panel height.
     let mut graph_text = String::new();
     let curves = app.graph();
-    if !curves.is_empty() {
+    if !app.surfaces().is_empty() {
+        // 3D: the text alternative names each surface, then the wireframe.
+        let legend: Vec<String> = app
+            .surfaces()
+            .iter()
+            .map(|s| format!("z = {}", s.source.trim()))
+            .collect();
+        graph_text.push_str(&legend.join("   "));
+        graph_text.push('\n');
+        graph_text.push_str(&render_ascii3d(app.surfaces(), app.view(), 60, 15));
+    } else if !curves.is_empty() {
         // The visible text alternative: what is plotted (screen readers in
         // terminals read this instead of raw ASCII art).
         let legend: Vec<String> = curves

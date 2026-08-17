@@ -1,6 +1,14 @@
 use epher_core::Sample;
 use epher_core::Session;
-use epher_tui::{render_ascii, App};
+use epher_tui::{render_ascii, render_ascii3d, App};
+
+fn app_session_constant(app: &App, name: &str) -> epher_core::Value {
+    app.session()
+        .env()
+        .constant(name)
+        .cloned()
+        .unwrap_or(epher_core::Value::float(f64::NAN))
+}
 
 #[test]
 fn submit_evaluates_against_persistent_env() {
@@ -260,4 +268,124 @@ fn submit_line_keeps_graph_special_case() {
     assert_eq!(app.result(), "graph: x ^ 2");
     assert_eq!(app.graph().len(), 1);
     assert!(app.history().is_empty());
+}
+
+// ===== 3D surfaces and animation (ADR-0015) =====
+
+fn tui_store() -> epher_store::DocStore<epher_store::FsStore> {
+    let dir = std::env::temp_dir().join(format!("epher-tui-test-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    epher_store::DocStore::new(epher_store::FsStore::new(dir))
+}
+
+#[test]
+fn graph3d_samples_and_clears() {
+    let store = tui_store();
+    let mut app = App::with_session(epher_core::Session::new());
+    app.submit_line("graph3d x ^ 2 + y ^ 2", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.result(), "graph3d: x ^ 2 + y ^ 2");
+    assert_eq!(app.surfaces().len(), 1);
+    assert!(app.history().is_empty());
+
+    // A second surface overlays.
+    app.submit_line("graph3d x - y", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.surfaces().len(), 2);
+
+    app.submit_line("graph3d clear", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert!(app.surfaces().is_empty());
+}
+
+#[test]
+fn graph3d_rejects_nonsense() {
+    let store = tui_store();
+    let mut app = App::with_session(epher_core::Session::new());
+    app.submit_line("graph3d x +", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert!(app.result().starts_with("error"), "got: {:?}", app.result());
+    assert!(app.surfaces().is_empty());
+}
+
+#[test]
+fn arrows_rotate_the_view_and_pitch_is_clamped() {
+    let store = tui_store();
+    let mut app = App::with_session(epher_core::Session::new());
+    app.submit_line("graph3d x ^ 2 + y ^ 2", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    let before = *app.view();
+    app.rotate_view(0.15, 0.0);
+    assert!((app.view().yaw - before.yaw - 0.15).abs() < 1e-9);
+    for _ in 0..50 {
+        app.rotate_view(0.0, 0.3);
+    }
+    assert!(app.view().pitch <= 1.4 + 1e-9);
+}
+
+#[test]
+fn space_toggles_play_and_tick_animates_the_constant() {
+    let store = tui_store();
+    // A constant referenced by a curve is the animation target.
+    let mut s = epher_core::Session::new();
+    s.submit("const a = 1");
+    let mut app = App::with_session(s);
+    app.submit_line("graph a * x ^ 2", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert!(app.toggle_play());
+    let play = app.play().unwrap().clone();
+    assert_eq!(play.name, "a");
+    assert_eq!(play.step, 0.1);
+
+    // Each tick advances the constant and re-samples the curve.
+    let before = app.graph()[0].samples.clone();
+    app.tick();
+    let after = app.graph()[0].samples.clone();
+    let v: f64 = match app_session_constant(&app, "a") {
+        epher_core::Value::Float(f) => f,
+        _ => panic!("constant a must be a float"),
+    };
+    assert!((v - 1.1).abs() < 1e-9);
+    // The curve resampled: samples at a=1.1 differ from a=1.
+    assert!(before.iter().zip(&after).any(|(x, y)| (x.y - y.y).abs() > 1e-9));
+
+    // Toggling again stops.
+    assert!(!app.toggle_play());
+    assert!(app.play().is_none());
+}
+
+#[test]
+fn tick_wraps_the_constant_within_its_play_bounds() {
+    let store = tui_store();
+    let mut s = epher_core::Session::new();
+    s.submit("const a = 1");
+    let mut app = App::with_session(s);
+    app.submit_line("graph a * x", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
+    assert!(app.toggle_play());
+    let lo = app.play().unwrap().lo;
+    // 40 ticks of 0.1 from 1.0 with hi = 3.0: wrap back to lo = -1.0.
+    for _ in 0..40 {
+        app.tick();
+    }
+    let v = app_session_constant(&app, "a");
+    let v = match v {
+        epher_core::Value::Float(f) => f,
+        _ => panic!(),
+    };
+    let hi = app.play().unwrap().hi;
+    assert!(v >= lo && v <= hi);
+}
+
+#[test]
+fn render_ascii3d_draws_the_wireframe() {
+    use epher_core::graph::{sample_surface, View3D};
+    let env = epher_core::Env::default();
+    let s = sample_surface("x ^ 2 - y ^ 2", 20, &env).unwrap();
+    let out = render_ascii3d(&[s], &View3D::default(), 40, 12);
+    assert!(!out.is_empty());
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 12);
+    assert!(lines.iter().all(|l| l.chars().count() <= 40));
+    // Depth glyphs and the frame are present.
+    assert!(out.contains('*') || out.contains('+') || out.contains('.'));
+    assert!(out.contains('o'));
+}
+
+#[test]
+fn render_ascii3d_is_empty_without_surfaces() {
+    assert_eq!(render_ascii3d(&[], &epher_core::graph::View3D::default(), 40, 12), "");
 }
