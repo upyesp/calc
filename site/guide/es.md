@@ -795,6 +795,10 @@ La CLI es el lado de texto del mismo programa `epher` que la aplicación de
 escritorio. Tiene tres modos: evaluación de un solo uso, scripts por tubería
 y una sesión interactiva para trabajos más largos.
 
+Para obtener ayuda en cualquier momento, ejecuta `epher --help` (todos
+los comandos, con ejemplos) o `epher help` (el manual completo; en los
+paquetes de Linux es la página `man epher`).
+
 ### 4.1 Cálculos de un solo uso
 
 Pasa la expresión como argumento:

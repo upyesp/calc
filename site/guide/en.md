@@ -783,6 +783,10 @@ The CLI is the text side of the same `epher` program as the desktop app.
 It has three modes: one-shot evaluation, piped scripts, and an interactive
 session for longer work.
 
+For help at any time, run `epher --help` (all commands, with
+examples) or `epher help` (the full manual; on Linux packages this is the
+`man epher` page).
+
 ### 4.1 One-shot calculations
 
 Give the expression as an argument:
