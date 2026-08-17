@@ -24,7 +24,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::events::{InputEvent, SubmitEvent};
 use yew::prelude::*;
 
@@ -121,6 +121,7 @@ fn curve_at(curves: &[SampledCurve], index: usize) -> Option<&SampledCurve> {
 fn epher_app() -> Html {
     let session = use_state(Session::new);
     let input = use_state(String::new);
+    let form_ref = use_node_ref();
     let result = use_state(String::new);
     let localizer = use_state(|| Localizer::resolve(None, &[]));
     let graph = use_state(Vec::<SampledCurve>::new);
@@ -138,56 +139,50 @@ fn epher_app() -> Html {
         let session = session.clone();
         let result = result.clone();
         let localizer = localizer.clone();
-        use_effect_with(
-            (),
-            move |_| {
-                if bridge == Bridge::Tauri {
-                    spawn_local(async move {
-                        match bridge.init().await {
-                            Ok(InitState {
-                                history,
-                                replay,
-                                language,
-                            }) => {
-                                let mut s = Session::with_history(history);
-                                for line in &replay {
-                                    s.submit_quiet(line);
-                                }
-                                session.set(s);
-                                if let Some(code) = language {
-                                    localizer.set(Localizer::resolve(Some(&code), &[]));
-                                }
+        use_effect_with((), move |_| {
+            if bridge == Bridge::Tauri {
+                spawn_local(async move {
+                    match bridge.init().await {
+                        Ok(InitState {
+                            history,
+                            replay,
+                            language,
+                        }) => {
+                            let mut s = Session::with_history(history);
+                            for line in &replay {
+                                s.submit_quiet(line);
                             }
-                            Err(e) => {
-                                result.set(format!(
-                                    "warning: could not load saved data ({e}); starting fresh"
-                                ));
+                            session.set(s);
+                            if let Some(code) = language {
+                                localizer.set(Localizer::resolve(Some(&code), &[]));
                             }
                         }
-                    });
-                }
-                || {}
-            },
-        );
+                        Err(e) => {
+                            result.set(format!(
+                                "warning: could not load saved data ({e}); starting fresh"
+                            ));
+                        }
+                    }
+                });
+            }
+            || {}
+        });
     }
 
     // macOS desktop builds offer to install the `epher` terminal command
     // (ADR-0011): a one-click symlink into /usr/local/bin.
     {
         let show_install_cli = show_install_cli.clone();
-        use_effect_with(
-            (),
-            move |_| {
-                if bridge == Bridge::Tauri {
-                    spawn_local(async move {
-                        if let Ok(true) = bridge.cli_install_supported().await {
-                            show_install_cli.set(true);
-                        }
-                    });
-                }
-                || {}
-            },
-        );
+        use_effect_with((), move |_| {
+            if bridge == Bridge::Tauri {
+                spawn_local(async move {
+                    if let Ok(true) = bridge.cli_install_supported().await {
+                        show_install_cli.set(true);
+                    }
+                });
+            }
+            || {}
+        });
     }
 
     let on_install_cli = {
@@ -212,8 +207,24 @@ fn epher_app() -> Html {
     let on_input = {
         let input = input.clone();
         Callback::from(move |e: InputEvent| {
-            let target = e.target_unchecked_into::<HtmlInputElement>();
+            let target = e.target_unchecked_into::<HtmlTextAreaElement>();
             input.set(target.value());
+        })
+    };
+
+    // Enter submits (the textarea's own Enter would insert a newline);
+    // Shift+Enter inserts a newline so multi-line scripts can be composed
+    // by hand. Submitting goes through the form so the `=` button and the
+    // keyboard share one path.
+    let on_keydown = {
+        let form_ref = form_ref.clone();
+        Callback::from(move |e: web_sys::KeyboardEvent| {
+            if e.key() == "Enter" && !e.shift_key() && !e.is_composing() {
+                e.prevent_default();
+                if let Some(form) = form_ref.cast::<web_sys::HtmlFormElement>() {
+                    let _ = form.request_submit();
+                }
+            }
         })
     };
 
@@ -229,111 +240,111 @@ fn epher_app() -> Html {
         let live = live.clone();
         Callback::from(move |e: SubmitEvent| {
             e.prevent_default();
-            let line = (*input).trim().to_string();
-
-            // Graphing (ADR-0006/0014: the core samples, the frontend renders).
-            // Each `graph` line overlays one more curve; history is untouched.
-            if let Some(source) = line.strip_prefix("graph ") {
-                let source = source.trim();
-                if source == "clear" {
-                    graph.set(Vec::new());
-                    pois.set(Vec::new());
-                    trace.set(None);
-                    sliders.set(Vec::new());
-                    {
-                        let mut l = (*live).borrow_mut();
-                        l.curves.clear();
-                        l.trace = None;
-                    }
-                    input.set(String::new());
-                    return;
-                }
-                match parse_graph_source(source).and_then(|spec| {
-                    sample_spec(&spec, 120, (*session).env()).map(|samples| (spec, samples))
-                }) {
-                    Ok((spec, samples)) => {
-                        let curve = SampledCurve {
-                            source: source.to_string(),
-                            kind: spec.kind,
-                            domain: spec.domain,
-                            samples,
-                            fill: spec.fill,
-                        };
-                        let mut curves = (*graph).clone();
-                        curves.push(curve);
-                        let found = analyze(&curves, (*session).env());
-                        let labels = poi_labels(&found, &localizer);
-                        sliders.set(slider_names(&curves, &session));
-                        {
-                            let mut l = (*live).borrow_mut();
-                            l.curves = curves.clone();
-                            l.trace = None;
-                        }
-                        graph.set(curves);
-                        pois.set(labels);
-                        trace.set(None);
-                        result.set(format!("graph: {source}"));
-                    }
-                    Err(e) => result.set(format!("error: {e}")),
-                }
-                input.set(String::new());
-                return;
-            }
-
-            // Shell commands (epher-shell policy): persist through the
-            // bridge in the desktop shell; explain the web app's limits
-            // otherwise.
-            if let Some(cmd) = classify(&line) {
-                match bridge {
-                    Bridge::Tauri => match prepare(&cmd, &session, &localizer) {
-                        Ok(prepared) => {
-                            match &prepared {
-                                epher_shell::Prepared::SaveFunction { name, source } => {
-                                    bridge.save_function(name, source);
-                                }
-                                epher_shell::Prepared::SaveConstant { name, source } => {
-                                    bridge.save_constant(name, source);
-                                }
-                                epher_shell::Prepared::SaveScript { name, source } => {
-                                    bridge.save_script(name, source);
-                                }
-                                epher_shell::Prepared::Language { code } => {
-                                    bridge.save_language(code);
-                                    localizer.set(Localizer::resolve(Some(code), &[]));
-                                }
-                                epher_shell::Prepared::Table { .. } => {}
-                            }
-                            result.set(message(&prepared, &localizer));
-                        }
-                        Err(msg) => result.set(msg),
-                    },
-                    Bridge::None => {
-                        // Tables are pure computation — they work in the
-                        // browser session just like an evaluation.
-                        match &cmd {
-                            epher_shell::Command::Table { .. } => {
-                                match prepare(&cmd, &session, &localizer) {
-                                    Ok(prepared) => result.set(message(&prepared, &localizer)),
-                                    Err(msg) => result.set(msg),
-                                }
-                            }
-                            _ => result.set(localizer.lookup("web-session-only")),
-                        }
-                    }
-                }
-                input.set(String::new());
-                return;
-            }
-
+            // A submitted entry may be several lines (pasted from the
+            // guide, or composed with Shift+Enter). Each line runs in
+            // order against one session snapshot — script semantics, like
+            // the REPL and piped mode. Yew state handles do not expose
+            // writes made earlier in the same callback, so the loop works
+            // on locals and the states are published once, after the loop.
             let mut s = (*session).clone();
-            let out = s.submit(&line);
-            let history = s.history().to_vec();
-            session.set(s);
-            result.set(out);
+            let mut curves = (*graph).clone();
+            for line in (*input).split('\n') {
+                let line = line.trim().to_string();
+                if line.is_empty() {
+                    continue;
+                }
+
+                // Graphing (ADR-0006/0014: the core samples, the frontend renders).
+                // Each `graph` line overlays one more curve; history is untouched.
+                if let Some(source) = line.strip_prefix("graph ") {
+                    let source = source.trim();
+                    if source == "clear" {
+                        curves.clear();
+                        continue;
+                    }
+                    match parse_graph_source(source)
+                        .and_then(|spec| sample_spec(&spec, 120, s.env()).map(|samples| (spec, samples)))
+                    {
+                        Ok((spec, samples)) => {
+                            curves.push(SampledCurve {
+                                source: source.to_string(),
+                                kind: spec.kind,
+                                domain: spec.domain,
+                                samples,
+                                fill: spec.fill,
+                            });
+                            result.set(format!("graph: {source}"));
+                        }
+                        Err(e) => result.set(format!("error: {e}")),
+                    }
+                    continue;
+                }
+
+                // Shell commands (epher-shell policy): persist through the
+                // bridge in the desktop shell; explain the web app's limits
+                // otherwise.
+                if let Some(cmd) = classify(&line) {
+                    match bridge {
+                        Bridge::Tauri => match prepare(&cmd, &s, &localizer) {
+                            Ok(prepared) => {
+                                match &prepared {
+                                    epher_shell::Prepared::SaveFunction { name, source } => {
+                                        bridge.save_function(name, source);
+                                    }
+                                    epher_shell::Prepared::SaveConstant { name, source } => {
+                                        bridge.save_constant(name, source);
+                                    }
+                                    epher_shell::Prepared::SaveScript { name, source } => {
+                                        bridge.save_script(name, source);
+                                    }
+                                    epher_shell::Prepared::Language { code } => {
+                                        bridge.save_language(code);
+                                        localizer.set(Localizer::resolve(Some(code), &[]));
+                                    }
+                                    epher_shell::Prepared::Table { .. } => {}
+                                }
+                                result.set(message(&prepared, &localizer));
+                            }
+                            Err(msg) => result.set(msg),
+                        },
+                        Bridge::None => {
+                            // Tables are pure computation — they work in the
+                            // browser session just like an evaluation.
+                            match &cmd {
+                                epher_shell::Command::Table { .. } => {
+                                    match prepare(&cmd, &s, &localizer) {
+                                        Ok(prepared) => result.set(message(&prepared, &localizer)),
+                                        Err(msg) => result.set(msg),
+                                    }
+                                }
+                                _ => result.set(localizer.lookup("web-session-only")),
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                let out = s.submit(&line);
+                result.set(out);
+            }
+            // Publish the loop's outcomes once: points of interest and the
+            // slider set follow from the final curves and session.
+            let found = analyze(&curves, s.env());
+            let labels = poi_labels(&found, &localizer);
+            sliders.set(slider_names(&curves, &s));
+            {
+                let mut l = (*live).borrow_mut();
+                l.curves = curves.clone();
+                l.trace = None;
+            }
+            graph.set(curves);
+            pois.set(labels);
+            trace.set(None);
+            session.set(s.clone());
             input.set(String::new());
             // Desktop apps are killed, not exited: persist per line (ADR-0010).
             if bridge == Bridge::Tauri {
-                bridge.save_history(&history);
+                bridge.save_history(&s.history().to_vec());
             }
         })
     };
@@ -347,7 +358,11 @@ fn epher_app() -> Html {
         let localizer = localizer.clone();
         Callback::from(move |(name, value): (String, f64)| {
             let mut s = (*session).clone();
-            s.set_constant(name.clone(), Value::float(value), format!("const {name} = {value}"));
+            s.set_constant(
+                name.clone(),
+                Value::float(value),
+                format!("const {name} = {value}"),
+            );
             let mut curves = (*graph).clone();
             resample(&mut curves, &s);
             let found = analyze(&curves, s.env());
@@ -489,13 +504,7 @@ fn epher_app() -> Html {
 
     // The trace announcement: coordinates in the current UI language-free
     // numeric form, announced politely (the plot itself is an image).
-    let trace_text = (*trace).map(|t| {
-        format!(
-            "x = {:.3}, y = {:.3}",
-            t.x,
-            t.y
-        )
-    });
+    let trace_text = (*trace).map(|t| format!("x = {:.3}, y = {:.3}", t.x, t.y));
 
     let slider_rows: Vec<Html> = (*sliders)
         .iter()
@@ -544,12 +553,7 @@ fn epher_app() -> Html {
     let poi_items: Vec<Html> = (*pois)
         .iter()
         .map(|p| {
-            let text = format!(
-                "{} ({}, {})",
-                p.label,
-                graph::label(p.x),
-                graph::label(p.y)
-            );
+            let text = format!("{} ({}, {})", p.label, graph::label(p.x), graph::label(p.y));
             html! { <li>{ text }</li> }
         })
         .collect();
@@ -557,12 +561,13 @@ fn epher_app() -> Html {
     html! {
         <main class="epher">
             <h1>{ "epher" }</h1>
-            <form onsubmit={on_submit}>
-                <input
-                    type="text"
+            <form ref={form_ref.clone()} onsubmit={on_submit}>
+                <textarea
+                    rows="1"
                     placeholder={"expression or script"}
                     value={(*input).clone()}
                     oninput={on_input}
+                    onkeydown={on_keydown}
                     autofocus={true}
                     aria-label="expression"
                     aria-invalid={if is_error { "true" } else { "false" }}
