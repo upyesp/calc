@@ -775,6 +775,42 @@ graph a * x ^ 2
 **Copiar SVG** copia o gráfico atual como uma imagem SVG para colar em
 documentos.
 
+#### 2.4.4 Superfícies 3D
+
+`graph3d` desenha uma superfície z = f(x, y) sobre um domínio quadrado
+(−5 a 5, ou o seu `from a to b`):
+
+```epher
+graph3d x ^ 2 - y ^ 2
+```
+
+As linhas da malha mais próximas de si são desenhadas com mais força, de
+modo a que a forma ganhe profundidade. Várias linhas `graph3d`
+sobrepõem-se, tal como as curvas, e `graph3d clear` esvazia o gráfico.
+Rode a vista arrastando, ou foque o gráfico e use as teclas de seta. A
+TUI desenha a mesma superfície como uma malha de arame em ASCII, que
+roda com as teclas de seta.
+
+#### 2.4.5 Animação
+
+Cada deslizador tem um botão de reprodução. Ele faz a sua constante
+percorrer o intervalo do deslizador e recomeçar do início — a forma
+habitual de as calculadoras animarem: anima-se um parâmetro e tudo o que
+o usa move-se (Desmos e GeoGebra funcionam da mesma forma). Prima o
+botão novamente para fazer uma pausa.
+
+Uma variável de "tempo" é apenas uma constante que anima:
+
+```epher
+const t = 0
+graph sin(x - t)
+```
+
+Reproduzir o deslizador de t faz a onda viajar. As superfícies 3D animam
+da mesma forma — experimente
+`graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` com um deslizador `a`. Na
+TUI, a barra de espaço inicia e para a animação.
+
 ### 2.5 Instalá-la e usá-la offline
 
 A aplicação web é uma *aplicação web progressiva*: após uma visita,
@@ -1093,6 +1129,8 @@ O ecrã está dividido em painéis:
 | **Esc** | limpar a linha de entrada |
 | **Ctrl+C** | sair |
 | **q** | sair (quando a entrada está vazia) |
+| **Arrow keys** | rodar a vista 3D (quando a entrada está vazia) |
+| **Space** | iniciar/parar a animação (quando a entrada está vazia) |
 
 ### 5.3 Gráficos
 
@@ -1127,6 +1165,10 @@ são simplesmente ignorados, deixando um intervalo no gráfico. Após cada
 comando graph, a TUI lista os pontos de interesse — raízes, extremos e
 interseções — por baixo do gráfico. O comando `table` (secção 2.4.2)
 também funciona aqui.
+
+`graph3d x ^ 2 - y ^ 2` desenha uma superfície 3D como uma malha de
+arame em ASCII — rode-a com as teclas de seta e prima a barra de espaço
+para animar uma constante de deslizador (secção 2.4.5).
 
 ### 5.4 Guardar e persistência
 

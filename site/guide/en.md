@@ -767,6 +767,39 @@ graph a * x ^ 2
 **Copy SVG** copies the current plot as an SVG image for pasting into
 documents.
 
+#### 2.4.4 3D surfaces
+
+`graph3d` plots a surface z = f(x, y) over a square domain (−5 to 5, or
+your `from a to b`):
+
+```epher
+graph3d x ^ 2 - y ^ 2
+```
+
+Mesh lines nearer to you are drawn stronger, so the shape reads in depth.
+Several `graph3d` lines overlay, like curves, and `graph3d clear` empties
+the plot. Rotate the view by dragging, or focus the plot and use the arrow
+keys. The terminal UI draws the same surface as an ASCII wireframe, with
+the arrow keys rotating it.
+
+#### 2.4.5 Animation
+
+Every slider has a play button. It steps its constant through the
+slider's range and loops around — the standard way calculators animate:
+you animate a parameter, and everything that uses it moves (Desmos and
+GeoGebra work the same way). Press the button again to pause.
+
+A "time" variable is just a constant you animate:
+
+```epher
+const t = 0
+graph sin(x - t)
+```
+
+Playing t's slider makes the wave travel. 3D surfaces animate the same
+way — try `graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` with a slider
+`a`. In the terminal UI, the space bar starts and stops the animation.
+
 ### 2.5 Installing it and using it offline
 
 The web app is a *progressive web app*: after one visit it works fully
@@ -1070,6 +1103,8 @@ The screen is divided into panels:
 | **Esc** | clear the input line |
 | **Ctrl+C** | quit |
 | **q** | quit (when the input is empty) |
+| **Arrow keys** | rotate the 3D view (when the input is empty) |
+| **Space** | start/stop the animation (when the input is empty) |
 
 ### 5.3 Graphing
 
@@ -1102,6 +1137,10 @@ are simply skipped, leaving a gap in the plot. After every graph command
 the TUI lists the points of interest — roots, turning points, and
 intersections — under the plot. The `table` command (section 2.4.2) works
 here too.
+
+`graph3d x ^ 2 - y ^ 2` plots a 3D surface as an ASCII wireframe — rotate
+it with the arrow keys, and press the space bar to animate a slider
+constant (section 2.4.5).
 
 ### 5.4 Saving and persistence
 

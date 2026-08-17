@@ -783,6 +783,43 @@ graph a * x ^ 2
 **Copier le SVG** copie le tracé actuel comme image SVG à coller dans
 des documents.
 
+#### 2.4.4 Surfaces 3D
+
+`graph3d` trace une surface z = f(x, y) sur un domaine carré (de −5 à 5,
+ou votre `from a to b`) :
+
+```epher
+graph3d x ^ 2 - y ^ 2
+```
+
+Les lignes de maillage les plus proches de vous sont dessinées plus
+marquées, si bien que la forme se lit en profondeur. Plusieurs lignes
+`graph3d` se superposent, comme les courbes, et `graph3d clear` vide le
+tracé. Faites pivoter la vue en faisant glisser, ou focalisez le tracé et
+utilisez les touches fléchées. L'interface de terminal dessine la même
+surface sous forme de filaire ASCII, que les touches fléchées font
+pivoter.
+
+#### 2.4.5 Animation
+
+Chaque curseur a un bouton de lecture. Il fait avancer sa constante sur
+toute la plage du curseur, puis revient au début — la façon standard dont
+les calculatrices animent : vous animez un paramètre, et tout ce qui
+l'utilise bouge (Desmos et GeoGebra fonctionnent de la même façon).
+Appuyez de nouveau sur le bouton pour mettre en pause.
+
+Une variable "temps" n'est qu'une constante que vous animez :
+
+```epher
+const t = 0
+graph sin(x - t)
+```
+
+Lancer la lecture du curseur de t fait voyager l'onde. Les surfaces 3D
+s'animent de la même façon — essayez `graph3d sin(a * (x ^ 2 + y ^ 2))
+from -3 to 3` avec un curseur `a`. Dans l'interface de terminal, la barre
+d'espace démarre et arrête l'animation.
+
 ### 2.5 L'installer et l'utiliser hors ligne
 
 L'application web est une *progressive web app* : après une visite elle
@@ -1102,6 +1139,8 @@ L'écran est divisé en panneaux :
 | **Échap** | effacer la ligne de saisie |
 | **Ctrl+C** | quitter |
 | **q** | quitter (quand la saisie est vide) |
+| **Touches fléchées** | faire pivoter la vue 3D (quand la saisie est vide) |
+| **Espace** | démarrer/arrêter l'animation (quand la saisie est vide) |
 
 ### 5.3 Les graphiques
 
@@ -1136,6 +1175,10 @@ zéro) sont simplement ignorés, laissant un vide dans le tracé. Après
 chaque commande graph, la TUI liste les points d'intérêt — racines,
 extremums et intersections — sous le tracé. La commande `table`
 (section 2.4.2) fonctionne ici aussi.
+
+`graph3d x ^ 2 - y ^ 2` trace une surface 3D sous forme de filaire ASCII —
+faites-la pivoter avec les touches fléchées et appuyez sur la barre
+d'espace pour animer une constante à curseur (section 2.4.5).
 
 ### 5.4 Enregistrement et persistance
 

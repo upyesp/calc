@@ -773,6 +773,42 @@ graph a * x ^ 2
 **Copiar SVG** copia la gráfica actual como imagen SVG para pegarla en
 documentos.
 
+#### 2.4.4 Superficies 3D
+
+`graph3d` dibuja una superficie z = f(x, y) sobre un dominio cuadrado
+(de −5 a 5, o tu `from a to b`):
+
+```epher
+graph3d x ^ 2 - y ^ 2
+```
+
+Las líneas de malla más cercanas a ti se dibujan más marcadas, para que
+la forma se lea en profundidad. Varias líneas `graph3d` se superponen,
+como las curvas, y `graph3d clear` vacía la gráfica. Gira la vista
+arrastrando, o enfoca la gráfica y usa las teclas de flecha. La interfaz
+de terminal dibuja la misma superficie como una malla alámbrica ASCII,
+girándola con las teclas de flecha.
+
+#### 2.4.5 Animación
+
+Cada deslizador tiene un botón de reproducción. Avanza su constante a lo
+largo del rango del deslizador y al llegar al final vuelve a empezar — la
+forma estándar en que animan las calculadoras: animas un parámetro y todo
+lo que lo usa se mueve (Desmos y GeoGebra funcionan igual). Pulsa el
+botón de nuevo para pausar.
+
+Una variable de "tiempo" no es más que una constante que animas:
+
+```epher
+const t = 0
+graph sin(x - t)
+```
+
+Al reproducir el deslizador de t, la onda se desplaza. Las superficies 3D
+se animan igual — prueba `graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3`
+con un deslizador `a`. En la interfaz de terminal, la barra espaciadora
+inicia y detiene la animación.
+
 ### 2.5 Instalarla y usarla sin conexión
 
 La aplicación web es una *progressive web app*: después de una visita
@@ -1089,6 +1125,8 @@ La pantalla está dividida en paneles:
 | **Esc** | borrar la línea de entrada |
 | **Ctrl+C** | salir |
 | **q** | salir (cuando la entrada está vacía) |
+| **Teclas de flecha** | girar la vista 3D (cuando la entrada está vacía) |
+| **Espacio** | iniciar/detener la animación (cuando la entrada está vacía) |
 
 ### 5.3 Gráficas
 
@@ -1123,6 +1161,10 @@ cero) simplemente se omiten, dejando un hueco en la gráfica. Tras cada
 comando graph, la TUI lista los puntos de interés — raíces, máximos y
 mínimos e intersecciones — bajo la gráfica. El comando `table`
 (sección 2.4.2) también funciona aquí.
+
+`graph3d x ^ 2 - y ^ 2` dibuja una superficie 3D como una malla alámbrica
+ASCII — gírala con las teclas de flecha y pulsa la barra espaciadora para
+animar una constante con deslizador (sección 2.4.5).
 
 ### 5.4 Guardar y persistencia
 

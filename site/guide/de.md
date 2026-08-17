@@ -781,6 +781,43 @@ graph a * x ^ 2
 **SVG kopieren** kopiert den aktuellen Plot als SVG-Bild zum Einfügen in
 Dokumente.
 
+#### 2.4.4 3D-Flächen
+
+`graph3d` zeichnet eine Fläche z = f(x, y) über einem quadratischen
+Bereich (−5 bis 5 oder dein `from a to b`):
+
+```epher
+graph3d x ^ 2 - y ^ 2
+```
+
+Netzlinien, die näher bei dir liegen, werden kräftiger gezeichnet, sodass
+die Form räumliche Tiefe bekommt. Mehrere `graph3d`-Zeilen überlagern
+sich wie Kurven, und `graph3d clear` leert den Plot. Drehe die Ansicht
+durch Ziehen oder fokussiere den Plot und verwende die Pfeiltasten. Die
+TUI zeichnet dieselbe Fläche als ASCII-Drahtgitter; mit den Pfeiltasten
+drehst du es.
+
+#### 2.4.5 Animation
+
+Jeder Schieberegler hat eine Wiedergabetaste. Sie lässt seine Konstante
+den Bereich des Schiebereglers durchlaufen und beginnt danach wieder von
+vorn — so animieren Taschenrechner üblicherweise: Du animierst einen
+Parameter, und alles, was ihn verwendet, bewegt sich mit (Desmos und
+GeoGebra funktionieren genauso). Drücke die Taste erneut, um zu
+pausieren.
+
+Eine "Zeit"-Variable ist nur eine Konstante, die du animierst:
+
+```epher
+const t = 0
+graph sin(x - t)
+```
+
+Wenn du den Schieberegler von t abspielst, wandert die Welle.
+3D-Flächen animieren sich genauso — probiere
+`graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` mit einem Schieberegler
+`a`. In der TUI startet und stoppt die Leertaste die Animation.
+
 ### 2.5 Installieren und offline nutzen
 
 Die Web-App ist eine *progressive Web-App*: nach einem Besuch funktioniert
@@ -1098,6 +1135,8 @@ Der Bildschirm ist in Panels unterteilt:
 | **Esc** | die Eingabezeile leeren |
 | **Ctrl+C** | beenden |
 | **q** | beenden (wenn die Eingabe leer ist) |
+| **Arrow keys** | die 3D-Ansicht drehen (wenn die Eingabe leer ist) |
+| **Space** | die Animation starten/stoppen (wenn die Eingabe leer ist) |
 
 ### 5.3 Graphen zeichnen
 
@@ -1132,6 +1171,10 @@ durch null), werden einfach übersprungen und hinterlassen eine Lücke im
 Plot. Nach jedem graph-Befehl listet die TUI die besonderen Punkte —
 Nullstellen, Extrempunkte und Schnittpunkte — unter dem Plot auf. Der
 Befehl `table` (Abschnitt 2.4.2) funktioniert auch hier.
+
+`graph3d x ^ 2 - y ^ 2` zeichnet eine 3D-Fläche als ASCII-Drahtgitter —
+drehe sie mit den Pfeiltasten und drücke die Leertaste, um die Konstante
+eines Schiebereglers zu animieren (Abschnitt 2.4.5).
 
 ### 5.4 Speichern und Persistenz
 
