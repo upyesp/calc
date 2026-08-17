@@ -20,6 +20,12 @@
   .toc {
     position: sticky;
     top: 1rem;
+    /* The full ToC is taller than the viewport: cap the sticky pane and
+       give it its own vertical scrollbar so every entry stays visible and
+       clickable (top offset + a little breathing room = the 2rem). */
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem); /* dvh where supported */
+    overflow-y: auto;
   }
 }
 
