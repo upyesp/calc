@@ -26,7 +26,7 @@ links never need a version number.
 
 ## Landing page design
 
-- **i18n**: six locales (`en`, `zh-CN`, `hi`, `es`, `fr`, `ar`). Detection,
+- **i18n**: eight locales (`en`, `zh-CN`, `hi`, `es`, `fr`, `ar`, `de`, `pt`). Detection,
   stored preference, and English fallback mirror the `Localizer` in
   `crates/i18n`; the static page reimplements the ~15-line negotiation in
   `site/app.js` (there is no wasm on the landing page). `lang`/`dir` (RTL for
@@ -54,12 +54,12 @@ links never need a version number.
 
 1. Add the English text in `site/index.html` with `data-i18n="key"` (or
    `data-i18n-aria` for aria-labels).
-2. Add the key to all six locale dictionaries in `site/app.js`.
+2. Add the key to all eight locale dictionaries in `site/app.js`.
 3. Keep the `docs/accessibility.md` checklist in mind (labels, language).
 
 ## User guide
 
-`site/guide/<lang>.md` holds the user guide in each of the six languages
+`site/guide/<lang>.md` holds the user guide in each of the eight languages
 (the master is `en.md`; translate it and keep the examples identical). The
 `pages` workflow converts them to HTML with
 `scripts/build-guide.mjs` (marked + a small template; heading ids, table of

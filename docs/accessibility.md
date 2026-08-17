@@ -45,7 +45,7 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 
 | Criterion | Status | Evidence / notes |
 |---|---|---|
-| 3.1.1 Language of page | PASS* | `lang="en"` matches the (currently English-only) UI. *Must track the resolved locale when `navigator.languages` detection lands, and set `dir="rtl"` for Arabic — noted in `index.html` and ADR-0008. |
+| 3.1.1 Language of page | PASS* | `lang`/`dir` track the resolved locale (detection via `navigator.languages`, `dir="rtl"` for Arabic); the guide pages set both per locale at build time. *The landing page's static `html lang="en"` is updated at runtime from the stored preference; its initial paint is English until app.js runs. |
 | 3.2.1/3.2.2 On focus/input | PASS | Focus lands in the field on load (intentional: it is the whole app); submit only updates the result region. |
 | 3.3.1 Error identification | **FIXED** | Errors already appear as text (announced); now also `aria-invalid="true"` + `aria-describedby="epher-result"` on the input while an error is showing. |
 | 3.3.2 Labels | PASS | `aria-label` on the input; placeholder is a hint only. |

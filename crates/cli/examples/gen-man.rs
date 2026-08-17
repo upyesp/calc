@@ -104,7 +104,7 @@ fn sections() -> Vec<Roff> {
         para(roff, "Inside the interactive session (repl) and piped scripts, these lines are shell commands, not expressions:");
         tagged(roff, "save name", "save the function or constant `name` for future sessions");
         tagged(roff, "save script name", "save the last evaluated line as a script");
-        tagged(roff, "language code", "set the interface language: en, zh-CN, hi, es, fr, ar");
+        tagged(roff, "language code", "set the interface language: en, zh-CN, hi, es, fr, ar, de, pt");
         tagged(roff, "quit, exit", "leave the interactive session (Ctrl-D too)");
     }));
 
@@ -138,7 +138,7 @@ fn sections() -> Vec<Roff> {
 fn see_also() -> Roff {
     let mut roff = Roff::default();
     roff.control("SH", ["SEE ALSO"]);
-    para(&mut roff, "The user guide, in six languages, and the project itself:");
+    para(&mut roff, "The user guide, in eight languages, and the project itself:");
     tagged(&mut roff, "https://epher.org/guide/", "the full user guide");
     tagged(
         &mut roff,
