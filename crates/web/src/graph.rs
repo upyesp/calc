@@ -673,7 +673,22 @@ pub struct Graph3DProps {
 #[function_component(Graph3D)]
 pub fn graph3d_html(props: &Graph3DProps) -> Html {
     let svg_ref = use_node_ref();
+    let g_ref = use_node_ref();
     let drag = use_state(|| std::rc::Rc::new(std::cell::RefCell::new(Option::<(f64, f64)>::None)));
+
+    // The mesh is injected with Element::set_inner_html on an SVG <g>, not
+    // via Yew vnodes: Yew's from_html_unchecked parses fragments in an HTML
+    // <div>, so the polyline nodes would carry the HTML namespace and the
+    // SVG renderer would never paint them (blank plot in every browser).
+    {
+        let g_ref = g_ref.clone();
+        let content = props.content.clone();
+        use_effect_with(content, move |content| {
+            if let Some(el) = g_ref.cast::<web_sys::Element>() {
+                el.set_inner_html(content);
+            }
+        });
+    }
 
     {
         let svg_ref = svg_ref.clone();
@@ -754,7 +769,7 @@ pub fn graph3d_html(props: &Graph3DProps) -> Html {
             viewBox={props.view_box.clone()}
             class="graph3d-svg"
         >
-            { Html::from_html_unchecked(AttrValue::from(props.content.clone())) }
+            <g ref={g_ref}></g>
         </svg>
     }
 }
