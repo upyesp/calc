@@ -4,6 +4,8 @@
 //! (CLI/TUI). Stays pure: no I/O, no threads, no platform calls. Numerics per
 //! ADR-0005.
 
+pub mod graph;
+
 use std::collections::HashMap;
 
 use bigdecimal::BigDecimal;
@@ -109,7 +111,7 @@ impl Env {
 /// noun (see `CONTEXT.md`). Public so it can be produced by multiple input
 /// forms (plain text, LaTeX) and consumed by both [`eval`] and the graphing
 /// Sampler; treated opaquely by tests.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Literal(f64),
     Var(String),
@@ -1581,6 +1583,15 @@ impl Session {
     /// The environment, for frontends that need it (e.g. graphing).
     pub fn env(&self) -> &Env {
         &self.env
+    }
+
+    /// Redefine a constant's value and its source text in one step — the
+    /// slider seam (ADR-0014): a UI control adjusts `const a = 2` to a new
+    /// number, and the updated source is what `save a` persists.
+    pub fn set_constant(&mut self, name: impl Into<String>, value: Value, source: String) {
+        let name = name.into();
+        self.env.set_constant(name.clone(), value);
+        self.consts.insert(name, source);
     }
 
     /// The source text of every `def` line submitted this session, by name.
