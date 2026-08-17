@@ -44,9 +44,10 @@ fn empty_input_does_nothing() {
 fn graph_command_samples_expression() {
     let mut app = App::default();
     app.submit_graph("x ^ 2").expect("graph should sample");
-    assert_eq!(app.graph().map(|g| g.len()), Some(120));
+    assert_eq!(app.graph().len(), 1);
+    assert_eq!(app.graph()[0].samples.len(), 120);
     app.submit_graph("1 / x").expect("graph should sample");
-    assert_eq!(app.graph().map(|g| g.len()), Some(120));
+    assert_eq!(app.graph().len(), 2, "curves overlay");
 }
 
 #[test]
@@ -55,15 +56,71 @@ fn graph_command_uses_session_functions() {
     app.set_input("def f(x) = x ^ 3");
     app.submit();
     app.submit_graph("f(x)").expect("graph should sample");
-    assert_eq!(app.graph().map(|g| g.len()), Some(120));
+    assert_eq!(app.graph().len(), 1);
+    assert_eq!(app.graph()[0].samples.len(), 120);
 }
 
 #[test]
 fn graph_command_records_source_for_caption() {
     let mut app = App::default();
-    assert_eq!(app.graph_source(), None);
+    assert_eq!(app.graph().len(), 0);
     app.submit_graph("x ^ 2").expect("graph should sample");
-    assert_eq!(app.graph_source(), Some("x ^ 2"));
+    assert_eq!(app.graph()[0].source, "x ^ 2");
+}
+
+#[test]
+fn graph_clear_empties_the_plot() {
+    let mut app = App::default();
+    app.submit_graph("x ^ 2").expect("graph should sample");
+    app.submit_graph("clear").expect("clear should work");
+    assert!(app.graph().is_empty());
+    assert!(app.pois().is_empty());
+}
+
+#[test]
+fn graph_reports_points_of_interest() {
+    let mut app = App::default();
+    app.submit_graph("x ^ 2 - 1").expect("graph should sample");
+    let pois = app.pois();
+    assert!(
+        pois.iter()
+            .any(|p| p.kind == epher_core::graph::InterestKind::Root && (p.x - 1.0).abs() < 1e-3),
+        "root near x=1 in {pois:?}"
+    );
+    app.submit_graph("2 - x").expect("graph should sample");
+    assert!(app
+        .pois()
+        .iter()
+        .any(|p| p.kind == epher_core::graph::InterestKind::Intersection));
+}
+
+#[test]
+fn graph_parses_parametric_polar_and_domains() {
+    let mut app = App::default();
+    app.submit_graph("param t, t ^ 2 from 0 to 3")
+        .expect("parametric should sample");
+    app.submit_graph("polar 2").expect("polar should sample");
+    assert_eq!(app.graph().len(), 2);
+    assert!(app.submit_graph("x from 5 to -5").is_err());
+}
+
+fn curve_of(ys: &[f64]) -> epher_core::graph::SampledCurve {
+    let samples = ys
+        .iter()
+        .enumerate()
+        .map(|(i, y)| Sample {
+            x: i as f64,
+            y: *y,
+        })
+        .collect::<Vec<_>>();
+    let expr = epher_core::parse("0").unwrap();
+    epher_core::graph::SampledCurve {
+        source: "test".to_string(),
+        kind: epher_core::graph::CurveKind::Cartesian(expr),
+        domain: (0.0, (ys.len() - 1) as f64),
+        samples,
+        fill: None,
+    }
 }
 
 #[test]
@@ -73,20 +130,78 @@ fn render_ascii_plots_a_diagonal() {
         Sample { x: 1.0, y: 1.0 },
         Sample { x: 2.0, y: 2.0 },
     ];
-    assert_eq!(render_ascii(&samples, 3, 3), "··o\n·o·\no··");
+    let curves = [curve_of(&[0.0, 1.0, 2.0])];
+    assert_eq!(render_ascii(&curves, 3, 3), "··o\n·o·\no··");
+    let _ = samples;
 }
 
 #[test]
 fn render_ascii_handles_empty_and_non_finite() {
     assert_eq!(render_ascii(&[], 3, 3), "");
-    let samples = vec![
-        Sample { x: f64::NAN, y: 0.0 },
-        Sample { x: 0.0, y: f64::INFINITY },
-        Sample { x: 1.0, y: 1.0 },
-    ];
-    let out = render_ascii(&samples, 3, 3);
+    let expr = epher_core::parse("0").unwrap();
+    let c = epher_core::graph::SampledCurve {
+        source: "test".to_string(),
+        kind: epher_core::graph::CurveKind::Cartesian(expr),
+        domain: (0.0, 1.0),
+        samples: vec![
+            Sample { x: f64::NAN, y: 0.0 },
+            Sample {
+                x: 0.0,
+                y: f64::INFINITY,
+            },
+            Sample { x: 1.0, y: 1.0 },
+        ],
+        fill: None,
+    };
+    let out = render_ascii(&[c], 3, 3);
     assert!(out.contains('o'));
     assert!(!out.contains("NaN"));
+}
+
+#[test]
+fn render_ascii_marks_axes_when_zero_is_inside() {
+    // y = x on [-2, 2]: zero is strictly inside both ranges, so a vertical
+    // and a horizontal axis must appear (the curve glyph wins on overlap).
+    let expr = epher_core::parse("x").unwrap();
+    let c = epher_core::graph::SampledCurve {
+        source: "x".to_string(),
+        kind: epher_core::graph::CurveKind::Cartesian(expr),
+        domain: (-2.0, 2.0),
+        samples: vec![
+            Sample { x: -2.0, y: -2.0 },
+            Sample { x: -1.0, y: -1.0 },
+            Sample { x: 0.0, y: 0.0 },
+            Sample { x: 1.0, y: 1.0 },
+            Sample { x: 2.0, y: 2.0 },
+        ],
+        fill: None,
+    };
+    let out = render_ascii(&[c], 5, 5);
+    assert!(out.contains('|'), "vertical axis: {out}");
+    assert!(out.contains('-'), "horizontal axis: {out}");
+}
+
+#[test]
+fn render_ascii_uses_distinct_glyphs_and_fills() {
+    let expr = epher_core::parse("0").unwrap();
+    let a = epher_core::graph::SampledCurve {
+        source: "a".to_string(),
+        kind: epher_core::graph::CurveKind::Cartesian(expr.clone()),
+        domain: (0.0, 1.0),
+        samples: vec![Sample { x: 0.0, y: 0.0 }, Sample { x: 1.0, y: 1.0 }],
+        fill: Some(epher_core::graph::Fill::Below),
+    };
+    let b = epher_core::graph::SampledCurve {
+        source: "b".to_string(),
+        kind: epher_core::graph::CurveKind::Cartesian(expr),
+        domain: (0.0, 1.0),
+        samples: vec![Sample { x: 0.0, y: 1.0 }, Sample { x: 1.0, y: 0.0 }],
+        fill: None,
+    };
+    let out = render_ascii(&[a, b], 4, 4);
+    assert!(out.contains('o'), "first curve glyph: {out}");
+    assert!(out.contains('x'), "second curve glyph: {out}");
+    assert!(out.contains('.'), "fill shading: {out}");
 }
 
 // --- shell commands through the App seam (ADR-0010) ---
@@ -143,6 +258,6 @@ fn submit_line_keeps_graph_special_case() {
     let (store, _keep) = scratch_store();
     app.submit_line("graph x ^ 2", &store, &Localizer::resolve(Some("en"), &[]));
     assert_eq!(app.result(), "graph: x ^ 2");
-    assert!(app.graph().is_some());
+    assert_eq!(app.graph().len(), 1);
     assert!(app.history().is_empty());
 }

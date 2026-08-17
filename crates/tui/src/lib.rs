@@ -5,7 +5,10 @@
 //! [`run`] is the ratatui event loop — a thin shell over both — exposed as a
 //! library function so the unified `epher` binary can host it (`epher tui`).
 
-use epher_core::{parse, sample, Sample, Session};
+use epher_core::graph::{
+    analyze, parse_graph_source, sample_spec, InterestPoint, InterestKind, SampledCurve,
+};
+use epher_core::Session;
 use epher_i18n::Localizer;
 use epher_shell::{classify, plain, run_command};
 use epher_store::persist::{default_store_dir, load_language, load_session, save_history};
@@ -18,8 +21,8 @@ pub struct App {
     input: String,
     result: String,
     session: Session,
-    graph: Option<Vec<Sample>>,
-    graph_source: Option<String>,
+    graph: Vec<SampledCurve>,
+    pois: Vec<InterestPoint>,
 }
 
 impl App {
@@ -28,8 +31,8 @@ impl App {
             input: String::new(),
             result: String::new(),
             session,
-            graph: None,
-            graph_source: None,
+            graph: Vec::new(),
+            pois: Vec::new(),
         }
     }
 
@@ -49,16 +52,16 @@ impl App {
         self.session.history()
     }
 
-    /// The sampled points of the current graph, if any.
-    pub fn graph(&self) -> Option<&[Sample]> {
-        self.graph.as_deref()
+    /// The plotted curves of the current graph, if any (ADR-0014: the TUI
+    /// overlays curves the way the web app does).
+    pub fn graph(&self) -> &[SampledCurve] {
+        &self.graph
     }
 
-    /// The source the current graph was sampled from — rendered as an
-    /// accessible caption above the plot (screen readers in terminals read
-    /// it instead of raw ASCII art).
-    pub fn graph_source(&self) -> Option<&str> {
-        self.graph_source.as_deref()
+    /// The points of interest of the current graph (roots, intersections,
+    /// extrema), recomputed after every graph command.
+    pub fn pois(&self) -> &[InterestPoint] {
+        &self.pois
     }
 
     pub fn clear_input(&mut self) {
@@ -107,59 +110,147 @@ impl App {
         None
     }
 
-    /// Parse `source` as `y = f(x)` and sample it over [-10, 10] against the
-    /// session's environment (so user functions are usable). Returns an error
-    /// string on failure; the samples are stored for [`render_ascii`].
+    /// Parse `source` as a graph command (ADR-0014 grammar: cartesian,
+    /// `param`, `polar`, domain bounds, `y <`/`y >` fills) and overlay it on
+    /// the current plot; `graph clear` empties the plot. Returns an error
+    /// string on failure; points of interest are recomputed for the whole
+    /// set.
     pub fn submit_graph(&mut self, source: &str) -> Result<(), String> {
-        let expr = parse(source).map_err(|e| e.to_string())?;
-        let samples = sample(&expr, -10.0, 10.0, 120, self.session.env())
+        if source.trim() == "clear" {
+            self.graph.clear();
+            self.pois.clear();
+            self.result.clear();
+            return Ok(());
+        }
+        let spec = parse_graph_source(source).map_err(|e| e.to_string())?;
+        let samples = sample_spec(&spec, 120, self.session.env())
             .map_err(|e| e.to_string())?;
-        self.graph = Some(samples);
-        self.graph_source = Some(source.to_string());
+        self.graph.push(SampledCurve {
+            source: source.to_string(),
+            kind: spec.kind,
+            domain: spec.domain,
+            samples,
+            fill: spec.fill,
+        });
+        self.pois = analyze(&self.graph, self.session.env());
         self.result = format!("graph: {source}");
         Ok(())
     }
 }
 
-/// Render samples as an ASCII plot — the TUI's renderer (ADR-0006). The x and
-/// y ranges are scaled to the grid; points plot as `o`; non-finite points are
-/// skipped.
-pub fn render_ascii(samples: &[Sample], width: usize, height: usize) -> String {
-    if samples.is_empty() || width == 0 || height == 0 {
+/// Render the plotted curves as an ASCII plot — the TUI's renderer
+/// (ADR-0006/0014). The x and y ranges are scaled to the grid; each curve
+/// plots with its own glyph (`o`, `x`, `+`, `*`); region fills shade with
+/// `.`; axes draw as `|`/`-` when zero lies strictly inside the range
+/// (edge-zero plots stay clean); non-finite points are skipped.
+pub fn render_ascii(curves: &[SampledCurve], width: usize, height: usize) -> String {
+    if curves.is_empty() || curves.iter().all(|c| c.samples.is_empty()) || width == 0 || height == 0
+    {
         return String::new();
     }
-    let x_min = samples
-        .iter()
-        .map(|s| s.x)
-        .fold(f64::INFINITY, f64::min);
-    let x_max = samples
-        .iter()
-        .map(|s| s.x)
-        .fold(f64::NEG_INFINITY, f64::max);
-    let y_min = samples
-        .iter()
-        .map(|s| s.y)
-        .fold(f64::INFINITY, f64::min);
-    let y_max = samples
-        .iter()
-        .map(|s| s.y)
-        .fold(f64::NEG_INFINITY, f64::max);
+    let mut x_min = f64::INFINITY;
+    let mut x_max = f64::NEG_INFINITY;
+    let mut y_min = f64::INFINITY;
+    let mut y_max = f64::NEG_INFINITY;
+    for c in curves {
+        for s in &c.samples {
+            if s.x.is_finite() && s.y.is_finite() {
+                x_min = x_min.min(s.x);
+                x_max = x_max.max(s.x);
+                y_min = y_min.min(s.y);
+                y_max = y_max.max(s.y);
+            }
+        }
+    }
+    if !x_min.is_finite() {
+        return String::new();
+    }
     let x_span = (x_max - x_min).max(1e-12);
     let y_span = (y_max - y_min).max(1e-12);
 
     let mut grid = vec![vec!['·'; width]; height];
-    for s in samples {
-        if !s.x.is_finite() || !s.y.is_finite() {
-            continue;
+
+    // Region fills under/above each curve.
+    for c in curves {
+        let Some(fill) = c.fill else { continue };
+        let below = matches!(fill, epher_core::graph::Fill::Below);
+        for s in &c.samples {
+            if !s.x.is_finite() || !s.y.is_finite() {
+                continue;
+            }
+            let col = (((s.x - x_min) / x_span) * (width - 1) as f64).round() as usize;
+            let row = height as f64
+                - 1.0
+                - ((s.y - y_min) / y_span) * (height - 1) as f64;
+            let row = row.round() as usize;
+            if below {
+                for cell_row in grid[(row + 1)..].iter_mut() {
+                    if cell_row[col] == '·' {
+                        cell_row[col] = '.';
+                    }
+                }
+            } else {
+                for cell_row in grid[..row].iter_mut() {
+                    if cell_row[col] == '·' {
+                        cell_row[col] = '.';
+                    }
+                }
+            }
         }
-        let col = (((s.x - x_min) / x_span) * (width - 1) as f64).round() as usize;
-        let row = height - 1 - (((s.y - y_min) / y_span) * (height - 1) as f64).round() as usize;
-        grid[row][col] = 'o';
+    }
+
+    // Axes, only when zero is strictly inside the range.
+    let eps_x = x_span * 1e-9;
+    let eps_y = y_span * 1e-9;
+    if x_min + eps_x < 0.0 && 0.0 < x_max - eps_x {
+        let col = ((-x_min) / x_span * (width - 1) as f64).round() as usize;
+        let col = col.min(width - 1);
+        for row in grid.iter_mut() {
+            if row[col] == '·' {
+                row[col] = '|';
+            }
+        }
+    }
+    if y_min + eps_y < 0.0 && 0.0 < y_max - eps_y {
+        let row = height as f64 - 1.0 - ((-y_min) / y_span) * (height - 1) as f64;
+        let row = (row.round() as usize).min(height - 1);
+        for cell in grid[row].iter_mut() {
+            if *cell == '·' {
+                *cell = '-';
+            }
+        }
+    }
+
+    // Curves, glyph per curve index.
+    const GLYPHS: [char; 4] = ['o', 'x', '+', '*'];
+    for (i, c) in curves.iter().enumerate() {
+        let glyph = GLYPHS[i % GLYPHS.len()];
+        for s in &c.samples {
+            if !s.x.is_finite() || !s.y.is_finite() {
+                continue;
+            }
+            let col = (((s.x - x_min) / x_span) * (width - 1) as f64).round() as usize;
+            let row = height
+                - 1
+                - (((s.y - y_min) / y_span) * (height - 1) as f64).round() as usize;
+            grid[row][col] = glyph;
+        }
     }
     grid.into_iter()
         .map(|row| row.into_iter().collect::<String>())
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// The localized kind label for a point of interest (the same fluent keys
+/// the web legend uses).
+fn poi_label(kind: InterestKind, localizer: &Localizer) -> String {
+    localizer.lookup(match kind {
+        InterestKind::Root => "poi-root",
+        InterestKind::Intersection => "poi-intersection",
+        InterestKind::Maximum => "poi-maximum",
+        InterestKind::Minimum => "poi-minimum",
+    })
 }
 
 /// Run the interactive terminal UI (ratatui event loop). Blocks until the
@@ -248,23 +339,46 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-history")));
     frame.render_widget(history, layout[2]);
 
-    let graph_text = match app.graph() {
-        Some(g) => {
-            // A text caption above the plot: terminal screen readers read it
-            // instead of raw ASCII art.
-            let caption = app
-                .graph_source()
-                .map(|s| format!("y = {s}"))
-                .unwrap_or_default();
-            let plot = render_ascii(g, 60, 18);
-            if caption.is_empty() {
-                plot
-            } else {
-                format!("{caption}\n{plot}")
-            }
+    // Legend + plot + points of interest, capped to the panel height.
+    let mut graph_text = String::new();
+    let curves = app.graph();
+    if !curves.is_empty() {
+        // The visible text alternative: what is plotted (screen readers in
+        // terminals read this instead of raw ASCII art).
+        let legend: Vec<String> = curves
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                let glyph = ['o', 'x', '+', '*'][i % 4];
+                let caption = match &c.kind {
+                    epher_core::graph::CurveKind::Cartesian(_) => format!("y = {}", c.source.trim()),
+                    _ => c.source.trim().to_string(),
+                };
+                format!("{glyph} {caption}")
+            })
+            .collect();
+        graph_text.push_str(&legend.join("   "));
+        graph_text.push('\n');
+        let plot = render_ascii(curves, 60, 15);
+        graph_text.push_str(&plot);
+        let poi_lines: Vec<String> = app
+            .pois()
+            .iter()
+            .take(2)
+            .map(|p| {
+                format!(
+                    "{} ({:.3}, {:.3})",
+                    poi_label(p.kind, localizer),
+                    p.x,
+                    p.y
+                )
+            })
+            .collect();
+        if !poi_lines.is_empty() {
+            graph_text.push('\n');
+            graph_text.push_str(&poi_lines.join("   "));
         }
-        None => String::new(),
-    };
+    }
     let graph = Paragraph::new(graph_text)
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-graph")));
     frame.render_widget(graph, layout[3]);
