@@ -38,6 +38,18 @@
     "android": {
       "debugApplicationIdSuffix": ".debug"
     },
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/man/man1/epher.1": "../../../packaging/man/epher.1"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/man/man1/epher.1": "../../../packaging/man/epher.1"
+        }
+      }
+    },
     "windows": {
       "nsis": {
         "installMode": "currentUser",
