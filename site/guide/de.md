@@ -714,12 +714,29 @@ wird nie als Verbindungslinie gezeichnet.
 
 #### 2.4.1 Was du zeichnen kannst
 
-- **Ein Definitionsbereich deiner Wahl:** `graph sin(x) from 0 to 2*pi`
-- **Parametrische Kurven:** `graph param 2*cos(t), 3*sin(t)` (t läuft von 0 bis 2π)
-- **Polarkurven:** `graph polar 1 + cos(theta)`
-- **Bereiche:** `graph y < x ^ 2` schattiert die Fläche unter der Kurve; `y >`
-  schattiert darüber.
+Ein Definitionsbereich deiner Wahl:
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+Parametrische Kurven (t läuft von 0 bis 2π):
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+Polarkurven:
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+Bereiche: `y <` schattiert die Fläche unter der Kurve, `y >` schattiert darüber:
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 Den Plot lesen
 
 **Verfolgen:** Bewege den Zeiger über den Plot — oder fokussiere ihn und

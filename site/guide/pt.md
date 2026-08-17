@@ -708,12 +708,29 @@ na verdade uma assíntota vertical nunca é desenhado como linha de ligação.
 
 #### 2.4.1 O que pode desenhar
 
-- **Um domínio à sua escolha:** `graph sin(x) from 0 to 2*pi`
-- **Curvas paramétricas:** `graph param 2*cos(t), 3*sin(t)` (t vai de 0 a 2π)
-- **Curvas polares:** `graph polar 1 + cos(theta)`
-- **Regiões:** `graph y < x ^ 2` sombreia a área por baixo da curva; `y >`
-  sombreia por cima.
+Um domínio à sua escolha:
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+Curvas paramétricas (t vai de 0 a 2π):
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+Curvas polares:
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+Regiões: `y <` sombreia a área por baixo da curva, `y >` sombreia por cima:
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 Ler o gráfico
 
 **Rastrear:** mova o ponteiro sobre o gráfico — ou foque-o e prima as

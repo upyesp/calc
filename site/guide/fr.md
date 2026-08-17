@@ -716,12 +716,29 @@ ligne de liaison.
 
 #### 2.4.1 Ce que vous pouvez tracer
 
-- **Un domaine de votre choix :** `graph sin(x) from 0 to 2*pi`
-- **Courbes paramétriques :** `graph param 2*cos(t), 3*sin(t)` (t va de 0 à 2π)
-- **Courbes polaires :** `graph polar 1 + cos(theta)`
-- **Régions :** `graph y < x ^ 2` ombrage la zone sous la courbe ; `y >`
-  ombrage celle du dessus.
+Un domaine de votre choix :
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+Courbes paramétriques (t va de 0 à 2π) :
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+Courbes polaires :
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+Régions : `y <` ombrage la zone sous la courbe, `y >` ombrage celle du dessus :
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 Lire le tracé
 
 **Suivi :** déplacez le pointeur sur le tracé — ou focalisez-le et

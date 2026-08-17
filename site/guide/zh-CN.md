@@ -657,11 +657,29 @@ graph x ^ 3
 
 #### 2.4.1 可以绘制什么
 
-- **自选定义域：** `graph sin(x) from 0 to 2*pi`
-- **参数曲线：** `graph param 2*cos(t), 3*sin(t)`（t 从 0 到 2π）
-- **极坐标曲线：** `graph polar 1 + cos(theta)`
-- **区域：** `graph y < x ^ 2` 为曲线下方区域着色；`y >` 为上方着色。
+自选定义域：
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+参数曲线（t 从 0 到 2π）：
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+极坐标曲线：
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+区域：`y <` 为曲线下方区域着色，`y >` 为上方着色：
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 读懂图形
 
 **追踪：** 将指针移到图形上——或将焦点放在图形上并按箭头键——曲线上最近的点会被标记，其坐标显示在图形下方。

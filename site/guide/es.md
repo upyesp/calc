@@ -706,12 +706,29 @@ realidad es una asíntota vertical nunca se dibuja como línea conectora.
 
 #### 2.4.1 Qué puedes representar
 
-- **Un dominio a tu elección:** `graph sin(x) from 0 to 2*pi`
-- **Curvas paramétricas:** `graph param 2*cos(t), 3*sin(t)` (t va de 0 a 2π)
-- **Curvas polares:** `graph polar 1 + cos(theta)`
-- **Regiones:** `graph y < x ^ 2` sombrea el área bajo la curva; `y >`
-  sombrea la de encima.
+Un dominio a tu elección:
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+Curvas paramétricas (t va de 0 a 2π):
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+Curvas polares:
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+Regiones: `y <` sombrea el área bajo la curva, `y >` sombrea la de encima:
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 Leer la gráfica
 
 **Seguimiento:** mueve el puntero sobre la gráfica — o enfócala y pulsa

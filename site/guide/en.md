@@ -701,12 +701,29 @@ really a vertical asymptote is never drawn as a connecting line.
 
 #### 2.4.1 What you can plot
 
-- **A domain of your choice:** `graph sin(x) from 0 to 2*pi`
-- **Parametric curves:** `graph param 2*cos(t), 3*sin(t)` (t runs from 0 to 2π)
-- **Polar curves:** `graph polar 1 + cos(theta)`
-- **Regions:** `graph y < x ^ 2` shades the area below the curve; `y >`
-  shades above.
+A domain of your choice:
 
+```epher
+graph sin(x) from 0 to 2*pi
+```
+
+Parametric curves, with t running from 0 to 2π:
+
+```epher
+graph param 2*cos(t), 3*sin(t)
+```
+
+Polar curves:
+
+```epher
+graph polar 1 + cos(theta)
+```
+
+Regions: `y <` shades the area below the curve, `y >` shades above:
+
+```epher
+graph y < x ^ 2
+```
 #### 2.4.2 Reading the plot
 
 **Trace:** move the pointer over the plot — or focus it and press the
