@@ -786,8 +786,7 @@ the arrow keys rotating it.
 
 Every slider has a play button. It steps its constant through the
 slider's range and loops around — the standard way calculators animate:
-you animate a parameter, and everything that uses it moves (Desmos and
-GeoGebra work the same way). Press the button again to pause.
+you animate a parameter, and everything that uses it moves Press the button again to pause.
 
 A "time" variable is just a constant you animate:
 

@@ -794,7 +794,7 @@ girándola con las teclas de flecha.
 Cada deslizador tiene un botón de reproducción. Avanza su constante a lo
 largo del rango del deslizador y al llegar al final vuelve a empezar — la
 forma estándar en que animan las calculadoras: animas un parámetro y todo
-lo que lo usa se mueve (Desmos y GeoGebra funcionan igual). Pulsa el
+lo que lo usa se mueve Pulsa el
 botón de nuevo para pausar.
 
 Una variable de "tiempo" no es más que una constante que animas:

@@ -805,7 +805,7 @@ pivoter.
 Chaque curseur a un bouton de lecture. Il fait avancer sa constante sur
 toute la plage du curseur, puis revient au début — la façon standard dont
 les calculatrices animent : vous animez un paramètre, et tout ce qui
-l'utilise bouge (Desmos et GeoGebra fonctionnent de la même façon).
+l'utilise bouge
 Appuyez de nouveau sur le bouton pour mettre en pause.
 
 Une variable "temps" n'est qu'une constante que vous animez :

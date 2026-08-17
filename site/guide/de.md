@@ -802,8 +802,7 @@ drehst du es.
 Jeder Schieberegler hat eine Wiedergabetaste. Sie lässt seine Konstante
 den Bereich des Schiebereglers durchlaufen und beginnt danach wieder von
 vorn — so animieren Taschenrechner üblicherweise: Du animierst einen
-Parameter, und alles, was ihn verwendet, bewegt sich mit (Desmos und
-GeoGebra funktionieren genauso). Drücke die Taste erneut, um zu
+Parameter, und alles, was ihn verwendet, bewegt sich mit Drücke die Taste erneut, um zu
 pausieren.
 
 Eine "Zeit"-Variable ist nur eine Konstante, die du animierst:

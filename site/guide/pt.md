@@ -796,7 +796,7 @@ roda com as teclas de seta.
 Cada deslizador tem um botão de reprodução. Ele faz a sua constante
 percorrer o intervalo do deslizador e recomeçar do início — a forma
 habitual de as calculadoras animarem: anima-se um parâmetro e tudo o que
-o usa move-se (Desmos e GeoGebra funcionam da mesma forma). Prima o
+o usa move-se Prima o
 botão novamente para fazer uma pausa.
 
 Uma variável de "tempo" é apenas uma constante que anima:
