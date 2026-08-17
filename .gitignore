@@ -17,3 +17,5 @@
 /crates/web/dist
 site/guide/*/index.html
 node_modules/
+# NSIS harness output (compile check)
+crates/tauri-app/src-tauri/nsis-check.exe
