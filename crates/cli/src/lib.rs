@@ -6,12 +6,21 @@
 //!
 //! - [`run_one_shot`] — evaluate a single expression, print the result;
 //! - [`run_repl`] — interactive REPL (prompt, persistent store);
-//! - [`run_stdin`] — piped script mode (`epher -`): evaluate stdin line by
-//!   line, no prompts, history untouched.
+//! - [`run_stdin_and_exit`] — piped script mode (`epher -`): evaluate
+//!   stdin line by line, no prompts, history untouched.
 //!
 //! All three share [`step`], the one-line-at-a-time seam that classifies a
 //! line (shell command vs. language statement), runs it against the shared
 //! session/store, and reports the printed output plus any language switch.
+//!
+//! The command-line conventions live here too (ADR-0013): [`dispatch`]
+//! defines the argument surface, [`help`] the manual/help behavior, and
+//! [`term`] the stdout/stderr/color policy — results on stdout, errors on
+//! stderr with exit codes 0/1/2.
+
+pub mod dispatch;
+pub mod help;
+pub mod term;
 
 use std::io::{self, BufRead, Write};
 
@@ -21,27 +30,49 @@ use epher_shell::{classify, plain, run_command};
 use epher_store::persist::{default_store_dir, load_language, load_session, save_history};
 use epher_store::{DocStore, FsStore};
 
-/// The outcome of processing one line: what to print (if anything) and a
+/// The outcome of processing one line: what to print (if anything),
+/// whether it is a diagnostic (stderr, not data — ADR-0013), and a
 /// language switch requested by a `lang` command (if any).
 pub struct Step {
     pub output: Option<String>,
+    pub error: bool,
     pub language: Option<String>,
+}
+
+/// Is this engine output an error line? The engine renders errors as
+/// `error: …` — the only producer of that prefix on the result path.
+fn is_engine_error(output: &str) -> bool {
+    output.starts_with("error: ")
 }
 
 /// Process one input line against the session and store. Shell commands
 /// (`save`, `lang`, …) run through epher-shell; anything else is a language
-/// statement evaluated against the session. Errors come back as `error: …`
-/// output — the session stays usable, exactly like the REPL.
+/// statement evaluated against the session. Errors come back as
+/// `error: …` output marked `Step::error` — the session stays usable,
+/// exactly like the REPL.
 pub fn step(session: &mut Session, store: &DocStore<FsStore>, localizer: &Localizer, line: &str) -> Step {
     if let Some(cmd) = classify(line) {
         let handled = run_command(&cmd, session, store, localizer);
-        return Step {
-            output: Some(plain(handled.message)),
-            language: handled.language,
+        let message = plain(handled.message);
+        // Diagnostics get the same `error:` voice as engine errors (the
+        // message itself stays prefix-free for the GUI/TUI inline lines).
+        return if handled.error {
+            Step {
+                output: Some(format!("error: {message}")),
+                error: true,
+                language: handled.language,
+            }
+        } else {
+            Step {
+                output: Some(message),
+                error: false,
+                language: handled.language,
+            }
         };
     }
     let out = session.submit(line);
     Step {
+        error: is_engine_error(&out),
         output: if out.is_empty() { None } else { Some(out) },
         language: None,
     }
@@ -75,7 +106,8 @@ pub fn run_one_shot(expr: &str) -> Result<(), EpherError> {
 /// Interactive REPL: scripts run against a persistent environment; history,
 /// saved functions, and the language preference survive restarts via the
 /// shared store. The UI language is the store preference if set, else the
-/// detected device locales (ADR-0008).
+/// detected device locales (ADR-0008). Diagnostics print to stderr
+/// (red on a terminal) and the conversation continues; quitting exits 0.
 pub fn run_repl() -> Result<(), EpherError> {
     let (store, mut session, mut localizer) = open_store_with_session();
     let stdin = io::stdin();
@@ -92,9 +124,7 @@ pub fn run_repl() -> Result<(), EpherError> {
             break;
         }
         let out = step(&mut session, &store, &localizer, &line);
-        if let Some(text) = out.output {
-            println!("{text}");
-        }
+        print_step(&out);
         if let Some(code) = out.language {
             localizer = Localizer::resolve(Some(&code), &[]);
         }
@@ -104,27 +134,67 @@ pub fn run_repl() -> Result<(), EpherError> {
     Ok(())
 }
 
-/// Piped script mode (`epher -`): evaluate stdin line by line, printing each
-/// result. Sessions load from (and `save` commands write to) the shared
-/// store, but interactive history is not written — scripts are not
-/// interactive pasts. Errors print and evaluation continues, like the REPL.
-pub fn run_stdin() -> Result<(), EpherError> {
+/// Print one step's output on the right stream (ADR-0013): results to
+/// stdout, diagnostics to stderr in red.
+fn print_step(out: &Step) {
+    match (&out.output, out.error) {
+        (Some(text), true) => term::error(text),
+        (Some(text), false) => println!("{text}"),
+        _ => {}
+    }
+}
+
+/// The message shown when `epher -` is run with a terminal on stdin
+/// instead of a piped script (clig.dev: don't hang waiting for input the
+/// user never promised).
+pub const STDIN_IS_TERMINAL_MSG: &str =
+    "`epher -` reads a script from standard input, but standard input is a terminal.";
+
+/// Piped script mode (`epher -`) as an entry point: refuse to hang on an
+/// interactive terminal, evaluate stdin line by line printing each result,
+/// and exit 0 when every line succeeded, 1 when any line failed (per-line
+/// errors have already printed). Sessions load from (and `save` commands
+/// write to) the shared store; interactive history is not written —
+/// scripts are not interactive pasts.
+pub fn run_stdin_and_exit() -> ! {
+    use std::io::IsTerminal;
+    if io::stdin().is_terminal() {
+        term::error(STDIN_IS_TERMINAL_MSG);
+        eprintln!("Pipe a script in, or run `epher repl` for an interactive session.");
+        std::process::exit(2);
+    }
+    match run_stdin() {
+        Ok(false) => std::process::exit(0),
+        Ok(true) => std::process::exit(1),
+        Err(e) => {
+            term::error(&format!("error: {e}"));
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Piped script mode (`epher -`) reading real stdin: `Ok(true)` when any
+/// line failed (the caller decides the exit code).
+pub fn run_stdin() -> Result<bool, EpherError> {
     let stdin = io::stdin();
     run_stdin_from(stdin.lock())
 }
 
-/// The testable core of [`run_stdin`]: any line-oriented reader.
-pub fn run_stdin_from<R: BufRead>(input: R) -> Result<(), EpherError> {
+/// The testable core of [`run_stdin`]: any line-oriented reader. Lines
+/// share one session — a function defined on an early line is available
+/// later — and errors print (to stderr) while evaluation continues, like
+/// the REPL. Returns whether any line failed.
+pub fn run_stdin_from<R: BufRead>(input: R) -> Result<bool, EpherError> {
     let (store, mut session, localizer) = open_store_with_session();
+    let mut failed = false;
     for line in input.lines() {
         let line = line.map_err(|e| EpherError::Io(e.to_string()))?.trim().to_string();
         if line.is_empty() {
             continue;
         }
         let out = step(&mut session, &store, &localizer, &line);
-        if let Some(text) = out.output {
-            println!("{text}");
-        }
+        failed |= out.error;
+        print_step(&out);
     }
-    Ok(())
+    Ok(failed)
 }

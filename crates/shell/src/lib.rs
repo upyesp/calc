@@ -137,10 +137,25 @@ pub fn plain(message: String) -> String {
 
 /// The outcome of handling a command: the message to show, plus the new
 /// language preference when it changed (shells re-resolve their Localizer).
+/// `error` marks the message as a diagnostic — the CLI prints those to
+/// stderr (ADR-0013), while successful messages stay on stdout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Handled {
     pub message: String,
+    pub error: bool,
     pub language: Option<String>,
+}
+
+impl Handled {
+    /// A successful answer: message to stdout, no language switch.
+    fn ok(message: String) -> Self {
+        Handled { message, error: false, language: None }
+    }
+
+    /// A rejected command: message to stderr, store untouched.
+    fn err(message: String) -> Self {
+        Handled { message, error: true, language: None }
+    }
 }
 
 /// Handle a command for a native shell: prepare, persist, and answer with
@@ -153,7 +168,7 @@ pub fn run_command<S: Storage>(
 ) -> Handled {
     let prepared = match prepare(cmd, session, localizer) {
         Ok(p) => p,
-        Err(msg) => return Handled { message: msg, language: None },
+        Err(msg) => return Handled::err(msg),
     };
     let result = match &prepared {
         Prepared::SaveFunction { name, source } => persist::save_function(store, name, source),
@@ -168,8 +183,10 @@ pub fn run_command<S: Storage>(
             } else {
                 None
             };
-            Handled { message: message(&prepared, localizer), language }
+            let mut handled = Handled::ok(message(&prepared, localizer));
+            handled.language = language;
+            handled
         }
-        Err(e) => Handled { message: format!("error: {e}"), language: None },
+        Err(e) => Handled::err(e.to_string()),
     }
 }

@@ -5,9 +5,10 @@ fn epher_bin() -> Command {
     Command::new(env!("CARGO_BIN_EXE_epher-cli"))
 }
 
-/// Run a REPL session with piped stdin, returning its stdout.
-fn repl_output(store_dir: &str, input: &str) -> String {
+/// Run a REPL session with piped stdin, returning its stdout and stderr.
+fn repl_session(store_dir: &str, input: &str) -> (String, String) {
     let mut child = epher_bin()
+        .arg("repl")
         .env("EPHER_STORE_DIR", store_dir)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -22,7 +23,15 @@ fn repl_output(store_dir: &str, input: &str) -> String {
         .unwrap();
     let out = child.wait_with_output().unwrap();
     assert!(out.status.success());
-    String::from_utf8_lossy(&out.stdout).to_string()
+    (
+        String::from_utf8_lossy(&out.stdout).to_string(),
+        String::from_utf8_lossy(&out.stderr).to_string(),
+    )
+}
+
+/// Run a REPL session with piped stdin, returning its stdout.
+fn repl_output(store_dir: &str, input: &str) -> String {
+    repl_session(store_dir, input).0
 }
 
 #[test]
@@ -72,11 +81,9 @@ fn repl_persists_functions_and_history_across_restarts() {
 #[test]
 fn repl_save_requires_a_definition_in_session() {
     let dir = tempfile::tempdir().unwrap();
-    let out = repl_output(
-        dir.path().to_str().unwrap(),
-        "save nope\nquit\n",
-    );
-    assert!(out.contains("no definition for nope"), "stdout was: {out}");
+    let (out, err) = repl_session(dir.path().to_str().unwrap(), "save nope\nquit\n");
+    assert!(err.contains("no definition for nope"), "stderr was: {err}");
+    assert!(!out.contains("no definition"), "stdout was: {out}");
 }
 
 #[test]
@@ -97,8 +104,12 @@ fn language_command_persists_the_setting() {
 #[test]
 fn unsupported_language_is_rejected() {
     let dir = tempfile::tempdir().unwrap();
-    let out = repl_output(dir.path().to_str().unwrap(), "language xx\nquit\n");
-    assert!(out.contains("unsupported language xx"), "stdout was: {out}");
+    let (out, err) = repl_session(
+        dir.path().to_str().unwrap(),
+        "language xx\nquit\n",
+    );
+    assert!(err.contains("unsupported language xx"), "stderr was: {err}");
+    assert!(!out.contains("unsupported language"), "stdout was: {out}");
 }
 
 #[test]
@@ -119,9 +130,120 @@ fn save_script_persists_and_reloads_the_last_line() {
 #[test]
 fn save_script_without_a_preceding_line_errors() {
     let dir = tempfile::tempdir().unwrap();
-    let out = repl_output(dir.path().to_str().unwrap(), "save script empty\nquit\n");
-    assert!(
-        out.contains("nothing to save"),
-        "stdout was: {out}"
+    let (out, err) = repl_session(
+        dir.path().to_str().unwrap(),
+        "save script empty\nquit\n",
     );
+    assert!(err.contains("nothing to save"), "stderr was: {err}");
+    assert!(!out.contains("nothing to save"), "stdout was: {out}");
+}
+
+/// The clig.dev conventions (ADR-0013): stdout carries data, stderr
+/// carries diagnostics, and exit codes tell scripts what happened.
+mod conventions {
+    use super::*;
+
+    #[test]
+    fn stdin_script_prints_results_to_stdout_and_errors_to_stderr() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut child = epher_bin()
+            .arg("-")
+            .env("EPHER_STORE_DIR", dir.path())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .write_all(b"2 + 2\n1 / 0\n3 * 3\n")
+            .unwrap();
+        let out = child.wait_with_output().unwrap();
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(stdout.contains("= 4"), "stdout was: {stdout}");
+        assert!(stdout.contains("= 9"), "stdout was: {stdout}");
+        assert!(
+            !stdout.contains("error"),
+            "errors must not pollute piped data: {stdout}"
+        );
+        assert!(stderr.contains("error: division by zero"), "stderr was: {stderr}");
+        // the script kept going *and* reported failure
+        assert_eq!(out.status.code(), Some(1));
+    }
+
+    #[test]
+    fn clean_stdin_script_exits_zero() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut child = epher_bin()
+            .arg("-")
+            .env("EPHER_STORE_DIR", dir.path())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .write_all(b"2 + 2\n")
+            .unwrap();
+        let out = child.wait_with_output().unwrap();
+        assert_eq!(out.status.code(), Some(0));
+        assert!(String::from_utf8_lossy(&out.stderr).is_empty());
+    }
+
+    #[test]
+    fn help_flags_go_to_stdout_with_exit_zero() {
+        // Short help is concise (examples + a pointer); long help carries
+        // the documentation links.
+        let short = epher_bin().arg("-h").output().unwrap();
+        assert_eq!(short.status.code(), Some(0), "-h exits 0");
+        let short_text = String::from_utf8_lossy(&short.stdout);
+        assert!(short_text.contains("EXAMPLES:"), "-h leads with examples");
+        assert!(short_text.contains("--help"), "-h points at the manual");
+
+        let long = epher_bin().arg("--help").output().unwrap();
+        assert_eq!(long.status.code(), Some(0), "--help exits 0");
+        let long_text = String::from_utf8_lossy(&long.stdout);
+        assert!(long_text.contains("epher.org/guide"), "--help links the docs");
+        assert!(long_text.contains("github.com/upyesp/epher/issues"), "support path");
+
+        let version = epher_bin().arg("--version").output().unwrap();
+        assert_eq!(version.status.code(), Some(0));
+        assert!(String::from_utf8_lossy(&version.stdout).starts_with("epher "));
+    }
+
+    #[test]
+    fn usage_errors_exit_two_on_stderr() {
+        // The expression positional and subcommands are mutually
+        // exclusive: mixing them is a usage error, not a guess.
+        let out = epher_bin().args(["1 + 1", "repl"]).output().unwrap();
+        assert_eq!(out.status.code(), Some(2));
+        assert!(String::from_utf8_lossy(&out.stderr).contains("cannot be used with"));
+        assert!(String::from_utf8_lossy(&out.stdout).is_empty());
+    }
+
+    #[test]
+    fn help_with_unknown_topic_exits_two_on_stderr() {
+        let out = epher_bin().args(["help", "bogus"]).output().unwrap();
+        assert_eq!(out.status.code(), Some(2));
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("unrecognized subcommand 'bogus'"),
+            "stderr was: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    #[test]
+    fn help_with_a_topic_prints_that_commands_help_on_stdout() {
+        let out = epher_bin().args(["help", "repl"]).output().unwrap();
+        assert_eq!(out.status.code(), Some(0));
+        let text = String::from_utf8_lossy(&out.stdout);
+        assert!(text.contains("interactive session"), "help was: {text}");
+        assert!(text.contains("epher repl"), "usage line present: {text}");
+    }
 }

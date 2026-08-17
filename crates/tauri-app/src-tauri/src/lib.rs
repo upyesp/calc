@@ -156,7 +156,8 @@ pub fn run() {
 /// [`dispatch`], then run the chosen frontend — every mode is a thin call
 /// into the frontend's own library entry point, so behavior is defined
 /// once (CLI/REPL/stdin: epher-cli; TUI: epher-tui; GUI: this crate).
-/// Errors print as `error: …` and exit 1, exactly like the CLI.
+/// Errors print to stderr (red on a terminal) and exit 1; usage errors
+/// exit 2 through clap (ADR-0013).
 pub fn run_with_args<I>(args: I)
 where
     I: IntoIterator,
@@ -165,7 +166,7 @@ where
     let parsed = dispatch::Args::try_parse_from(args).unwrap_or_else(|e| e.exit());
     let result = match dispatch::action_from(&parsed) {
         dispatch::Action::OneShot(expr) => epher_cli::run_one_shot(&expr),
-        dispatch::Action::Stdin => epher_cli::run_stdin(),
+        dispatch::Action::Stdin => epher_cli::run_stdin_and_exit(),
         dispatch::Action::Repl => epher_cli::run_repl(),
         dispatch::Action::Tui => {
             epher_tui::run().map_err(|e| epher_core::EpherError::Io(e.to_string()))
@@ -174,9 +175,11 @@ where
             launch_gui();
             return;
         }
+        dispatch::Action::HelpManual => std::process::exit(epher_cli::help::manual()),
+        dispatch::Action::HelpTopic(topic) => epher_cli::help::topic(&topic),
     };
     if let Err(e) = result {
-        eprintln!("error: {e}");
+        epher_cli::term::error(&format!("error: {e}"));
         std::process::exit(1);
     }
 }
