@@ -97,6 +97,11 @@ scripts (`epher -`), TUI (`epher tui`), and the desktop GUI (bare `epher` /
 `epher gui`). The command surface follows [clig.dev](https://clig.dev/)
 (ADR-0013): examples-first `-h`, full `--help`, `epher help` pages the
 manual (`man epher` where installed), errors on stderr, exit codes 0/1/2.
+Graphing (ADR-0014) is the shared engine's other half: the TUI and the
+GUI/PWA plot multiple curves (Cartesian, parametric, polar, and shaded
+regions) with trace, points-of-interest analysis, sliders for constants,
+SVG export, and `table` commands; the one-shot CLI stays a pure
+expression evaluator.
 Windows installs two subsystem builds of the same program
 (console `epher.exe` on PATH; GUI-subsystem `epher-gui.exe` as the
 double-click target — no console flash); macOS and Linux install the one

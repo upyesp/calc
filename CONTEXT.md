@@ -33,8 +33,24 @@ _Avoid_: program, macro, routine
 
 **Graph**:
 A visual representation of one or more Expressions (for example, the curve
-y = f(x)).
+y = f(x)); the plot overlays curves, regions, and points of interest
+(ADR-0014).
 _Avoid_: plot, chart, figure
+
+**Trace**:
+Reading coordinates off a plotted curve by moving a cursor along it (pointer
+or arrow keys).
+_Avoid_: hover, cursor readout, inspect
+
+**Point of interest**:
+A notable point computed from the plotted curves — a root, a turning point
+(maximum/minimum), or an intersection (ADR-0014).
+_Avoid_: special point, annotation, marker
+
+**Table of values**:
+The x/y rows of an Expression over a range, blank where the expression has
+no value (`table` command).
+_Avoid_: value list, spreadsheet
 
 ### Persistence
 

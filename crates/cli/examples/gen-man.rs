@@ -105,6 +105,7 @@ fn sections() -> Vec<Roff> {
         tagged(roff, "save name", "save the function or constant `name` for future sessions");
         tagged(roff, "save script name", "save the last evaluated line as a script");
         tagged(roff, "language code", "set the interface language: en, zh-CN, hi, es, fr, ar, de, pt");
+        tagged(roff, "table expr [from a to b] [points n]", "print a table of values (TI-style defaults: -5..5, 11 rows)");
         tagged(roff, "quit, exit", "leave the interactive session (Ctrl-D too)");
     }));
 
