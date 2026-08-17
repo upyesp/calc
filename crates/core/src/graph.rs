@@ -539,3 +539,282 @@ pub fn free_names(expr: &Expression, out: &mut BTreeSet<String>) {
         }
     }
 }
+
+// ===== 3D surfaces (ADR-0015) =====
+
+/// A sampled `z = f(x, y)` surface over a square domain. `zs[row][col]`
+/// holds z at `(xs[col], ys[row])`; undefined cells are NaN.
+#[derive(Debug, Clone)]
+pub struct Surface {
+    pub source: String,
+    pub domain: (f64, f64),
+    pub xs: Vec<f64>,
+    pub ys: Vec<f64>,
+    pub zs: Vec<Vec<f64>>,
+}
+
+/// The camera pose for a 3D plot: yaw around the vertical (z) axis, then
+/// pitch around the rotated x axis, with a perspective camera `camera`
+/// units out along the view axis. All angles in radians.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct View3D {
+    pub yaw: f64,
+    pub pitch: f64,
+    pub camera: f64,
+}
+
+impl Default for View3D {
+    fn default() -> Self {
+        Self {
+            yaw: 0.8,
+            pitch: 0.6,
+            camera: 12.0,
+        }
+    }
+}
+
+impl View3D {
+    /// Pitch is clamped so the view never flips over the poles.
+    pub fn with_pitch(&self, pitch: f64) -> Self {
+        Self {
+            pitch: pitch.clamp(-1.4, 1.4),
+            ..*self
+        }
+    }
+
+    pub fn with_yaw(&self, yaw: f64) -> Self {
+        Self { yaw, ..*self }
+    }
+}
+
+/// A mesh segment in screen space with its mean view depth — larger depth
+/// is nearer to the camera, and renderers draw far-to-near (painter's
+/// algorithm) so nearer lines overpaint farther ones.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Segment3D {
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub depth: f64,
+}
+
+/// Parse a `graph3d` body: an expression in x and y plus an optional
+/// `from a to b` square domain (default −5..5).
+pub fn parse_surface_source(source: &str) -> Result<(Expression, (f64, f64)), EpherError> {
+    let source = source.trim();
+    if source.is_empty() {
+        return Err(EpherError::Parse("empty graph3d command".to_string()));
+    }
+    let (body, domain) = split_domain(source)?;
+    let expr = parse(body.trim())?;
+    Ok((expr, domain.unwrap_or((-5.0, 5.0))))
+}
+
+/// Evaluate `expr` with `x` and `y` bound in a child environment (constant
+/// tables and function tables stay visible; session bindings do not).
+fn eval_at_xy(expr: &Expression, x: f64, y: f64, env: &Env) -> Option<f64> {
+    let mut child = Env::new_child(env);
+    child.set("x", Value::float(x));
+    child.set("y", Value::float(y));
+    match eval(expr, &child) {
+        Ok(Value::Float(v)) if v.is_finite() => Some(v),
+        _ => None,
+    }
+}
+
+/// Sample `z = f(x, y)` over a square `grid × grid` mesh.
+pub fn sample_surface(source: &str, grid: usize, env: &Env) -> Result<Surface, EpherError> {
+    let (expr, (a, b)) = parse_surface_source(source)?;
+    if a >= b {
+        return Err(EpherError::Parse(
+            "surface domain needs two bounds with the first smaller: `from a to b`".to_string(),
+        ));
+    }
+    let grid = grid.clamp(4, 96);
+    let mut xs = Vec::with_capacity(grid + 1);
+    let mut ys = Vec::with_capacity(grid + 1);
+    for i in 0..=grid {
+        let v = a + (b - a) * i as f64 / grid as f64;
+        xs.push(v);
+        ys.push(v);
+    }
+    let mut zs = vec![vec![f64::NAN; grid + 1]; grid + 1];
+    for (r, &y) in ys.iter().enumerate() {
+        for (c, &x) in xs.iter().enumerate() {
+            zs[r][c] = eval_at_xy(&expr, x, y, env).unwrap_or(f64::NAN);
+        }
+    }
+    if zs.iter().flatten().all(|z| z.is_nan()) {
+        return Err(EpherError::Parse(format!(
+            "no finite values for the surface: {source}"
+        )));
+    }
+    Ok(Surface {
+        source: source.trim().to_string(),
+        domain: (a, b),
+        xs,
+        ys,
+        zs,
+    })
+}
+
+/// Project one world point: yaw around z, pitch around the rotated x axis,
+/// then a perspective divide. Returns (screen x, screen y, view depth);
+/// screen y grows upward and depth grows toward the camera.
+pub fn project_point(x: f64, y: f64, z: f64, view: &View3D) -> (f64, f64, f64) {
+    let (sy, cy) = view.yaw.sin_cos();
+    let (sp, cp) = view.pitch.sin_cos();
+    let xr = x * cy - y * sy;
+    let yr = x * sy + y * cy;
+    let yp = yr * cp - z * sp;
+    let zp = yr * sp + z * cp;
+    let f = view.camera / (view.camera - zp);
+    (xr * f, -yp * f, zp)
+}
+
+/// Project a surface's mesh to screen segments, far-to-near (painter's
+/// algorithm). Rows and columns both contribute, so the wireframe reads as
+/// a mesh; segments touching undefined cells are dropped.
+pub fn project_surface(surface: &Surface, view: &View3D) -> Vec<Segment3D> {
+    let n = surface.xs.len();
+    let mut px = vec![vec![0.0; n]; n];
+    let mut py = vec![vec![0.0; n]; n];
+    let mut pz = vec![vec![0.0; n]; n];
+    for (r, row) in surface.zs.iter().enumerate() {
+        for (c, &z) in row.iter().enumerate() {
+            let (sx, sy, d) = project_point(surface.xs[c], surface.ys[r], z, view);
+            px[r][c] = sx;
+            py[r][c] = sy;
+            pz[r][c] = d;
+        }
+    }
+    let mut segments = Vec::with_capacity(n * (n - 1) * 2);
+    let mut push = |r1: usize, c1: usize, r2: usize, c2: usize| {
+        if pz[r1][c1].is_finite() && pz[r2][c2].is_finite() {
+            segments.push(Segment3D {
+                x1: px[r1][c1],
+                y1: py[r1][c1],
+                x2: px[r2][c2],
+                y2: py[r2][c2],
+                depth: (pz[r1][c1] + pz[r2][c2]) / 2.0,
+            });
+        }
+    };
+    for r in 0..n {
+        for c in 0..n - 1 {
+            push(r, c, r, c + 1);
+        }
+    }
+    for c in 0..n {
+        for r in 0..n - 1 {
+            push(r, c, r + 1, c);
+        }
+    }
+    segments.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    segments
+}
+
+/// The orientation aids around a surface: the ground square (the domain at
+/// z = 0), the three axes through the origin within the plotted bounds, and
+/// the vertical extent of the surface — as projected segments.
+pub fn surface_frame(surface: &Surface, view: &View3D) -> Vec<Segment3D> {
+    let (a, b) = surface.domain;
+    let mut frame = Vec::with_capacity(8);
+    let mut edge = |x1: f64, y1: f64, z1: f64, x2: f64, y2: f64, z2: f64| {
+        let (sx1, sy1, d1) = project_point(x1, y1, z1, view);
+        let (sx2, sy2, d2) = project_point(x2, y2, z2, view);
+        if d1.is_finite() && d2.is_finite() {
+            frame.push(Segment3D {
+                x1: sx1,
+                y1: sy1,
+                x2: sx2,
+                y2: sy2,
+                depth: (d1 + d2) / 2.0,
+            });
+        }
+    };
+    // Ground square at z = 0.
+    edge(a, a, 0.0, b, a, 0.0);
+    edge(b, a, 0.0, b, b, 0.0);
+    edge(b, b, 0.0, a, b, 0.0);
+    edge(a, b, 0.0, a, a, 0.0);
+    // Axes through the origin, within the plotted bounds.
+    edge(a, 0.0, 0.0, b, 0.0, 0.0);
+    edge(0.0, a, 0.0, 0.0, b, 0.0);
+    edge(0.0, 0.0, a, 0.0, 0.0, b);
+    frame
+}
+
+/// A projected mesh polyline (one row or one column of the surface grid)
+/// with its mean view depth. Undefined cells split a polyline into runs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Polyline3D {
+    pub points: Vec<(f64, f64)>,
+    pub depth: f64,
+}
+
+/// Project a surface's mesh as whole grid lines (rows and columns), which
+/// SVG renderers draw as few elements with per-line depth shading. Rows and
+/// columns are interleaved far-to-near by their mean depth (painter's
+/// algorithm at line granularity).
+pub fn project_mesh(surface: &Surface, view: &View3D) -> Vec<Polyline3D> {
+    let n = surface.xs.len();
+    let mut px = vec![vec![0.0; n]; n];
+    let mut py = vec![vec![0.0; n]; n];
+    let mut pz = vec![vec![0.0; n]; n];
+    for (r, row) in surface.zs.iter().enumerate() {
+        for (c, &z) in row.iter().enumerate() {
+            let (sx, sy, d) = project_point(surface.xs[c], surface.ys[r], z, view);
+            px[r][c] = sx;
+            py[r][c] = sy;
+            pz[r][c] = d;
+        }
+    }
+    let mut lines = Vec::new();
+    // Rows: fixed y, varying x.
+    for r in 0..n {
+        lines.extend(runs(&px[r], &py[r], &pz[r]));
+    }
+    // Columns: fixed x, varying y.
+    for c in 0..n {
+        let mut cx = Vec::with_capacity(n);
+        let mut cy = Vec::with_capacity(n);
+        let mut cz = Vec::with_capacity(n);
+        for r in 0..n {
+            cx.push(px[r][c]);
+            cy.push(py[r][c]);
+            cz.push(pz[r][c]);
+        }
+        lines.extend(runs(&cx, &cy, &cz));
+    }
+    lines.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    lines
+}
+
+/// Split one grid line into runs of finite points; each run becomes a
+/// polyline with the mean depth of its points.
+fn runs(px: &[f64], py: &[f64], pz: &[f64]) -> Vec<Polyline3D> {
+    let mut out = Vec::new();
+    let mut points = Vec::new();
+    let mut depth_sum = 0.0;
+    for i in 0..px.len() {
+        if pz[i].is_finite() {
+            points.push((px[i], py[i]));
+            depth_sum += pz[i];
+        } else if !points.is_empty() {
+            out.push(Polyline3D {
+                depth: depth_sum / points.len() as f64,
+                points: std::mem::take(&mut points),
+            });
+            depth_sum = 0.0;
+        }
+    }
+    if !points.is_empty() {
+        out.push(Polyline3D {
+            depth: depth_sum / points.len() as f64,
+            points,
+        });
+    }
+    out
+}

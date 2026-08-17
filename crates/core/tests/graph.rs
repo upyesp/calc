@@ -2,8 +2,9 @@
 //! (ADR-0014) — pure math, no rendering.
 
 use epher_core::graph::{
-    analyze, free_names, nice_step, parse_graph_source, sample_spec, table_rows, CurveKind, Fill,
-    InterestKind, SampledCurve,
+    analyze, free_names, nice_step, parse_graph_source, project_point, project_surface,
+    sample_spec, sample_surface, surface_frame, table_rows, CurveKind, Fill, InterestKind,
+    SampledCurve, View3D,
 };
 use epher_core::{parse, Env, Session, Value};
 
@@ -212,4 +213,140 @@ fn session_set_constant_updates_value_and_source() {
     s.set_constant("a", Value::float(3.5), "const a = 3.5".to_string());
     assert!((float(s.env().constant("a").unwrap()) - 3.5).abs() < 1e-12);
     assert_eq!(s.const_sources().get("a").unwrap(), "const a = 3.5");
+}
+
+// ===== 3D surfaces (ADR-0015) =====
+
+#[test]
+fn surface_sampling_fills_a_square_mesh() {
+    let env = Env::default();
+    let s = sample_surface("x ^ 2 + y ^ 2", 8, &env).unwrap();
+    assert_eq!(s.xs.len(), 9);
+    assert_eq!(s.ys.len(), 9);
+    assert_eq!(s.zs.len(), 9);
+    assert_eq!(s.zs[0].len(), 9);
+    assert_eq!(s.domain, (-5.0, 5.0));
+    // z = x² + y²: the corner (5, 5) is 50, the center is 0.
+    assert!((s.zs[0][0] - 50.0).abs() < 1e-9);
+    assert!((s.zs[4][4] - 0.0).abs() < 1e-9);
+}
+
+#[test]
+fn surface_domain_and_errors() {
+    let env = Env::default();
+    let s = sample_surface("x * y from -2 to 2", 4, &env).unwrap();
+    assert_eq!(s.domain, (-2.0, 2.0));
+    assert!(sample_surface("x * y from 2 to -2", 4, &env).is_err());
+    assert!(sample_surface("x * y from 3 to 3", 4, &env).is_err());
+    assert!(sample_surface("", 4, &env).is_err());
+}
+
+#[test]
+fn surface_drops_undefined_cells_but_keeps_the_mesh() {
+    let env = Env::default();
+    // Undefined at the origin: the hole must not produce segments touching
+    // it, but the rest of the mesh stays.
+    let s = sample_surface("1 / (x ^ 2 + y ^ 2)", 8, &env).unwrap();
+    assert!(s.zs[4][4].is_nan());
+    let segs = project_surface(&s, &View3D::default());
+    // A full 8×8 mesh would have 8*7*2 = 112 segments; the hole removes the
+    // few around the origin only.
+    assert!(segs.len() > 100);
+    for seg in &segs {
+        assert!(seg.depth.is_finite());
+    }
+}
+
+#[test]
+fn projection_matches_hand_computed_views() {
+    let view = View3D {
+        yaw: 0.0,
+        pitch: 0.0,
+        camera: 12.0,
+    };
+    // Top-down at z = 0 (f = 1): x right, y up after the screen flip.
+    let (sx, sy, _d) = project_point(2.0, 3.0, 0.0, &view);
+    assert!((sx - 2.0).abs() < 1e-9);
+    assert!((sy + 3.0).abs() < 1e-9);
+
+    // Yaw 90°: the world x axis points along screen −y... verify with
+    // sin/cos symmetry: rotating a point on the x axis by 90° puts it on
+    // the y axis of the rotated frame.
+    let yaw = View3D {
+        yaw: std::f64::consts::FRAC_PI_2,
+        pitch: 0.0,
+        camera: 12.0,
+    };
+    let (sx, sy, _d) = project_point(2.0, 0.0, 0.0, &yaw);
+    assert!(sx.abs() < 1e-9);
+    assert!((sy + 2.0).abs() < 1e-9);
+}
+
+#[test]
+fn perspective_makes_near_points_larger_than_far_ones() {
+    let view = View3D {
+        yaw: 0.0,
+        pitch: 0.0,
+        camera: 12.0,
+    };
+    // Looking along -z: the same world offset in y projects larger when it
+    // sits nearer the camera.
+    let (_, a1, _) = project_point(0.0, 1.0, 3.0, &view);
+    let (_, a2, _) = project_point(0.0, 2.0, 3.0, &view);
+    let (_, b1, _) = project_point(0.0, 1.0, -3.0, &view);
+    let (_, b2, _) = project_point(0.0, 2.0, -3.0, &view);
+    assert!((a2 - a1).abs() > (b2 - b1).abs());
+}
+
+#[test]
+fn painter_orders_far_before_near() {
+    let env = Env::default();
+    let s = sample_surface("x ^ 2 - y ^ 2", 12, &env).unwrap();
+    let segs = project_surface(&s, &View3D::default());
+    let depths: Vec<f64> = segs.iter().map(|s| s.depth).collect();
+    let mut sorted = depths.clone();
+    sorted.sort_by(|a, b| b.total_cmp(a));
+    assert_eq!(depths, sorted);
+}
+
+#[test]
+fn surface_frame_has_ground_square_and_axes() {
+    let env = Env::default();
+    let s = sample_surface("x + y", 8, &env).unwrap();
+    let frame = surface_frame(&s, &View3D::default());
+    // 4 ground edges + 3 axes = 7 segments.
+    assert_eq!(frame.len(), 7);
+    for seg in &frame {
+        assert!(seg.depth.is_finite());
+    }
+}
+
+#[test]
+fn surface_uses_constants_from_the_environment() {
+    let mut env = Env::default();
+    env.set_constant("c", Value::float(2.0));
+    let s = sample_surface("c * x * y", 6, &env).unwrap();
+    // z = 2xy at every grid point (x = xs[c], y = ys[r]).
+    for r in 0..s.zs.len() {
+        for c in 0..s.zs[r].len() {
+            let expect = 2.0 * s.xs[c] * s.ys[r];
+            assert!((s.zs[r][c] - expect).abs() < 1e-9);
+        }
+    }
+}
+
+#[test]
+fn mesh_projection_splits_runs_at_undefined_cells() {
+    let env = Env::default();
+    let s = sample_surface("1 / (x ^ 2 + y ^ 2)", 10, &env).unwrap();
+    let lines = epher_core::graph::project_mesh(&s, &View3D::default());
+    // 11 rows + 11 columns, some split at the hole; painter-sorted.
+    assert!(lines.len() >= 22);
+    let depths: Vec<f64> = lines.iter().map(|l| l.depth).collect();
+    let mut sorted = depths.clone();
+    sorted.sort_by(|a, b| b.total_cmp(a));
+    assert_eq!(depths, sorted);
+    for line in &lines {
+        assert!(line.points.len() >= 2);
+    }
 }
