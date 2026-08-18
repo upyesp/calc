@@ -9,6 +9,9 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <style>
+    /* The html element carries the dark background directly so the very
+       first painted frame is dark — no white flash on desktop launch. */
+    html { background: #1c1c1e; }
     :root {
       --bg: #1c1c1e;
       --panel: #2c2c2e;
@@ -114,6 +117,26 @@
       min-height: 48px;
       align-self: flex-start;
       margin-bottom: 0.75rem;
+    }
+    .history-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .history-head h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .clear-history {
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 0.4rem 0.8rem;
+      min-height: 44px;
     }
     .history {
       list-style: none;
