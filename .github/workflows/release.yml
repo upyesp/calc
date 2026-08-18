@@ -1,6 +1,6 @@
 # Build the unified epher installers for every platform and attach them to
 # a GitHub Release. Triggered by pushing a tag:
-#   git tag v0.4.0 && git push origin v0.3.1
+#   git tag v0.4.1 && git push origin v0.4.1
 #
 # One download per platform (ADR-0011): each installer carries the unified
 # `epher` executable — one-shot CLI, REPL (`epher repl`), piped scripts
