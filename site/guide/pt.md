@@ -797,7 +797,7 @@ roda com as teclas de seta.
 Cada deslizador tem um botão de reprodução. Ele faz a sua constante
 percorrer o intervalo do deslizador e recomeçar do início — a forma
 habitual de as calculadoras animarem: anima-se um parâmetro e tudo o que
-o usa move-se Prima o
+o usa move-se. Prima o
 botão novamente para fazer uma pausa.
 
 Uma variável de "tempo" é apenas uma constante que anima:
@@ -808,9 +808,15 @@ graph sin(x - t)
 ```
 
 Reproduzir o deslizador de t faz a onda viajar. As superfícies 3D animam
-da mesma forma — experimente
-`graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` com um deslizador `a`. Na
-TUI, a barra de espaço inicia e para a animação.
+da mesma forma — defina primeiro uma constante e depois reproduza o seu
+deslizador:
+
+```epher
+const a = 1
+graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3
+```
+
+Na TUI, a barra de espaço inicia e para a animação.
 
 ### 2.5 Instalá-la e usá-la offline
 

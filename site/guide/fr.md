@@ -806,7 +806,7 @@ pivoter.
 Chaque curseur a un bouton de lecture. Il fait avancer sa constante sur
 toute la plage du curseur, puis revient au début — la façon standard dont
 les calculatrices animent : vous animez un paramètre, et tout ce qui
-l'utilise bouge
+l'utilise bouge.
 Appuyez de nouveau sur le bouton pour mettre en pause.
 
 Une variable "temps" n'est qu'une constante que vous animez :
@@ -817,8 +817,15 @@ graph sin(x - t)
 ```
 
 Lancer la lecture du curseur de t fait voyager l'onde. Les surfaces 3D
-s'animent de la même façon — essayez `graph3d sin(a * (x ^ 2 + y ^ 2))
-from -3 to 3` avec un curseur `a`. Dans l'interface de terminal, la barre
+s'animent de la même façon — définissez d'abord une constante, puis lancez
+la lecture de son curseur :
+
+```epher
+const a = 1
+graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3
+```
+
+Dans l'interface de terminal, la barre
 d'espace démarre et arrête l'animation.
 
 ### 2.5 L'installer et l'utiliser hors ligne

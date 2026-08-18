@@ -803,7 +803,7 @@ drehst du es.
 Jeder Schieberegler hat eine Wiedergabetaste. Sie lässt seine Konstante
 den Bereich des Schiebereglers durchlaufen und beginnt danach wieder von
 vorn — so animieren Taschenrechner üblicherweise: Du animierst einen
-Parameter, und alles, was ihn verwendet, bewegt sich mit Drücke die Taste erneut, um zu
+Parameter, und alles, was ihn verwendet, bewegt sich mit. Drücke die Taste erneut, um zu
 pausieren.
 
 Eine "Zeit"-Variable ist nur eine Konstante, die du animierst:
@@ -814,9 +814,15 @@ graph sin(x - t)
 ```
 
 Wenn du den Schieberegler von t abspielst, wandert die Welle.
-3D-Flächen animieren sich genauso — probiere
-`graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` mit einem Schieberegler
-`a`. In der TUI startet und stoppt die Leertaste die Animation.
+3D-Flächen animieren sich genauso — definiere zuerst eine Konstante und
+spiele dann ihren Schieberegler ab:
+
+```epher
+const a = 1
+graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3
+```
+
+In der TUI startet und stoppt die Leertaste die Animation.
 
 ### 2.5 Installieren und offline nutzen
 

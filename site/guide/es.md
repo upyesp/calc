@@ -795,7 +795,7 @@ girándola con las teclas de flecha.
 Cada deslizador tiene un botón de reproducción. Avanza su constante a lo
 largo del rango del deslizador y al llegar al final vuelve a empezar — la
 forma estándar en que animan las calculadoras: animas un parámetro y todo
-lo que lo usa se mueve Pulsa el
+lo que lo usa se mueve. Pulsa el
 botón de nuevo para pausar.
 
 Una variable de "tiempo" no es más que una constante que animas:
@@ -806,8 +806,15 @@ graph sin(x - t)
 ```
 
 Al reproducir el deslizador de t, la onda se desplaza. Las superficies 3D
-se animan igual — prueba `graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3`
-con un deslizador `a`. En la interfaz de terminal, la barra espaciadora
+se animan igual — define una constante primero y luego reproduce su
+deslizador:
+
+```epher
+const a = 1
+graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3
+```
+
+En la interfaz de terminal, la barra espaciadora
 inicia y detiene la animación.
 
 ### 2.5 Instalarla y usarla sin conexión

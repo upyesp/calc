@@ -787,7 +787,8 @@ the arrow keys rotating it.
 
 Every slider has a play button. It steps its constant through the
 slider's range and loops around — the standard way calculators animate:
-you animate a parameter, and everything that uses it moves Press the button again to pause.
+you animate a parameter, and everything that uses it moves. Press the
+button again to pause.
 
 A "time" variable is just a constant you animate:
 
@@ -797,8 +798,14 @@ graph sin(x - t)
 ```
 
 Playing t's slider makes the wave travel. 3D surfaces animate the same
-way — try `graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3` with a slider
-`a`. In the terminal UI, the space bar starts and stops the animation.
+way — define a constant first, then play its slider:
+
+```epher
+const a = 1
+graph3d sin(a * (x ^ 2 + y ^ 2)) from -3 to 3
+```
+
+In the terminal UI, the space bar starts and stops the animation.
 
 ### 2.5 Installing it and using it offline
 
