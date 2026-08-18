@@ -12,7 +12,7 @@ use clap::Parser;
 use epher_store::persist;
 use epher_store::{DocStore, FsStore};
 use serde::Serialize;
-use tauri::State;
+use tauri::{Manager, State};
 
 /// The desktop's native store: one instance, managed by Tauri and shared by
 /// every command.
@@ -139,6 +139,14 @@ pub fn run() {
             install_cli
         ])
         .setup(|app| {
+            // Version in the title bar: every release ships an installer
+            // with the same filename, and stale downloads are a recurring
+            // support issue — a glance at the title settles which build is
+            // running. The version lives in one place (Cargo.toml, which
+            // tauri.conf.json mirrors for the bundle).
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_title(&format!("epher {}", env!("CARGO_PKG_VERSION")));
+            }
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
