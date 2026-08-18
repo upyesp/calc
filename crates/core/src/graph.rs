@@ -618,13 +618,16 @@ pub fn parse_surface_source(source: &str) -> Result<(Expression, (f64, f64)), Ep
 
 /// Evaluate `expr` with `x` and `y` bound in a child environment (constant
 /// tables and function tables stay visible; session bindings do not).
-fn eval_at_xy(expr: &Expression, x: f64, y: f64, env: &Env) -> Option<f64> {
+fn eval_at_xy(expr: &Expression, x: f64, y: f64, env: &Env) -> Result<Option<f64>, EpherError> {
     let mut child = Env::new_child(env);
     child.set("x", Value::float(x));
     child.set("y", Value::float(y));
     match eval(expr, &child) {
-        Ok(Value::Float(v)) if v.is_finite() => Some(v),
-        _ => None,
+        Ok(Value::Float(v)) if v.is_finite() => Ok(Some(v)),
+        // A non-finite value (e.g. sqrt(-1)) is a hole in the mesh, not
+        // an evaluation error: it must not be reported as the cause.
+        Ok(_) => Ok(None),
+        Err(e) => Err(e),
     }
 }
 
@@ -645,15 +648,30 @@ pub fn sample_surface(source: &str, grid: usize, env: &Env) -> Result<Surface, E
         ys.push(v);
     }
     let mut zs = vec![vec![f64::NAN; grid + 1]; grid + 1];
+    let mut first_err: Option<EpherError> = None;
     for (r, &y) in ys.iter().enumerate() {
         for (c, &x) in xs.iter().enumerate() {
-            zs[r][c] = eval_at_xy(&expr, x, y, env).unwrap_or(f64::NAN);
+            match eval_at_xy(&expr, x, y, env) {
+                Ok(Some(v)) => zs[r][c] = v,
+                Ok(None) => {}
+                Err(e) => {
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                }
+            }
         }
     }
     if zs.iter().flatten().all(|z| z.is_nan()) {
-        return Err(EpherError::Parse(format!(
-            "no finite values for the surface: {source}"
-        )));
+        // When every cell failed, say why: an undefined name, a division
+        // by zero, or — if the cells are holes rather than errors — the
+        // generic no-finite-values message.
+        return match first_err {
+            Some(e) => Err(e),
+            None => Err(EpherError::Domain(format!(
+                "no finite values for the surface: {source}"
+            ))),
+        };
     }
     Ok(Surface {
         source: source.trim().to_string(),

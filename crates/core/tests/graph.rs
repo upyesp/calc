@@ -396,3 +396,30 @@ fn clipped_segments_drop_what_is_behind_the_camera() {
     // Undefined cells are dropped.
     assert!(project_clipped(0.0, 0.0, f64::NAN, 1.0, 0.0, 0.0, &view).is_none());
 }
+
+#[test]
+fn surface_with_undefined_name_reports_the_name() {
+    let env = Env::default();
+    // The guide's animated example without the defining constant: every
+    // cell fails, and the error must say why instead of the generic
+    // no-finite-values message.
+    let err = sample_surface("sin(a * (x ^ 2 + y ^ 2)) from -3 to 3", 8, &env).unwrap_err();
+    assert_eq!(err.to_string(), "unknown name: a");
+}
+
+#[test]
+fn surface_with_all_holes_keeps_the_generic_message() {
+    let env = Env::default();
+    // (-1) ^ 0.5 is NaN silently (powf, no error raised): holes, not
+    // errors — the generic message. sqrt(-1) and ln(-1), by contrast,
+    // raise domain errors that are reported as the cause.
+    let err = sample_surface("(-1) ^ 0.5 + x", 8, &env).unwrap_err();
+    assert!(err.to_string().contains("no finite values for the surface"));
+}
+
+#[test]
+fn surface_reporting_division_by_zero_when_everywhere() {
+    let env = Env::default();
+    let err = sample_surface("1 / 0", 8, &env).unwrap_err();
+    assert_eq!(err.to_string(), "division by zero");
+}
