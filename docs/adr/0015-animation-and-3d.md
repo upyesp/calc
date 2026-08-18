@@ -113,3 +113,29 @@ but reproducible in every browser):
    sits beyond typical surface z values — the default view shows the whole
    surface, and near-plane clipping engages only when the user orbits in
    close.
+
+## Amendment (2026-08-18): playback rate, drag orbit, and touch
+
+Three defects surfaced in end-user testing (Windows desktop, Android):
+
+1. **Playback accelerated to a crash.** The web animation loop was spawned
+   with Yew's `use_effect` (no dependencies), which re-runs after *every*
+   render — each tick re-rendered, spawning another loop, so the step rate
+   grew every 120 ms until the page died. The loop now spawns once
+   (`use_effect_with((), …)`), holding the designed one step per 120 ms.
+   The TUI stepped on its 50 ms poll (≈20 steps/s, 2.4× the web rate); it
+   now paces to the same 120 ms per step while keeping the 50 ms poll so
+   key presses stay responsive.
+2. **Drag-orbit never worked — mouse or touch.** The pointermove handler
+   matched `if let Some((lx, ly)) = *drag.borrow()` and then called
+   `*drag.borrow_mut()` inside the block; the temporary `Ref` lives for the
+   whole `if let`, so the `RefCell` panicked ("already borrowed") and the
+   wasm handler died before the first orbit. The start point is now copied
+   out (the tuple is `Copy`) before mutating. Keyboard orbit was unaffected,
+   which is why browser tests (which used arrow keys) never caught it.
+3. **Touch did not reach the plots on Android.** The 2D trace bound
+   `mousemove`, which never fires for touch; it now binds `pointermove`
+   like the 3D orbit (the SVG already carried `touch-action: none`). 3D
+   drag and 2D trace are verified under mobile emulation with CDP touch
+   events, and the playback rate is asserted in the browser suite (≈8.3
+   steps/s, steady over 10 s, page alive).

@@ -508,15 +508,20 @@ fn epher_app() -> Html {
     {
         let play_cell = play_cell.clone();
         let live_apply = live_apply.clone();
-        use_effect(move || {
+        // The loop must be spawned once, not per render: use_effect (no
+        // deps) re-runs after every render, so a bare use_effect here
+        // would add a new loop on every tick, each tick re-rendering and
+        // spawning another — playback would accelerate to a crash.
+        use_effect_with((), move |_| {
             spawn_local(async move {
                 loop {
                     if (*play_cell).borrow().is_none() {
                         gloo_timers::future::sleep(std::time::Duration::from_millis(100)).await;
                         continue;
                     }
-                    // One step per 120 ms: a v±2 cycle (40 steps) takes
-                    // about 5 s — the vendor norm for playback speed.
+                    // One step per 120 ms: a fresh constant's slider spans
+                    // ±10 (200 steps), so one full cycle takes 24 s — the
+                    // vendor norm for playback speed.
                     gloo_timers::future::sleep(std::time::Duration::from_millis(120)).await;
                     let Some(spec) = (*play_cell).borrow().clone() else {
                         continue;

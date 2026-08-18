@@ -425,9 +425,9 @@ pub fn graph_html(props: &GraphProps) -> Html {
                 let on_trace = on_trace.clone();
                 bound.push(gloo_events::EventListener::new(
                     &el,
-                    "mousemove",
+                    "pointermove",
                     move |e| {
-                        let Some(me) = e.dyn_ref::<web_sys::MouseEvent>() else {
+                        let Some(me) = e.dyn_ref::<web_sys::PointerEvent>() else {
                             return;
                         };
                         let w = el_closure.client_width().max(1) as f64;
@@ -716,7 +716,12 @@ pub fn graph3d_html(props: &Graph3DProps) -> Html {
                 let on_orbit = on_orbit.clone();
                 bound.push(gloo_events::EventListener::new(&el, "pointermove", move |e| {
                     if let Some(pe) = e.dyn_ref::<web_sys::PointerEvent>() {
-                        if let Some((lx, ly)) = *drag.borrow() {
+                        // Copy the start point out first: Option<(f64, f64)>
+                        // is Copy, and holding the Ref across the body would
+                        // make the borrow_mut below panic ("RefCell already
+                        // borrowed") — the drag never orbits.
+                        let start = *drag.borrow();
+                        if let Some((lx, ly)) = start {
                             let dx = pe.client_x() as f64 - lx;
                             let dy = pe.client_y() as f64 - ly;
                             *drag.borrow_mut() = Some((pe.client_x() as f64, pe.client_y() as f64));

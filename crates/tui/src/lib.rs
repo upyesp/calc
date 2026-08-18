@@ -559,6 +559,10 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
     let detected: Vec<String> = sys_locale::get_locales().collect();
     let mut localizer = Localizer::resolve(preference.as_deref(), &detected);
     let mut app = App::with_session(session);
+    // One step per 120 ms while playing — the same rate as the web
+    // sliders' play button (ADR-0015). The poll below wakes at 50 ms so
+    // key presses stay responsive; the step itself is paced here.
+    let mut last_tick = std::time::Instant::now();
     loop {
         terminal.draw(|frame| draw(frame, &app, &localizer))?;
         // While an animation plays, wait at most one tick for input so the
@@ -573,7 +577,10 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
             Some(event::read()?)
         };
         if app.play().is_some() {
-            app.tick();
+            if last_tick.elapsed() >= std::time::Duration::from_millis(120) {
+                app.tick();
+                last_tick = std::time::Instant::now();
+            }
         }
         if let Some(Event::Key(key)) = event {
             if key.kind == KeyEventKind::Press {
