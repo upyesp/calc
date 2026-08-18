@@ -91,6 +91,11 @@ impl App {
         self.input.clear();
     }
 
+    /// Empty the history list (Ctrl+L); definitions and constants stay.
+    pub fn clear_history(&mut self) {
+        self.session.clear_history();
+    }
+
     pub fn push_char(&mut self, c: char) {
         self.input.push(c);
     }
@@ -585,6 +590,10 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         return Ok(());
                     }
+                    KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        app.clear_history();
+                        let _ = save_history(&store, app.history());
+                    }
                     KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
                     // 3D orbit (ADR-0015): arrows rotate when the input line
                     // is empty, so typing never loses an arrow key.
@@ -643,6 +652,7 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     let history_lines: Vec<Line> = app
         .history()
         .iter()
+        .rev()
         .map(|h| Line::from(h.as_str()))
         .collect();
     let history = Paragraph::new(history_lines)

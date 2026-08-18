@@ -193,6 +193,21 @@ fn epher_app() -> Html {
     let show_install_cli = use_state(|| false);
     let bridge = Bridge::detect();
 
+    // Clear history (the button next to the list): empty the session's
+    // history, persist the cleared state in the desktop shell, and leave
+    // definitions, constants, and plotted curves untouched.
+    let on_clear_history = {
+        let session = session.clone();
+        let result = result.clone();
+        Callback::from(move |_| {
+            let mut s = (*session).clone();
+            s.clear_history();
+            session.set(s);
+            bridge.save_history(&[]);
+            result.set(String::new());
+        })
+    };
+
     // Inside the desktop shell: rebuild the session from the native store —
     // history plus saved functions and scripts replayed quietly, the exact
     // load_session recipe — and honor the stored language preference.
@@ -914,8 +929,14 @@ fn epher_app() -> Html {
                     html! {}
                 }
             }
+            <div class="history-head">
+                <h2>{ localizer.lookup("history") }</h2>
+                <button type="button" class="clear-history" onclick={on_clear_history}>
+                    { localizer.lookup("clear-history") }
+                </button>
+            </div>
             <ul class="history">
-                { for session.history().iter().map(|h| html! { <li>{ h.clone() } </li> }) }
+                { for session.history().iter().rev().map(|h| html! { <li>{ h.clone() } </li> }) }
             </ul>
         </main>
     }

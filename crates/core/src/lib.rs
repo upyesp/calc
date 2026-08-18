@@ -1580,6 +1580,12 @@ impl Session {
         &self.history
     }
 
+    /// Empty the history list (the clear-history control in every frontend).
+    /// The environment keeps its definitions and constants.
+    pub fn clear_history(&mut self) {
+        self.history.clear();
+    }
+
     /// The environment, for frontends that need it (e.g. graphing).
     pub fn env(&self) -> &Env {
         &self.env

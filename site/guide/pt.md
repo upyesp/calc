@@ -673,8 +673,9 @@ capítulo 1 funciona aqui, incluindo variáveis, funções e scripts.
 ### 2.3 Histórico
 
 Cada cálculo é adicionado à lista de histórico por baixo do resultado, para
-poder recuar e ver o que fez. O histórico é mantido enquanto a página
-estiver aberta.
+poder recuar e ver o que fez. As entradas mais recentes aparecem no topo,
+e o botão **Clear history** por cima da lista esvazia-a. O histórico é
+mantido enquanto a página estiver aberta.
 
 ### 2.4 Gráficos
 
@@ -1131,6 +1132,7 @@ O ecrã está dividido em painéis:
 | **q** | sair (quando a entrada está vazia) |
 | **Arrow keys** | rodar a vista 3D (quando a entrada está vazia) |
 | **Space** | iniciar/parar a animação (quando a entrada está vazia) |
+| **Ctrl+L** | limpar o histórico |
 
 ### 5.3 Gráficos
 

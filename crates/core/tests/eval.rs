@@ -749,3 +749,16 @@ fn const_in_a_fresh_child_env_only_shadows_via_params() {
         Some(Value::float(7.0))
     );
 }
+
+#[test]
+fn clear_history_empties_the_list_but_keeps_definitions() {
+    let mut s = Session::new();
+    s.submit("def f(x) = x + 1");
+    s.submit("const a = 3");
+    s.submit("f(a)");
+    assert_eq!(s.history().len(), 3);
+    s.clear_history();
+    assert!(s.history().is_empty());
+    // The environment survives: definitions and constants still work.
+    assert_eq!(s.submit("f(a)"), "= 4");
+}

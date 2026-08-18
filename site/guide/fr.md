@@ -680,8 +680,9 @@ ici, y compris variables, fonctions et scripts.
 ### 2.3 Historique
 
 Chaque calcul est ajouté à la liste d'historique sous le résultat, pour que
-vous puissiez remonter et voir ce que vous avez fait. L'historique est
-conservé tant que la page est ouverte.
+vous puissiez remonter et voir ce que vous avez fait. Les entrées les plus
+récentes apparaissent en haut, et le bouton **Clear history** au-dessus de
+la liste la vide. L'historique est conservé tant que la page est ouverte.
 
 ### 2.4 Les graphiques
 
@@ -1141,6 +1142,7 @@ L'écran est divisé en panneaux :
 | **q** | quitter (quand la saisie est vide) |
 | **Touches fléchées** | faire pivoter la vue 3D (quand la saisie est vide) |
 | **Espace** | démarrer/arrêter l'animation (quand la saisie est vide) |
+| **Ctrl+L** | effacer l'historique |
 
 ### 5.3 Les graphiques
 

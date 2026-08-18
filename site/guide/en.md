@@ -666,8 +666,9 @@ works here, including variables, functions, and scripts.
 ### 2.3 History
 
 Every calculation is added to the history list beneath the result, so you
-can scroll back and see what you did. The history is kept while the page is
-open.
+can scroll back and see what you did. Newest entries appear at the top, and
+the **Clear history** button above the list empties it. The history is kept
+while the page is open.
 
 ### 2.4 Graphing
 
@@ -1104,6 +1105,7 @@ The screen is divided into panels:
 | **q** | quit (when the input is empty) |
 | **Arrow keys** | rotate the 3D view (when the input is empty) |
 | **Space** | start/stop the animation (when the input is empty) |
+| **Ctrl+L** | clear the history |
 
 ### 5.3 Graphing
 

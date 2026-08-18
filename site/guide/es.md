@@ -671,8 +671,9 @@ El resultado aparece en texto grande debajo del campo. Todo lo del capítulo
 ### 2.3 Historial
 
 Cada cálculo se añade a la lista de historial debajo del resultado, para que
-puedas desplazarte hacia atrás y ver lo que hiciste. El historial se
-conserva mientras la página está abierta.
+puedas desplazarte hacia atrás y ver lo que hiciste. Las entradas más
+recientes aparecen arriba, y el botón **Clear history** encima de la lista
+la vacía. El historial se conserva mientras la página está abierta.
 
 ### 2.4 Gráficas
 
@@ -1127,6 +1128,7 @@ La pantalla está dividida en paneles:
 | **q** | salir (cuando la entrada está vacía) |
 | **Teclas de flecha** | girar la vista 3D (cuando la entrada está vacía) |
 | **Espacio** | iniciar/detener la animación (cuando la entrada está vacía) |
+| **Ctrl+L** | borrar el historial |
 
 ### 5.3 Gráficas
 

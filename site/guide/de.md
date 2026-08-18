@@ -678,8 +678,9 @@ Skripten.
 ### 2.3 Verlauf
 
 Jede Berechnung wird zur Verlaufsliste unter dem Ergebnis hinzugefügt,
-damit du zurückscrollen und sehen kannst, was du gemacht hast. Der Verlauf
-bleibt erhalten, solange die Seite offen ist.
+damit du zurückscrollen und sehen kannst, was du gemacht hast. Die neuesten
+Einträge erscheinen oben, und der Button **Clear history** über der Liste
+leert sie. Der Verlauf bleibt erhalten, solange die Seite offen ist.
 
 ### 2.4 Graphen zeichnen
 
@@ -1136,6 +1137,7 @@ Der Bildschirm ist in Panels unterteilt:
 | **q** | beenden (wenn die Eingabe leer ist) |
 | **Arrow keys** | die 3D-Ansicht drehen (wenn die Eingabe leer ist) |
 | **Space** | die Animation starten/stoppen (wenn die Eingabe leer ist) |
+| **Ctrl+L** | den Verlauf leeren |
 
 ### 5.3 Graphen zeichnen
 
