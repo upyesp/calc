@@ -40,11 +40,13 @@ EXAMPLES:
     disable_help_subcommand = true,
 )]
 pub struct Args {
-    /// An expression to evaluate; prints the result and exits.
+    /// A script to evaluate; each statement's result prints on its own
+    /// line.
     ///
     /// Anything from the language works — `2 + 3 * 4`, `if 3 > 2 then 1
-    /// else 0`, a leading minus. Use `-` to read a script from standard
-    /// input, line by line, instead.
+    /// else 0`, a leading minus — and statements join with `;` or
+    /// newlines: `epher "x = 10; x + 5"` prints `10` then `15`. Use `-`
+    /// to read a script from standard input, line by line, instead.
     #[arg(allow_hyphen_values = true, value_name = "EXPRESSION")]
     pub expression: Option<String>,
 

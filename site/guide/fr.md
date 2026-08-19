@@ -432,8 +432,9 @@ branche dont elle a besoin.
 
 ### 1.11 Les scripts : plusieurs instructions à la fois
 
-Un *script* est plusieurs instructions reliées par `;`, exécutées l'une
-après l'autre :
+Un *script* est plusieurs instructions reliées par `;` — ou par des
+retours à la ligne, qui signifient exactement la même chose — exécutées
+l'une après l'autre :
 
 ```epher
 x = 10; y = x + 5; x + y
@@ -446,12 +447,14 @@ x = 10; y = x + 5; x + y
 Les scripts sont la façon de construire de petits programmes : préparez des
 variables, faites des boucles, et affichez un résultat final.
 
-Les exemples de plusieurs lignes de ce guide sont des scripts, une
-instruction par ligne. Le bouton **Copier** au-dessus de chaque exemple
-copie tout le script, et vous pouvez le coller directement dans epher : le
-champ de saisie de l'application web et de l'application de bureau,
-l'interface de terminal et `epher repl` exécutent toutes les lignes dans
-l'ordre, exactement comme si vous les aviez tapées une à une.
+Les retours à la ligne et `;` sont le même séparateur, et vous pouvez les
+mélanger librement. Le bouton **Copier** au-dessus d'un exemple de
+plusieurs lignes copie tout le script, et vous pouvez le coller directement
+dans epher : le champ de saisie de l'application web et de l'application de
+bureau, l'interface de terminal et `epher repl` exécutent toutes les lignes
+dans l'ordre, exactement comme si vous les aviez tapées une à une. Relier
+plusieurs instructions avec `;` sur une seule ligne fonctionne aussi partout
+— y compris sur la ligne de commande à usage unique (section 4.1).
 
 ### 1.12 Résultats exacts : frac, dec et big
 
@@ -650,7 +653,7 @@ connaît pas, pour que vous puissiez corriger votre expression.
 | Décision | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Boucle | `while c do statement` | `while x < 5 do x = x + 1` |
 | Fonction | `def name(params) = expr` | `def f(x) = x ^ 2` |
-| Script | instructions reliées par `;` | `x = 1; x + 1` |
+| Script | instructions reliées par `;` ou des retours à la ligne | `x = 1; x + 1` |
 | Fraction exacte | `frac(n, d)` | `frac(1, 3)` |
 | Décimal exact | `dec(x)` | `dec(0.1) + dec(0.2)` |
 | Nombre entier exact | `big(x)` | `big(10 ^ 20)` |
@@ -976,8 +979,22 @@ epher "-2 + 5"
 3
 ```
 
-Le mode à usage unique évalue exactement une expression. Les instructions —
-variables, fonctions, boucles — nécessitent la session interactive ou un
+Le mode à usage unique est fait pour les scripts, d'une simple expression
+jusqu'à un programme complet. La valeur de chaque instruction s'affiche sur
+sa propre ligne :
+
+```sh
+epher "x = 10; x + 5"
+```
+
+```text
+10
+15
+```
+
+Les instructions reliées par des retours à la ligne fonctionnent de la même
+façon dans l'argument. Tout le chapitre 1 est disponible — variables,
+fonctions, boucles, tout — et les lignes partagent une session, comme un
 script en pipeline (section 4.2).
 
 ### 4.2 Scripts en pipeline
@@ -997,6 +1014,8 @@ printf "x = 3\nx * 10\n" | epher -
 Tout le chapitre 1 fonctionne, et les lignes partagent une session : une
 fonction définie tôt est disponible plus tard, et `save` écrit dans le même
 magasin que d'habitude. Les erreurs s'affichent et le script continue.
+Une ligne peut relier plusieurs instructions avec `;` — retours à la ligne
+et `;` signifient la même chose partout dans epher.
 
 ### 4.3 La session interactive (REPL)
 

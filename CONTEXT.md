@@ -28,7 +28,8 @@ _Avoid_: macro, routine, procedure
 
 **Script**:
 A sequence of statements (assignments, Function definitions, control flow)
-executed in order.
+executed in order. Statements are separated by `;` or newlines — the same
+separator everywhere (ADR-0001).
 _Avoid_: program, macro, routine
 
 **Graph**:

@@ -423,7 +423,8 @@ smaller arguments until it reaches `n <= 1`. This works because the
 
 ### 1.11 Scripts: several statements at once
 
-A *script* is several statements joined with `;`, executed one after another:
+A *script* is several statements joined with `;` — or with newlines,
+which mean exactly the same thing — executed one after another:
 
 ```epher
 x = 10; y = x + 5; x + y
@@ -436,11 +437,13 @@ x = 10; y = x + 5; x + y
 Scripts are how you build small programs: set up variables, loop, and show a
 final result.
 
-Multi-line examples in this guide are scripts, one statement per line. The
-**Copy** button above an example copies the whole script, and you can paste
-it straight into epher: the entry field on the web app and the desktop app,
-the terminal UI, and `epher repl` all run each line in order, exactly as if
-you had typed them one by one.
+Newlines and `;` are the same separator, and you can mix them freely. The
+**Copy** button above a multi-line example copies the whole script, and you
+can paste it straight into epher: the entry field on the web app and the
+desktop app, the terminal UI, and `epher repl` all run each line in order,
+exactly as if you had typed them one by one. Joining several statements with
+`;` on one line works everywhere too — including the one-shot command line
+(section 4.1).
 
 ### 1.12 Exact results: frac, dec and big
 
@@ -636,7 +639,7 @@ not know, so you can fix your expression.
 | Decision | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Loop | `while c do statement` | `while x < 5 do x = x + 1` |
 | Function | `def name(params) = expr` | `def f(x) = x ^ 2` |
-| Script | statements joined with `;` | `x = 1; x + 1` |
+| Script | statements joined with `;` or newlines | `x = 1; x + 1` |
 | Exact fraction | `frac(n, d)` | `frac(1, 3)` |
 | Exact decimal | `dec(x)` | `dec(0.1) + dec(0.2)` |
 | Exact whole number | `big(x)` | `big(10 ^ 20)` |
@@ -944,8 +947,21 @@ epher "-2 + 5"
 3
 ```
 
-One-shot mode evaluates exactly one expression. Statements — variables,
-functions, loops — need the interactive session or a piped script
+One-shot mode is for scripts, from a single expression up to a whole
+program. Each statement's value prints on its own line:
+
+```sh
+epher "x = 10; x + 5"
+```
+
+```text
+10
+15
+```
+
+Statements joined with newlines work the same way inside the argument.
+Anything from chapter 1 is available — variables, functions, loops,
+everything — and the lines share one session, like a piped script
 (section 4.2).
 
 ### 4.2 Piped scripts
@@ -964,7 +980,9 @@ printf "x = 3\nx * 10\n" | epher -
 
 Everything from chapter 1 works, and the lines share one session: a function
 defined on an early line is available later, and `save` writes to the same
-store as always. Errors print and the script keeps going.
+store as always. Errors print and the script keeps going. A line may join
+several statements with `;` — newlines and `;` mean the same thing
+everywhere in epher.
 
 ### 4.3 The interactive session (REPL)
 

@@ -325,8 +325,12 @@ fn epher_app() -> Html {
             let mut s = (*session).clone();
             let mut curves = (*graph).clone();
             let mut surfaces = (*surface).clone();
-            for line in (*input).split('\n') {
-                let line = line.trim().to_string();
+            // Statements join with newlines or `;` — the same separator
+            // (ADR-0001). Each piece dispatches in order, exactly as if
+            // typed one by one.
+            for raw_line in (*input).split('\n') {
+                for piece in raw_line.split(';') {
+                let line = piece.trim().to_string();
                 if line.is_empty() {
                     continue;
                 }
@@ -421,6 +425,7 @@ fn epher_app() -> Html {
 
                 let out = s.submit(&line);
                 result.set(out);
+                }
             }
             // Publish the loop's outcomes once: points of interest and the
             // slider set follow from the final curves and session.

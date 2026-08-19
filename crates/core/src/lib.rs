@@ -293,6 +293,11 @@ pub fn parse_script(text: &str) -> Result<Vec<Statement>, EpherError> {
     let mut parser = Parser { tokens, pos: 0 };
     let mut statements = Vec::new();
     loop {
+        // Newlines and `;` are the same separator; redundant ones (blank
+        // lines, `;;`) are skipped, like empty lines at the input layer.
+        while matches!(parser.peek(), Some(Token::Semicolon)) {
+            parser.next();
+        }
         if parser.peek().is_none() {
             break;
         }
@@ -305,7 +310,7 @@ pub fn parse_script(text: &str) -> Result<Vec<Statement>, EpherError> {
             }
             None => break,
             Some(_) => {
-                return Err(EpherError::Parse("expected ';' between statements".into()));
+                return Err(EpherError::Parse("expected ';' or a newline between statements".into()));
             }
         }
     }
@@ -341,6 +346,13 @@ fn tokenize(text: &str) -> Result<Vec<Token>, EpherError> {
     while let Some(&c) = chars.peek() {
         match c {
             c if c.is_whitespace() => {
+                // Newlines are statement separators, exactly like `;`
+                // (ADR-0001 seam unification): the language has no
+                // strings, comments, or multi-line constructs, so a
+                // newline can only ever appear between statements.
+                if c == '\n' || c == '\r' {
+                    tokens.push(Token::Semicolon);
+                }
                 chars.next();
             }
             '+' => {
@@ -1380,6 +1392,35 @@ fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, EpherError> {
 pub fn run(script: &[Statement], env: &mut Env) -> Result<Option<Value>, EpherError> {
     let mut steps = STEP_LIMIT;
     run_inner(script, env, &mut steps)
+}
+
+/// Run a script and collect every statement's value — the one-shot CLI's
+/// view of a script (each result prints on its own line, like piped mode
+/// without the `=` prefix). `run` returns only the last value; interactive
+/// surfaces keep that display.
+pub fn run_all(script: &[Statement], env: &mut Env) -> Result<Vec<Value>, EpherError> {
+    let mut steps = STEP_LIMIT;
+    let mut values = Vec::new();
+    for stmt in script {
+        consume_step(&mut steps)?;
+        match stmt {
+            Statement::Expr(expr) => values.push(eval(expr, env)?),
+            Statement::Assign(name, expr) => values.push(assign(env, name, expr)?),
+            Statement::Const(name, expr) => values.push(define_constant(env, name, expr)?),
+            Statement::FunctionDef(name, params, body) => {
+                env.set_function(
+                    name.clone(),
+                    Function {
+                        params: params.clone(),
+                        body: body.clone(),
+                    },
+                );
+                // a definition produces no value
+            }
+            Statement::While(cond, body) => run_while(cond, body, env, &mut steps)?,
+        }
+    }
+    Ok(values)
 }
 
 /// Maximum statement executions per `run` — protects against runaway loops.

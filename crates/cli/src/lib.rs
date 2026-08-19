@@ -98,8 +98,15 @@ fn open_store_with_session() -> (DocStore<FsStore>, Session, Localizer) {
 
 /// Evaluate a single expression and print the result (no UI, no store).
 pub fn run_one_shot(expr: &str) -> Result<(), EpherError> {
-    let value = epher_core::evaluate(expr)?;
-    println!("{value}");
+    // One-shot accepts a whole script (ADR-0001 seam unification):
+    // statements separated by newlines or `;`, each result printed on its
+    // own line — the piped mode's output without the `=` prefix.
+    // `epher "2 + 3"` prints `5`, exactly as before.
+    let script = epher_core::parse_script(expr)?;
+    let mut env = epher_core::Env::default();
+    for value in epher_core::run_all(&script, &mut env)? {
+        println!("{value}");
+    }
     Ok(())
 }
 

@@ -79,7 +79,7 @@ fn sections() -> Vec<Roff> {
         tagged(roff, "if c then a else b", "conditional expression");
         tagged(roff, "while c do statement", "loop");
         tagged(roff, "def name(params) = expr", "define a function; recursion works (def fib(n) = if n <= 1 then n else fib(n - 1) + fib(n - 2))");
-        tagged(roff, "stmt1; stmt2", "a script: several statements on one line, value of the last");
+        tagged(roff, "stmt1; stmt2", "a script: statements joined with `;` or newlines (the same separator)");
         para(roff, "Exact layers (binary floats are exact here):");
         tagged(roff, "frac(n, d)", "exact fraction (frac(1, 3) = 1/3)");
         tagged(roff, "dec(x)", "exact decimal (dec(0.1) + dec(0.2) = 0.3)");
@@ -125,7 +125,8 @@ fn sections() -> Vec<Roff> {
     }));
 
     v.push(section("EXAMPLES", |roff| {
-        tagged(roff, "epher \"2 + 3 * 4\"", "evaluate one expression; prints 14");
+        tagged(roff, "epher \"2 + 3 * 4\"", "print the value of an expression: 14");
+        tagged(roff, "epher \"x = 10; x + 5\"", "scripts work too: each statement's value prints (10 then 15)");
         tagged(roff, "epher \"-2 + 5\"", "a leading minus is part of the expression; prints 3");
         tagged(roff, "printf \"x = 3\\nx * 10\\n\" | epher -", "read a script from standard input, line by line");
         tagged(roff, "printf \"def f(x) = x ^ 2\\nf(9)\\n\" | epher -", "lines share one session: prints = 81");

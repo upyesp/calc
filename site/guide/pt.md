@@ -428,8 +428,8 @@ a forma `if ... then ... else ...` só calcula o ramo de que precisa.
 
 ### 1.11 Scripts: várias instruções de uma vez
 
-Um *script* é um conjunto de instruções unidas por `;`, executadas uma após
-a outra:
+Um *script* é um conjunto de instruções unidas por `;` — ou por quebras de
+linha, que significam exatamente a mesma coisa — executadas uma após a outra:
 
 ```epher
 x = 10; y = x + 5; x + y
@@ -442,12 +442,14 @@ x = 10; y = x + 5; x + y
 Os scripts são a forma de construir pequenos programas: defina variáveis,
 faça ciclos e mostre um resultado final.
 
-Os exemplos de várias linhas neste guia são scripts, uma instrução por
-linha. O botão **Copiar** por cima de um exemplo copia o script inteiro,
-e pode colá-lo diretamente no epher: o campo de entrada na aplicação web
-e na aplicação de ambiente de trabalho, a interface de terminal e o
-`epher repl` executam cada linha por ordem, exatamente como se as
-tivesse escrito uma a uma.
+As quebras de linha e o `;` são o mesmo separador, e pode misturá-los
+livremente. O botão **Copiar** por cima de um exemplo de várias linhas
+copia o script inteiro, e pode colá-lo diretamente no epher: o campo de
+entrada na aplicação web e na aplicação de ambiente de trabalho, a
+interface de terminal e o `epher repl` executam cada linha por ordem,
+exatamente como se as tivesse escrito uma a uma. Unir várias instruções
+com `;` numa só linha também funciona em todo o lado — incluindo a linha
+de comandos de avaliação única (secção 4.1).
 
 ### 1.12 Resultados exatos: frac, dec e big
 
@@ -643,7 +645,7 @@ conhece, para poder corrigir a sua expressão.
 | Decisão | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Ciclo | `while c do statement` | `while x < 5 do x = x + 1` |
 | Função | `def name(params) = expr` | `def f(x) = x ^ 2` |
-| Script | instruções unidas por `;` | `x = 1; x + 1` |
+| Script | instruções unidas por `;` ou quebras de linha | `x = 1; x + 1` |
 | Fração exata | `frac(n, d)` | `frac(1, 3)` |
 | Decimal exato | `dec(x)` | `dec(0.1) + dec(0.2)` |
 | Número inteiro exato | `big(x)` | `big(10 ^ 20)` |
@@ -963,9 +965,22 @@ epher "-2 + 5"
 3
 ```
 
-O modo de avaliação única avalia exatamente uma expressão. As instruções —
-variáveis, funções, ciclos — precisam da sessão interativa ou de um script
-por pipe (secção 4.2).
+O modo de avaliação única é para scripts, de uma única expressão até um
+programa inteiro. O valor de cada instrução é impresso na sua própria linha:
+
+```sh
+epher "x = 10; x + 5"
+```
+
+```text
+10
+15
+```
+
+As instruções unidas por quebras de linha funcionam da mesma forma dentro
+do argumento. Tudo o que está no capítulo 1 está disponível — variáveis,
+funções, ciclos, tudo — e as linhas partilham uma única sessão, como um
+script por pipe (secção 4.2).
 
 ### 4.2 Scripts por pipe
 
@@ -984,7 +999,8 @@ printf "x = 3\nx * 10\n" | epher -
 Tudo o que está no capítulo 1 funciona, e as linhas partilham uma única
 sessão: uma função definida numa linha inicial fica disponível mais tarde,
 e o `save` escreve no mesmo armazenamento de sempre. Os erros são impressos
-e o script continua.
+e o script continua. Uma linha pode unir várias instruções com `;` — as
+quebras de linha e o `;` significam a mesma coisa em todo o lado no epher.
 
 ### 4.3 A sessão interativa (REPL)
 

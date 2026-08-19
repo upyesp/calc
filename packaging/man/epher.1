@@ -24,9 +24,9 @@ Print help (see a summary with \*(Aq\-h\*(Aq)
 Print version
 .TP
 [\fIEXPRESSION\fR]
-An expression to evaluate; prints the result and exits.
+A script to evaluate; each statement\*(Aqs result prints on its own line.
 
-Anything from the language works — `2 + 3 * 4`, `if 3 > 2 then 1 else 0`, a leading minus. Use `\-` to read a script from standard input, line by line, instead.
+Anything from the language works — `2 + 3 * 4`, `if 3 > 2 then 1 else 0`, a leading minus — and statements join with `;` or newlines: `epher "x = 10; x + 5"` prints `10` then `15`. Use `\-` to read a script from standard input, line by line, instead.
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
 .SH SUBCOMMANDS
@@ -71,7 +71,7 @@ def name(params) = expr
 define a function; recursion works (def fib(n) = if n <= 1 then n else fib(n \- 1) + fib(n \- 2))
 .TP 4
 stmt1; stmt2
-a script: several statements on one line, value of the last
+a script: statements joined with `;` or newlines (the same separator)
 Exact layers (binary floats are exact here):
 .TP 4
 frac(n, d)
@@ -167,7 +167,10 @@ disable colored error output when set (see no\-color.org)
 .SH EXAMPLES
 .TP 4
 epher "2 + 3 * 4"
-evaluate one expression; prints 14
+print the value of an expression: 14
+.TP 4
+epher "x = 10; x + 5"
+scripts work too: each statement\*(Aqs value prints (10 then 15)
 .TP 4
 epher "\-2 + 5"
 a leading minus is part of the expression; prints 3

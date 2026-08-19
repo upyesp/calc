@@ -429,7 +429,8 @@ braucht.
 
 ### 1.11 Skripte: mehrere Anweisungen auf einmal
 
-Ein *Skript* sind mehrere Anweisungen, verbunden mit `;`, die nacheinander
+Ein *Skript* sind mehrere Anweisungen, verbunden mit `;` — oder mit
+Zeilenumbrüchen, die genau dasselbe bedeuten — die nacheinander
 ausgeführt werden:
 
 ```epher
@@ -443,12 +444,14 @@ x = 10; y = x + 5; x + y
 Mit Skripten baust du kleine Programme: Variablen einrichten, Schleifen
 laufen lassen und ein Endergebnis zeigen.
 
-Mehrzeilige Beispiele in diesem Handbuch sind Skripte, eine Anweisung pro
-Zeile. Der Button **Kopieren** über einem Beispiel kopiert das ganze
-Skript, und du kannst es direkt in epher einfügen: das Eingabefeld in der
-Web-App und in der Desktop-App, die Terminal-Oberfläche und `epher repl`
-führen alle jede Zeile der Reihe nach aus, genau so, als hättest du sie
-eine nach der anderen getippt.
+Zeilenumbrüche und `;` sind dasselbe Trennzeichen, und du kannst sie frei
+mischen. Der Button **Kopieren** über einem mehrzeiligen Beispiel kopiert
+das ganze Skript, und du kannst es direkt in epher einfügen: das
+Eingabefeld in der Web-App und in der Desktop-App, die
+Terminal-Oberfläche und `epher repl` führen alle jede Zeile der Reihe
+nach aus, genau so, als hättest du sie eine nach der anderen getippt.
+Mehrere Anweisungen mit `;` in einer Zeile zu verbinden, funktioniert
+ebenfalls überall — auch in der Einmal-Befehlszeile (Abschnitt 4.1).
 
 ### 1.12 Exakte Ergebnisse: frac, dec und big
 
@@ -647,7 +650,7 @@ nicht kennt, damit du deinen Ausdruck korrigieren kannst.
 | Entscheidung | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Schleife | `while c do statement` | `while x < 5 do x = x + 1` |
 | Funktion | `def name(params) = expr` | `def f(x) = x ^ 2` |
-| Skript | Anweisungen, verbunden mit `;` | `x = 1; x + 1` |
+| Skript | Anweisungen, verbunden mit `;` oder Zeilenumbrüchen | `x = 1; x + 1` |
 | Exakter Bruch | `frac(n, d)` | `frac(1, 3)` |
 | Exakte Dezimalzahl | `dec(x)` | `dec(0.1) + dec(0.2)` |
 | Exakte ganze Zahl | `big(x)` | `big(10 ^ 20)` |
@@ -969,9 +972,23 @@ epher "-2 + 5"
 3
 ```
 
-Der Einmal-Modus wertet genau einen Ausdruck aus. Anweisungen —
-Variablen, Funktionen, Schleifen — brauchen die interaktive Sitzung oder
-ein gepipetes Skript (Abschnitt 4.2).
+Der Einmal-Modus ist für Skripte, von einem einzelnen Ausdruck bis zu
+einem ganzen Programm. Der Wert jeder Anweisung wird in einer eigenen
+Zeile ausgegeben:
+
+```sh
+epher "x = 10; x + 5"
+```
+
+```text
+10
+15
+```
+
+Anweisungen, verbunden mit Zeilenumbrüchen, funktionieren im Argument
+genauso. Alles aus Kapitel 1 ist verfügbar — Variablen, Funktionen,
+Schleifen, alles — und die Zeilen teilen eine Sitzung, wie ein gepipetes
+Skript (Abschnitt 4.2).
 
 ### 4.2 Gepipete Skripte
 
@@ -990,7 +1007,9 @@ printf "x = 3\nx * 10\n" | epher -
 Alles aus Kapitel 1 funktioniert, und die Zeilen teilen eine Sitzung:
 Eine Funktion, die in einer frühen Zeile definiert wurde, ist später
 verfügbar, und `save` schreibt wie immer in denselben Speicher. Fehler
-werden ausgegeben und das Skript läuft weiter.
+werden ausgegeben und das Skript läuft weiter. Eine Zeile kann mehrere
+Anweisungen mit `;` verbinden — Zeilenumbrüche und `;` bedeuten überall
+in epher dasselbe.
 
 ### 4.3 Die interaktive Sitzung (REPL)
 

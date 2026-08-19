@@ -1,5 +1,5 @@
 use epher_core::{
-    eval, evaluate, parse, parse_latex, parse_script, run, sample, sample_parametric,
+    eval, evaluate, parse, parse_latex, parse_script, run, run_all, sample, sample_parametric,
     sample_polar, Sample, Env, Session, Value,
 };
 use bigdecimal::BigDecimal;
@@ -761,4 +761,51 @@ fn clear_history_empties_the_list_but_keeps_definitions() {
     assert!(s.history().is_empty());
     // The environment survives: definitions and constants still work.
     assert_eq!(s.submit("f(a)"), "= 4");
+}
+
+// ADR-0001 seam unification: newlines and `;` are the same separator.
+#[test]
+fn newlines_separate_statements_like_semicolons() {
+    let mut env = Env::default();
+    let script = parse_script("x = 5\nx + 1").expect("parse_script");
+    let result = run(&script, &mut env).expect("run").expect("value");
+    assert_eq!(result, Value::float(6.0));
+}
+
+#[test]
+fn newlines_and_semicolons_mix_freely() {
+    let mut env = Env::default();
+    let script = parse_script("x = 5;\ny = x + 1\nx * y").expect("parse_script");
+    let result = run(&script, &mut env).expect("run").expect("value");
+    assert_eq!(result, Value::float(30.0));
+}
+
+#[test]
+fn windows_line_endings_are_one_separator() {
+    let mut env = Env::default();
+    let script = parse_script("x = 5\r\ny = x + 1\r\nx * y").expect("parse_script");
+    let result = run(&script, &mut env).expect("run").expect("value");
+    assert_eq!(result, Value::float(30.0));
+}
+
+#[test]
+fn redundant_separators_are_skipped() {
+    let mut env = Env::default();
+    let script = parse_script("x = 5;;\n\ny = x + 1;").expect("parse_script");
+    let result = run(&script, &mut env).expect("run").expect("value");
+    assert_eq!(result, Value::float(6.0));
+}
+
+#[test]
+fn run_all_collects_every_statement_value() {
+    let mut env = Env::default();
+    let script = parse_script("x = 10; y = x + 5; x + y").expect("parse_script");
+    let values = run_all(&script, &mut env).expect("run_all");
+    assert_eq!(values, vec![Value::float(10.0), Value::float(15.0), Value::float(25.0)]);
+}
+
+#[test]
+fn newline_inside_an_expression_is_an_error() {
+    // A newline is always a statement boundary: no expression spans lines.
+    assert!(parse("1 +\n2").is_err());
 }

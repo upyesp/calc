@@ -42,6 +42,27 @@ fn one_shot_evaluates_and_prints() {
 }
 
 #[test]
+fn one_shot_accepts_semicolon_scripts() {
+    let out = epher_bin().arg("x = 10; x + 5").output().unwrap();
+    assert!(out.status.success());
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "10\n15");
+}
+
+#[test]
+fn one_shot_accepts_newline_separated_scripts() {
+    let out = epher_bin().arg("x = 3\nx * 10").output().unwrap();
+    assert!(out.status.success());
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "3\n30");
+}
+
+#[test]
+fn one_shot_accepts_mixed_separators_and_blank_lines() {
+    let out = epher_bin().arg("x = 3;;\n\ny = x + 1\ny").output().unwrap();
+    assert!(out.status.success());
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "3\n4\n4");
+}
+
+#[test]
 fn one_shot_errors_on_bad_input() {
     let out = epher_bin().arg("2 +").output().unwrap();
     assert!(!out.status.success());

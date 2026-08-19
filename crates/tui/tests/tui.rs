@@ -389,3 +389,24 @@ fn render_ascii3d_draws_the_wireframe() {
 fn render_ascii3d_is_empty_without_surfaces() {
     assert_eq!(render_ascii3d(&[], &epher_core::graph::View3D::default(), 40, 12), "");
 }
+
+#[test]
+fn submit_line_splits_semicolon_statements() {
+    let (store, _keep) = scratch_store();
+    let mut app = App::default();
+    app.set_input("graph sin(x); graph cos(x)");
+    app.submit_line(&app.input().to_string(), &store, &Localizer::resolve(Some("en"), &[]));
+    // both curves overlay the plot, each a separate statement (the event
+    // loop, not submit_line, clears the input after Enter)
+    assert_eq!(app.graph().len(), 2);
+}
+
+#[test]
+fn submit_line_skips_empty_semicolon_pieces() {
+    let (store, _keep) = scratch_store();
+    let mut app = App::default();
+    app.set_input("2 + 3;;;");
+    app.submit_line(&app.input().to_string(), &store, &Localizer::resolve(Some("en"), &[]));
+    assert_eq!(app.result(), "= 5");
+    assert_eq!(app.history().len(), 1);
+}

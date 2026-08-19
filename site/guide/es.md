@@ -426,8 +426,8 @@ forma `if ... then ... else ...` solo calcula la rama que necesita.
 
 ### 1.11 Scripts: varias instrucciones a la vez
 
-Un *script* es varias instrucciones unidas con `;`, ejecutadas una tras
-otra:
+Un *script* es varias instrucciones unidas con `;` — o con saltos de
+línea, que significan exactamente lo mismo — ejecutadas una tras otra:
 
 ```epher
 x = 10; y = x + 5; x + y
@@ -440,12 +440,14 @@ x = 10; y = x + 5; x + y
 Los scripts son la forma de construir pequeños programas: prepara
 variables, haz bucles y muestra un resultado final.
 
-Los ejemplos de varias líneas de esta guía son scripts, con una instrucción
-por línea. El botón **Copiar** situado encima de cada ejemplo copia el
-script completo, y puedes pegarlo directamente en epher: el campo de
-entrada de la aplicación web y de la aplicación de escritorio, la interfaz
-de terminal y `epher repl` ejecutan todas las líneas en orden, exactamente
-como si las hubieras escrito una a una.
+Los saltos de línea y `;` son el mismo separador, y puedes mezclarlos
+libremente. El botón **Copiar** situado encima de cada ejemplo de varias
+líneas copia el script completo, y puedes pegarlo directamente en epher: el
+campo de entrada de la aplicación web y de la aplicación de escritorio, la
+interfaz de terminal y `epher repl` ejecutan todas las líneas en orden,
+exactamente como si las hubieras escrito una a una. Unir varias
+instrucciones con `;` en una línea funciona en todas partes también —
+incluida la línea de comandos de un solo uso (sección 4.1).
 
 ### 1.12 Resultados exactos: frac, dec y big
 
@@ -641,7 +643,7 @@ conoce, para que puedas arreglar tu expresión.
 | Decisión | `if c then a else b` | `if x > 0 then 1 else -1` |
 | Bucle | `while c do statement` | `while x < 5 do x = x + 1` |
 | Función | `def name(params) = expr` | `def f(x) = x ^ 2` |
-| Script | instrucciones unidas con `;` | `x = 1; x + 1` |
+| Script | instrucciones unidas con `;` o saltos de línea | `x = 1; x + 1` |
 | Fracción exacta | `frac(n, d)` | `frac(1, 3)` |
 | Decimal exacto | `dec(x)` | `dec(0.1) + dec(0.2)` |
 | Número entero exacto | `big(x)` | `big(10 ^ 20)` |
@@ -961,9 +963,23 @@ epher "-2 + 5"
 3
 ```
 
-El modo de un solo uso evalúa exactamente una expresión. Las instrucciones —
-variables, funciones, bucles — necesitan la sesión interactiva o un script
-por tubería (sección 4.2).
+El modo de un solo uso es para scripts, desde una sola expresión hasta un
+programa completo. El valor de cada instrucción se imprime en su propia
+línea:
+
+```sh
+epher "x = 10; x + 5"
+```
+
+```text
+10
+15
+```
+
+Las instrucciones unidas con saltos de línea funcionan igual dentro del
+argumento. Todo lo del capítulo 1 está disponible — variables, funciones,
+bucles, todo — y las líneas comparten una sesión, como un script por
+tubería (sección 4.2).
 
 ### 4.2 Scripts por tubería
 
@@ -982,7 +998,8 @@ printf "x = 3\nx * 10\n" | epher -
 Todo lo del capítulo 1 funciona, y las líneas comparten una sesión: una
 función definida en una línea temprana está disponible después, y `save`
 escribe en el mismo almacén de siempre. Los errores se imprimen y el script
-sigue.
+sigue. Una línea puede unir varias instrucciones con `;` — los saltos de
+línea y `;` significan lo mismo en todas partes de epher.
 
 ### 4.3 La sesión interactiva (REPL)
 

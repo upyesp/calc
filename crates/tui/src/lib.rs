@@ -113,30 +113,54 @@ impl App {
     /// Handle one submitted line the way the event loop does: shell commands
     /// dispatch through the shared kernel (epher-shell), `graph ` samples,
     /// `graph3d ` samples a surface, anything else evaluates — and history
-    /// persists. Returns the new language preference when a `language`
-    /// command changed it, so the caller can re-resolve its Localizer.
+    /// persists. A line may join several statements with `;` (the same
+    /// separator as a newline, ADR-0001): each statement dispatches in
+    /// order, exactly as if typed one by one. Returns the new language
+    /// preference when a `language` command changed it, so the caller can
+    /// re-resolve its Localizer.
     pub fn submit_line(
         &mut self,
         line: &str,
         store: &DocStore<FsStore>,
         localizer: &Localizer,
     ) -> Option<String> {
-        let line = line.trim();
-        if let Some(source) = line.strip_prefix("graph ") {
+        let mut language = None;
+        for piece in line.split(';') {
+            let piece = piece.trim();
+            if piece.is_empty() {
+                continue;
+            }
+            let changed = self.submit_statement(piece, store, localizer);
+            if language.is_none() {
+                language = changed;
+            }
+        }
+        language
+    }
+
+    /// Dispatch one statement (no `;`, no newline) the way submit_line used
+    /// to handle a whole line.
+    fn submit_statement(
+        &mut self,
+        piece: &str,
+        store: &DocStore<FsStore>,
+        localizer: &Localizer,
+    ) -> Option<String> {
+        if let Some(source) = piece.strip_prefix("graph ") {
             let _ = self.submit_graph(source);
             return None;
         }
-        if let Some(source) = line.strip_prefix("graph3d ") {
+        if let Some(source) = piece.strip_prefix("graph3d ") {
             let _ = self.submit_surface(source);
             return None;
         }
-        if let Some(cmd) = classify(line) {
+        if let Some(cmd) = classify(piece) {
             let handled = run_command(&cmd, &mut self.session, store, localizer);
             self.result = plain(handled.message);
             self.input.clear();
             return handled.language;
         }
-        self.input = line.to_string();
+        self.input = piece.to_string();
         self.submit();
         let _ = save_history(store, self.history());
         None
