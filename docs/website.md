@@ -23,6 +23,12 @@ mount point. `public/sw.js` is network-first for navigations (so redeploys
 reach users) and runtime-caches assets for offline use; bump its `CACHE`
 constant when the strategy changes.
 
+The PWA is dark-only and shares the marketing site's design tokens
+(2026 redesign: `--bg #141416`, `--panel #1d1f22`, `--accent #2dd4bf`,
+`--muted #9a9ba2`, the same border-strong, focus, and curve palette
+contrast numbers) — see `docs/research/modern-ui-accessibility.md` and the
+contrast comments in `crates/web/index.html`.
+
 The landing page links to release assets via
 `https://github.com/upyesp/epher/releases/latest/download/<asset>` so download
 links never need a version number.

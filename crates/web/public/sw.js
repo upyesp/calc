@@ -8,7 +8,7 @@
 //
 // Bump CACHE when the precache set or the caching strategy changes; the
 // activate handler clears older caches.
-const CACHE = "epher-v2";
+const CACHE = "epher-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

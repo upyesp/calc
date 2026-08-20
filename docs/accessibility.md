@@ -19,10 +19,10 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 | 1.3.1 Info & relationships | PASS | Native `form`/`input`/`button`, `ul` history, single `h1`. The macOS-only "install the epher command" button (ADR-0011) is a native `button` after the status region; its outcome reports through the existing `role="status"` live region. |
 | 1.3.2 Meaningful sequence | PASS | Single-column flex. |
 | 1.4.1 Use of color | PASS | No color-only information (result is text; errors are text). |
-| 1.4.3 Contrast (AA) | PASS | `--text` on `--bg` 17.0:1; result 17.0:1; input text on `--panel` 13.9:1; `--muted` history on `--bg` 5.2:1; button `#000` on `--accent` 10.2:1; placeholder `#a1a1a6` on `--panel` 5.4:1. |
+| 1.4.3 Contrast (AA) | PASS | `--text` on `--bg` 17.0:1; result 17.0:1; input text on `--panel` 15.3:1; `--muted` history on `--bg` 6.6:1; button `#0b1512` on `--accent` 10.0:1; placeholder `#a1a1a6` on `--panel` 6.4:1. |
 | 1.4.4 Resize text 200% | PASS | Flex column, no fixed heights, `overflow-wrap: anywhere` on results. |
 | 1.4.10 Reflow | PASS | Single column, no horizontal scroll at 320px. |
-| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Border is now `--border: #76767a` — 3.8:1 vs `--bg`, 3.1:1 vs `--panel`. Focus indicators: see 2.4.7. Graph curve `--accent` on `--bg` is 8.3:1; the axes blend to ~3.9:1 at opacity 0.4 — both ≥ 3:1. |
+| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Border is now `--border: #6a6b70` — 3.5:1 vs `--bg`, 3.1:1 vs `--panel`. Focus indicators: see 2.4.7. Graph curve `--accent` on `--bg` is 9.9:1; the axes blend to ~5.4:1 at opacity 0.5 — both ≥ 3:1. Curve palette: accent 9.9:1, `#4da3ff` 7.0:1, `#ffb340` 10.3:1, `#c39dff` 8.4:1. |
 | 1.4.12 Text spacing | PASS | No fixed line-heights that would clip. |
 | 1.4.13 Content on hover | N/A | No hover-triggered content. |
 
@@ -37,7 +37,7 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 | 2.4.3 Focus order | PASS | Input → button (document order). |
 | 2.4.4 Link purpose | N/A | No links. |
 | 2.4.6 Headings & labels | **FIXED** | Input has `aria-label`; button's bare `=` name replaced with `aria-label="Evaluate"`. |
-| 2.4.7 Focus visible | **FIXED** | Was: no styles (browser-default ring on a dark theme, inconsistent). Now: `:focus-visible` accent outline (8.3:1 vs `--bg`, 6.8:1 vs `--panel`); the accent button gets an inset black ring (10.2:1 on the accent surface — an outer ring would not contrast). |
+| 2.4.7 Focus visible | **FIXED** | Was: no styles (browser-default ring on a dark theme, inconsistent). Now: `:focus-visible` accent outline (9.9:1 vs `--bg`, 8.9:1 vs `--panel`); the accent button gets an inset dark-teal ring (10.0:1 on the accent surface — an outer ring would not contrast). |
 | 2.4.11 Focus not obscured | PASS | No sticky/overlay content (AA; 2.4.12 AAA not targeted). |
 | 2.5.8 Target size (AA) | PASS | Button 48×48px (≥24px minimum); input height ~48px; the install-cli button is ≥48px tall (padding `0.5rem 1rem` on `0.95rem` text — ~48px). |
 

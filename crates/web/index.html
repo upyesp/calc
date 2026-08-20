@@ -11,22 +11,23 @@
   <style>
     /* The html element carries the dark background directly so the very
        first painted frame is dark — no white flash on desktop launch. */
-    html { background: #1c1c1e; }
+    html { background: #141416; }
     :root {
-      --bg: #1c1c1e;
-      --panel: #2c2c2e;
-      /* field boundary: 3.76:1 vs --bg, 3.08:1 vs --panel (WCAG 1.4.11) */
-      --border: #76767a;
-      --text: #fff;
-      --accent: #ff9f0a;
-      /* history text: 5.22:1 vs --bg (WCAG 1.4.3) */
-      --muted: #8e8e93;
+      --bg: #141416;
+      --panel: #1d1f22;
+      /* field boundary: 3.5:1 vs --bg, 3.1:1 vs --panel (WCAG 1.4.11) */
+      --border: #6a6b70;
+      --text: #f5f6f7;
+      --accent: #2dd4bf;
+      /* history text: 6.6:1 vs --bg (WCAG 1.4.3) */
+      --muted: #9a9ba2;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", sans-serif;
       display: flex;
       justify-content: center;
       padding: 2rem 1rem;
@@ -45,7 +46,7 @@
       flex: 1;
       padding: 0.75rem;
       font-size: 1.1rem;
-      border-radius: 12px;
+      border-radius: 10px;
       border: 2px solid var(--border);
       background: var(--panel);
       color: var(--text);
@@ -62,17 +63,18 @@
       max-height: 8rem;
       field-sizing: content;
     }
-    /* placeholder: 5.42:1 on --panel (WCAG 1.4.3); it is a hint, the label
+    /* placeholder: 6.4:1 on --panel (WCAG 1.4.3); it is a hint, the label
        is the aria-label on the input (WCAG 3.3.2) */
     input::placeholder, textarea::placeholder { color: #a1a1a6; }
-    /* Keyboard focus indicators (WCAG 2.4.7, 1.4.11): accent ring 8.28:1 vs
-       the page background; the button gets an inset black ring — 10.22:1 on
-       the accent surface — since an outer ring would blend into the button. */
+    /* Keyboard focus indicators (WCAG 2.4.7, 1.4.11): accent ring 9.9:1 vs
+       the page background; the button gets an inset dark-teal ring —
+       10.0:1 on the accent surface — since an outer ring would blend into
+       the button. */
     :focus { outline: none; }
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     button:focus-visible {
       outline: none;
-      box-shadow: inset 0 0 0 3px #000;
+      box-shadow: inset 0 0 0 3px #0b1512;
     }
     /* No animations exist today; guard any future motion (WCAG 2.3.3). */
     @media (prefers-reduced-motion: reduce) {
@@ -85,10 +87,10 @@
     button {
       padding: 0.75rem 1.25rem;
       font-size: 1.1rem;
-      border-radius: 12px;
+      border-radius: 10px;
       border: none;
       background: var(--accent);
-      color: #000; /* 10.22:1 on the accent (WCAG 1.4.3) */
+      color: #0b1512; /* 10.0:1 on the accent (WCAG 1.4.3) */
       font-weight: 600;
       min-width: 48px; /* target size ≥ 24px (WCAG 2.5.8); 48px comfortable */
       min-height: 48px;
@@ -106,7 +108,7 @@
     }
     /* The macOS "install the epher command" action (ADR-0011): a quiet,
        secondary button — it must not compete with the = button. Contrast
-       8.3:1 accent-on-background (WCAG 1.4.3); 48px target (2.5.8). */
+       9.9:1 accent-on-background (WCAG 1.4.3); 48px target (2.5.8). */
     .install-cli {
       font-size: 0.95rem;
       font-weight: 500;
@@ -153,21 +155,21 @@
       gap: 0.25rem;
     }
     /* The visible text alternative for the plot (WCAG 1.1.1): what is
-       plotted, readable by everyone. --muted is 5.22:1 on --bg (1.4.3). */
+       plotted, readable by everyone. --muted is 6.6:1 on --bg (1.4.3). */
     .graph-caption {
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.9rem;
       color: var(--muted);
     }
-    /* The curve is currentColor = --accent (8.28:1 on --bg); the axes
-       blend toward the background at opacity 0.4 to ~3.9:1 — both clear
+    /* The curve is currentColor = --accent (9.9:1 on --bg); the axes
+       blend toward the background at opacity 0.5 to ~5.4:1 — both clear
        the 3:1 graphics threshold (WCAG 1.4.11). */
     .graph svg { color: var(--accent); }
     .graph svg {
       width: 100%;
       height: auto;
       display: block;
-      border-radius: 12px;
+      border-radius: 10px;
       touch-action: none; /* pointer tracing over the plot, not scrolling */
     }
     .graph svg:focus-visible {
@@ -175,12 +177,12 @@
       outline-offset: 2px;
     }
     /* Curve palette (ADR-0014): every color is >= 3:1 on --bg (WCAG
-       1.4.11) — accent 8.28:1, #4da3ff 6.48:1, #4dd0a0 8.79:1, #c39dff
-       7.77:1 — and every curve after the first also gets a distinct dash
+       1.4.11) — accent 9.9:1, #4da3ff 7.0:1, #ffb340 10.3:1, #c39dff
+       8.4:1 — and every curve after the first also gets a distinct dash
        pattern so the plots stay distinguishable without color (1.4.1). */
     .curve-0 { --curve: var(--accent); }
     .curve-1 { --curve: #4da3ff; }
-    .curve-2 { --curve: #4dd0a0; }
+    .curve-2 { --curve: #ffb340; }
     .curve-3 { --curve: #c39dff; }
     svg .curve {
       stroke: var(--curve, var(--accent));
@@ -299,7 +301,7 @@
       display: block;
       color: var(--accent);
       background: var(--panel);
-      border-radius: 12px;
+      border-radius: 10px;
       touch-action: none;
       cursor: grab;
     }
