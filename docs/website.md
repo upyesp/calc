@@ -8,7 +8,10 @@ GitHub Pages), built and deployed by the `pages` workflow
 
 | Path | Content | Source |
 |---|---|---|
-| `/` | Landing page — links to every build | `site/` (static HTML/CSS/JS, committed) |
+| `/` | Landing page — hero, features, downloads | `site/index.html` (static HTML/CSS/JS, committed) |
+| `/about.html` | About the project | `site/about.html` |
+| `/privacy.html` | Privacy (what stays on your device) | `site/privacy.html` |
+| `/guide/<lang>/` | User guide, eight languages | `site/guide/<lang>.md` → built |
 | `/pwa/` | The web app (PWA, offline-first) | `crates/web/dist` (built by trunk in CI) |
 | GitHub Releases | unified platform installers (ADR-0011) | built by `.github/workflows/release.yml` |
 
@@ -35,6 +38,25 @@ links never need a version number.
   `prefers-color-scheme`, toggle persists to `localStorage` (`epher-theme`).
   An inline script in `<head>` applies both theme and stored language before
   first paint — no flash.
+- **Catalogs**: the per-language string catalogs live in
+  `site/i18n/<lang>.js` (plain scripts defining `window.EPHER_I18N`),
+  loaded before `app.js` on the landing, About, and Privacy pages.
+  `app.js` holds no strings of its own; English is the fallback for any
+  key a catalog has not translated yet, so a language file may lag behind
+  `en.js` harmlessly.
+- **Design (2026 redesign)**: teal accent (the amber read like every other
+  developer site), fluid type via `clamp()`, sticky translucent header,
+  feature grid, and a disclosure (hamburger) nav below 880px — WAI-ARIA
+  APG pattern: `aria-expanded` on the button, `hidden` on the nav while
+  collapsed (out of the tab order), Escape closes and restores focus, a
+  click outside closes, and a `<noscript>` style shows the links stacked
+  when JavaScript is off. The research behind the design decisions is in
+  `docs/research/modern-ui-accessibility.md`.
+- **Pages**: `/` (landing: hero, features, downloads), `/about.html`,
+  `/privacy.html` — the same header/footer chrome, content strings under
+  `about-*` / `privacy-*` keys. The guide pages share the header chrome
+  via `scripts/build-guide.mjs` (labels in its `CHROME` map) with the
+  same disclosure-nav script inlined.
 - **Icon**: the epher mark is the monogram "e" (from the epher.svg artwork)
   on a rounded tile. Three variants live in `site/` and `crates/web/public/`:
   `icon.svg` (dark tile, white glyph — the default, the favicon, and the
@@ -47,14 +69,15 @@ links never need a version number.
 - **Accessibility**: WCAG 2.2 AA — see `docs/accessibility.md`. Contrast
   values for both themes are recorded in `site/styles.css`; keep them in
   spec when editing colors.
-- The English text in `index.html` is the noscript fallback; `app.js` swaps
-  in the other locales.
+- The English text in `index.html`, `about.html`, and `privacy.html` is the
+  noscript fallback; `app.js` swaps in the other locales.
 
 ### Adding a string
 
-1. Add the English text in `site/index.html` with `data-i18n="key"` (or
+1. Add the English text in the page with `data-i18n="key"` (or
    `data-i18n-aria` for aria-labels).
-2. Add the key to all eight locale dictionaries in `site/app.js`.
+2. Add the key to `site/i18n/en.js` and to the seven other catalogs in
+   `site/i18n/` (English fallback covers the gap until they land).
 3. Keep the `docs/accessibility.md` checklist in mind (labels, language).
 
 ## User guide

@@ -1,298 +1,24 @@
-/* epher landing page — i18n + theme.
+/* epher website — i18n + theme + disclosure nav.
  *
  * i18n mirrors the Localizer in crates/i18n: device locale auto-detection,
- * a stored user preference, English fallback. The landing page is static
- * (no wasm), so the negotiation is reimplemented here in ~15 lines; the
- * catalog lives in this file, keyed like the Fluent catalogs.
+ * a stored user preference, English fallback. The catalogs live in
+ * i18n/<lang>.js (loaded before this file as plain scripts — no fetch, so
+ * the page also works offline from any mount point); this file applies
+ * them by data-i18n / data-i18n-aria / data-i18n-href attributes.
  *
  * Theme: light/dark, defaults to prefers-color-scheme, toggle persisted in
  * localStorage ("epher-theme"). Language preference: "epher-lang".
+ *
+ * Nav: below 880px the header links collapse into a disclosure menu
+ * (WAI-ARIA APG pattern): the button carries aria-expanded, Escape closes
+ * it and restores focus, a click outside closes it, and the links are
+ * removed from the tab order while closed (the `hidden` attribute).
  */
 "use strict";
 
 const SUPPORTED = ["en", "zh-CN", "hi", "es", "fr", "ar", "de", "pt"];
 
-const MESSAGES = {
-  en: {
-    "skip-link": "Skip to content",
-    "nav-label": "Main",
-    guide: "User guide",
-    "guide-cta": "Read the user guide",
-    "source-link": "Source code",
-    "theme-light": "Use light theme",
-    "theme-dark": "Use dark theme",
-    "lang-label": "Language",
-    tagline: "A programmable, scriptable calculator",
-    lede: "One calculation engine, four ways to use it. Type expressions, save functions and scripts, graph your results, and keep everything across sessions — in any of eight languages.",
-    builds: "Get epher",
-    "one-install": "One download, every way to use epher: the command line, the REPL, the terminal UI, and the desktop app — all in the single epher executable.",
-    "win-name": "Windows",
-    "win-desc": "One installer. It puts epher on your PATH — use it from CMD, PowerShell, the Start menu, or a double-click.",
-    "win-download": "Download the Windows installer",
-    "mac-name": "macOS",
-    "mac-desc": "One app. Drag it to Applications; a button inside installs the epher terminal command for you.",
-    "mac-download": "Download for macOS (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "One install per package family: Debian/Ubuntu, Fedora/RHEL, or the AppImage for everything else (Arch included). All put epher on your PATH.",
-    "linux-deb": "Download for Debian/Ubuntu (.deb)",
-    "linux-rpm": "Download for Fedora/RHEL (.rpm)",
-    "linux-appimage": "Download the AppImage (any distro, incl. Arch)",
-    "pwa-name": "Web app",
-    "pwa-desc": "Runs in your browser, is installable, and works fully offline after the first visit.",
-    downloads: "Downloads",
-    get: "Get it",
-    "pwa-launch": "Launch the web app",
-    "offline-note": "Works fully offline once loaded — install it from your browser's menu.",
-    "footer-source": "Source code on GitHub",
-    "footer-license": "epher is free and open source (MIT).",
-    "footer-release": "Downloads come from the latest GitHub release."
-  },
-
-  "zh-CN": {
-    "skip-link": "跳到主要内容",
-    "nav-label": "主导航",
-    guide: "用户指南",
-    "guide-cta": "阅读用户指南",
-    "source-link": "源代码",
-    "theme-light": "使用浅色主题",
-    "theme-dark": "使用深色主题",
-    "lang-label": "语言",
-    tagline: "可编程、可脚本化的计算器",
-    lede: "一套计算引擎，四种使用方式。输入表达式、保存函数与脚本、绘制结果图表，并在会话之间保留所有内容——支持八种语言。",
-    builds: "获取 epher",
-    "one-install": "一次下载，囊括 epher 的所有用法：命令行、REPL、终端界面和桌面应用——全都包含在同一个 epher 可执行文件中。",
-    "win-name": "Windows",
-    "win-desc": "一个安装程序。安装后 epher 即可在 PATH 中使用——CMD、PowerShell、开始菜单或双击都能启动。",
-    "win-download": "下载 Windows 安装程序",
-    "mac-name": "macOS",
-    "mac-desc": "一个应用。拖入「应用程序」文件夹即可；应用内有一个按钮可为你安装 epher 终端命令。",
-    "mac-download": "下载 macOS 版（Apple 芯片）",
-    "linux-name": "Linux",
-    "linux-desc": "每个包系列各一个安装包：Debian/Ubuntu 用 .deb，Fedora/RHEL 用 .rpm，其他发行版（包括 Arch）用 AppImage。安装后 epher 均在 PATH 中。",
-    "linux-deb": "下载 Debian/Ubuntu 版（.deb）",
-    "linux-rpm": "下载 Fedora/RHEL 版（.rpm）",
-    "linux-appimage": "下载 AppImage（任何发行版，含 Arch）",
-    "pwa-name": "网页应用",
-    "pwa-desc": "在浏览器中运行，可安装，首次访问后完全离线可用。",
-    downloads: "下载",
-    get: "获取",
-    "pwa-launch": "打开网页应用",
-    "offline-note": "加载一次后即可完全离线使用——可从浏览器菜单中安装。",
-    "footer-source": "GitHub 上的源代码",
-    "footer-license": "epher 是免费开源软件（MIT 许可）。",
-    "footer-release": "下载来自最新的 GitHub 版本。"
-  },
-
-  hi: {
-    "skip-link": "मुख्य सामग्री पर जाएँ",
-    "nav-label": "मुख्य नेविगेशन",
-    guide: "उपयोगकर्ता गाइड",
-    "guide-cta": "उपयोगकर्ता गाइड पढ़ें",
-    "source-link": "स्रोत कोड",
-    "theme-light": "हल्की थीम का उपयोग करें",
-    "theme-dark": "गहरी थीम का उपयोग करें",
-    "lang-label": "भाषा",
-    tagline: "एक प्रोग्राम करने योग्य, स्क्रिप्ट करने योग्य कैलकुलेटर",
-    lede: "एक गणना इंजन, चार तरीकों से उपयोग करें। व्यंजक टाइप करें, फ़ंक्शन और स्क्रिप्ट सहेजें, परिणामों के ग्राफ़ बनाएँ — और सब कुछ सत्रों के बीच बनाए रखें, आठ भाषाओं में।",
-    builds: "epher प्राप्त करें",
-    "one-install": "एक डाउनलोड, epher का हर रूप: कमांड लाइन, REPL, टर्मिनल इंटरफ़ेस और डेस्कटॉप ऐप — सब एक ही epher निष्पादन फ़ाइल में।",
-    "win-name": "Windows",
-    "win-desc": "एक इंस्टॉलर। यह epher को आपके PATH पर रखता है — CMD, PowerShell, स्टार्ट मेनू या डबल-क्लिक से चलाएँ।",
-    "win-download": "Windows इंस्टॉलर डाउनलोड करें",
-    "mac-name": "macOS",
-    "mac-desc": "एक ऐप। इसे Applications में खींचें; अंदर एक बटन आपके लिए epher टर्मिनल कमांड इंस्टॉल करता है।",
-    "mac-download": "macOS के लिए डाउनलोड करें (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "हर पैकेज परिवार के लिए एक इंस्टॉल: Debian/Ubuntu, Fedora/RHEL, या बाकी सबके लिए AppImage (Arch समेत)। सभी epher को आपके PATH पर रखते हैं।",
-    "linux-deb": "Debian/Ubuntu के लिए डाउनलोड करें (.deb)",
-    "linux-rpm": "Fedora/RHEL के लिए डाउनलोड करें (.rpm)",
-    "linux-appimage": "AppImage डाउनलोड करें (कोई भी distro, Arch समेत)",
-    "pwa-name": "वेब ऐप",
-    "pwa-desc": "ब्राउज़र में चलता है, इंस्टॉल हो सकता है, और पहली बार खोलने के बाद पूरी तरह ऑफ़लाइन काम करता है।",
-    downloads: "डाउनलोड",
-    get: "प्राप्त करें",
-    "pwa-launch": "वेब ऐप खोलें",
-    "offline-note": "लोड होते ही पूरी तरह ऑफ़लाइन काम करता है — इसे अपने ब्राउज़र मेनू से इंस्टॉल करें।",
-    "footer-source": "GitHub पर स्रोत कोड",
-    "footer-license": "epher निःशुल्क और ओपन सोर्स (MIT) है।",
-    "footer-release": "डाउनलोड नवीनतम GitHub रिलीज़ से आते हैं।"
-  },
-
-  es: {
-    "skip-link": "Saltar al contenido",
-    "nav-label": "Principal",
-    guide: "Guía de usuario",
-    "guide-cta": "Leer la guía de usuario",
-    "source-link": "Código fuente",
-    "theme-light": "Usar tema claro",
-    "theme-dark": "Usar tema oscuro",
-    "lang-label": "Idioma",
-    tagline: "Una calculadora programable y con scripts",
-    lede: "Un motor de cálculo, cuatro formas de usarlo. Escribe expresiones, guarda funciones y scripts, dibuja tus resultados y conserva todo entre sesiones, en ocho idiomas.",
-    builds: "Obtén epher",
-    "one-install": "Una descarga, todas las formas de usar epher: línea de comandos, REPL, interfaz de terminal y aplicación de escritorio — todo en el único ejecutable epher.",
-    "win-name": "Windows",
-    "win-desc": "Un instalador. Pone epher en tu PATH: úsalo desde CMD, PowerShell, el menú Inicio o con un doble clic.",
-    "win-download": "Descargar el instalador de Windows",
-    "mac-name": "macOS",
-    "mac-desc": "Una aplicación. Arrástrala a Aplicaciones; un botón dentro instala el comando de terminal epher por ti.",
-    "mac-download": "Descargar para macOS (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "Una instalación por familia de paquetes: Debian/Ubuntu, Fedora/RHEL o el AppImage para todo lo demás (incluido Arch). Todas ponen epher en tu PATH.",
-    "linux-deb": "Descargar para Debian/Ubuntu (.deb)",
-    "linux-rpm": "Descargar para Fedora/RHEL (.rpm)",
-    "linux-appimage": "Descargar el AppImage (cualquier distro, incl. Arch)",
-    "pwa-name": "Aplicación web",
-    "pwa-desc": "Se ejecuta en tu navegador, es instalable y funciona totalmente sin conexión tras la primera visita.",
-    downloads: "Descargas",
-    get: "Obtener",
-    "pwa-launch": "Abrir la aplicación web",
-    "offline-note": "Funciona totalmente sin conexión una vez cargada: instálala desde el menú de tu navegador.",
-    "footer-source": "Código fuente en GitHub",
-    "footer-license": "epher es software libre y de código abierto (MIT).",
-    "footer-release": "Las descargas provienen de la última versión de GitHub."
-  },
-
-  fr: {
-    "skip-link": "Aller au contenu",
-    "nav-label": "Navigation principale",
-    guide: "Guide de l'utilisateur",
-    "guide-cta": "Lire le guide de l'utilisateur",
-    "source-link": "Code source",
-    "theme-light": "Utiliser le thème clair",
-    "theme-dark": "Utiliser le thème sombre",
-    "lang-label": "Langue",
-    tagline: "Une calculatrice programmable et scriptable",
-    lede: "Un moteur de calcul, quatre façons de l'utiliser. Saisissez des expressions, enregistrez fonctions et scripts, tracez vos résultats, et conservez tout d'une session à l'autre, dans huit langues.",
-    builds: "Obtenir epher",
-    "one-install": "Un seul téléchargement, toutes les façons d'utiliser epher : ligne de commande, REPL, interface de terminal et application de bureau — tout dans l'unique exécutable epher.",
-    "win-name": "Windows",
-    "win-desc": "Un seul installateur. Il ajoute epher à votre PATH — utilisez-le depuis CMD, PowerShell, le menu Démarrer ou un double-clic.",
-    "win-download": "Télécharger l'installateur Windows",
-    "mac-name": "macOS",
-    "mac-desc": "Une seule application. Glissez-la dans Applications ; un bouton installe la commande terminal epher pour vous.",
-    "mac-download": "Télécharger pour macOS (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "Une installation par famille de paquets : Debian/Ubuntu, Fedora/RHEL, ou l'AppImage pour tout le reste (Arch compris). Toutes ajoutent epher à votre PATH.",
-    "linux-deb": "Télécharger pour Debian/Ubuntu (.deb)",
-    "linux-rpm": "Télécharger pour Fedora/RHEL (.rpm)",
-    "linux-appimage": "Télécharger l'AppImage (toute distro, Arch compris)",
-    "pwa-name": "Application web",
-    "pwa-desc": "Fonctionne dans votre navigateur, est installable et fonctionne entièrement hors ligne après la première visite.",
-    downloads: "Téléchargements",
-    get: "Obtenir",
-    "pwa-launch": "Ouvrir l'application web",
-    "offline-note": "Fonctionne entièrement hors ligne une fois chargée — installez-la depuis le menu de votre navigateur.",
-    "footer-source": "Code source sur GitHub",
-    "footer-license": "epher est un logiciel libre et open source (MIT).",
-    "footer-release": "Les téléchargements proviennent de la dernière version GitHub."
-  },
-
-  ar: {
-    "skip-link": "تخطَّ إلى المحتوى",
-    "nav-label": "التنقل الرئيسي",
-    guide: "دليل المستخدم",
-    "guide-cta": "اقرأ دليل المستخدم",
-    "source-link": "الكود المصدري",
-    "theme-light": "استخدام المظهر الفاتح",
-    "theme-dark": "استخدام المظهر الداكن",
-    "lang-label": "اللغة",
-    tagline: "آلة حاسبة قابلة للبرمجة والكتابة النصية",
-    lede: "محرك حساب واحد، وأربع طرق لاستخدامه. اكتب التعابير، واحفظ الدوال والنصوص البرمجية، وارسم النتائج، واحتفظ بكل شيء بين الجلسات — بثماني لغات.",
-    builds: "احصل على epher",
-    "one-install": "تنزيل واحد، وكل طرق استخدام epher: سطر الأوامر وREPL وواجهة الطرفية وتطبيق سطح المكتب — كلها في ملف epher التنفيذي الواحد.",
-    "win-name": "Windows",
-    "win-desc": "مثبِّت واحد. يضع epher في PATH — استخدمه من CMD أو PowerShell أو قائمة ابدأ أو بنقرة مزدوجة.",
-    "win-download": "تنزيل مثبِّت Windows",
-    "mac-name": "macOS",
-    "mac-desc": "تطبيق واحد. اسحبه إلى Applications؛ وزرٌ بداخله يثبِّت أمر epher الطرفي لك.",
-    "mac-download": "تنزيل لنظام macOS (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "تثبيت واحد لكل عائلة حزم: Debian/Ubuntu وFedora/RHEL أو AppImage لكل ما عداها (بما فيها Arch). كلها تضع epher في PATH.",
-    "linux-deb": "تنزيل Debian/Ubuntu (.deb)",
-    "linux-rpm": "تنزيل Fedora/RHEL (.rpm)",
-    "linux-appimage": "تنزيل AppImage (أي توزيعة، بما فيها Arch)",
-    "pwa-name": "تطبيق الويب",
-    "pwa-desc": "يعمل في متصفحك، ويمكن تثبيته، ويعمل دون اتصال بالكامل بعد أول زيارة.",
-    downloads: "التنزيلات",
-    get: "احصل عليه",
-    "pwa-launch": "فتح تطبيق الويب",
-    "offline-note": "يعمل دون اتصال بالكامل بعد تحميله — ثبِّته من قائمة المتصفح.",
-    "footer-source": "الكود المصدري على GitHub",
-    "footer-license": "epher برنامج مجاني ومفتوح المصدر (MIT).",
-    "footer-release": "التنزيلات من أحدث إصدار على GitHub."
-  },
-
-  de: {
-    "skip-link": "Zum Inhalt springen",
-    "nav-label": "Hauptnavigation",
-    guide: "Benutzerhandbuch",
-    "guide-cta": "Benutzerhandbuch lesen",
-    "source-link": "Quellcode",
-    "theme-light": "Helles Design verwenden",
-    "theme-dark": "Dunkles Design verwenden",
-    "lang-label": "Sprache",
-    tagline: "Ein programmierbarer, skriptfähiger Taschenrechner",
-    lede: "Eine Rechen-Engine, vier Arten, sie zu nutzen. Tippe Ausdrücke, speichere Funktionen und Skripte, zeichne deine Ergebnisse als Graphen und behalte alles über Sitzungen hinweg — in acht Sprachen.",
-    builds: "epher holen",
-    "one-install": "Ein Download, alle Arten, epher zu nutzen: die Befehlszeile, das REPL, die Terminal-Oberfläche und die Desktop-App — alles in der einzigen ausführbaren Datei epher.",
-    "win-name": "Windows",
-    "win-desc": "Ein Installer. Er legt epher in deinen PATH — nutze es aus CMD, PowerShell, dem Startmenü oder per Doppelklick.",
-    "win-download": "Windows-Installer herunterladen",
-    "mac-name": "macOS",
-    "mac-desc": "Eine App. Ziehe sie in Programme; ein Button darin installiert den Terminal-Befehl epher für dich.",
-    "mac-download": "Für macOS herunterladen (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "Eine Installation pro Paketfamilie: Debian/Ubuntu, Fedora/RHEL oder das AppImage für alles andere (auch Arch). Alle legen epher in deinen PATH.",
-    "linux-deb": "Für Debian/Ubuntu herunterladen (.deb)",
-    "linux-rpm": "Für Fedora/RHEL herunterladen (.rpm)",
-    "linux-appimage": "AppImage herunterladen (jede Distribution, auch Arch)",
-    "pwa-name": "Web-App",
-    "pwa-desc": "Läuft in deinem Browser, ist installierbar und funktioniert nach dem ersten Besuch vollständig offline.",
-    downloads: "Downloads",
-    get: "Hol es dir",
-    "pwa-launch": "Web-App starten",
-    "offline-note": "Funktioniert nach dem Laden vollständig offline — installiere sie über das Menü deines Browsers.",
-    "footer-source": "Quellcode auf GitHub",
-    "footer-license": "epher ist freie und quelloffene Software (MIT).",
-    "footer-release": "Die Downloads stammen aus dem neuesten GitHub-Release.",
-  },
-
-  pt: {
-    "skip-link": "Saltar para o conteúdo",
-    "nav-label": "Principal",
-    guide: "Guia de utilizador",
-    "guide-cta": "Ler o guia de utilizador",
-    "source-link": "Código-fonte",
-    "theme-light": "Usar tema claro",
-    "theme-dark": "Usar tema escuro",
-    "lang-label": "Idioma",
-    tagline: "Uma calculadora programável e com scripts",
-    lede: "Um motor de cálculo, quatro formas de o usar. Escreva expressões, guarde funções e scripts, desenhe os gráficos dos resultados e mantenha tudo entre sessões — em qualquer uma de oito idiomas.",
-    builds: "Obter o epher",
-    "one-install": "Um único download, todas as formas de usar o epher: a linha de comandos, o REPL, a interface de terminal e a aplicação de ambiente de trabalho — tudo no único executável epher.",
-    "win-name": "Windows",
-    "win-desc": "Um único instalador. Coloca o epher no seu PATH — use-o a partir do CMD, do PowerShell, do menu Iniciar ou com um duplo clique.",
-    "win-download": "Descarregar o instalador do Windows",
-    "mac-name": "macOS",
-    "mac-desc": "Uma única aplicação. Arraste-a para Aplicações; um botão no interior instala o comando de terminal epher por si.",
-    "mac-download": "Descarregar para macOS (Apple Silicon)",
-    "linux-name": "Linux",
-    "linux-desc": "Uma instalação por família de pacotes: Debian/Ubuntu, Fedora/RHEL ou o AppImage para tudo o resto (Arch incluído). Todas colocam o epher no seu PATH.",
-    "linux-deb": "Descarregar para Debian/Ubuntu (.deb)",
-    "linux-rpm": "Descarregar para Fedora/RHEL (.rpm)",
-    "linux-appimage": "Descarregar o AppImage (qualquer distribuição, incl. Arch)",
-    "pwa-name": "Aplicação web",
-    "pwa-desc": "Funciona no seu navegador, pode ser instalada e trabalha totalmente offline após a primeira visita.",
-    downloads: "Descarregamentos",
-    get: "Obter",
-    "pwa-launch": "Abrir a aplicação web",
-    "offline-note": "Funciona totalmente offline depois de carregada — instale-a a partir do menu do seu navegador.",
-    "footer-source": "Código-fonte no GitHub",
-    "footer-license": "O epher é software livre e de código aberto (MIT).",
-    "footer-release": "Os descarregamentos provêm da versão mais recente no GitHub.",
-  },
-};
+const MESSAGES = window.EPHER_I18N || { en: {} };
 
 function normalize(code) {
   return code.replace("_", "-").toLowerCase();
@@ -319,7 +45,7 @@ let currentLang = "en";
 
 function applyLang(lang) {
   currentLang = lang;
-  const dict = MESSAGES[lang] || MESSAGES.en;
+  const dict = MESSAGES[lang] || MESSAGES.en || {};
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
@@ -348,7 +74,7 @@ function setTheme(theme) {
   // The toggle's label names the theme it switches TO.
   const next = theme === "dark" ? "light" : "dark";
   const key = next === "dark" ? "theme-dark" : "theme-light";
-  const label = (MESSAGES[currentLang] || MESSAGES.en)[key];
+  const label = (MESSAGES[currentLang] || MESSAGES.en || {})[key];
   const toggle = document.getElementById("theme-toggle");
   if (label) toggle.setAttribute("aria-label", label);
   const hidden = toggle.querySelector(".visually-hidden");
@@ -356,7 +82,48 @@ function setTheme(theme) {
   // The brand mark flips tile colors with the theme (the CSS content:url
   // rule handles Chrome/Firefox; this keeps the src right for Safari).
   const brand = document.getElementById("brand-icon");
-  if (brand) brand.src = theme === "dark" ? "icon-light.svg?v=2" : "icon.svg?v=2";
+  if (brand) brand.src = theme === "dark" ? "icon-light.svg?v=3" : "icon.svg?v=3";
+}
+
+/** Disclosure nav (mobile): open/close the collapsed header links. */
+function initMenu() {
+  const button = document.getElementById("menu-toggle");
+  const nav = document.getElementById("site-nav");
+  if (!button || !nav) return;
+
+  const setMenu = (open) => {
+    button.setAttribute("aria-expanded", String(open));
+    // `hidden` takes the links out of the tab order and the a11y tree;
+    // the desktop stylesheet overrides it back to visible (author rules
+    // beat the UA's [hidden] { display: none }).
+    nav.hidden = !open;
+  };
+
+  button.addEventListener("click", () => {
+    setMenu(button.getAttribute("aria-expanded") !== "true");
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+      setMenu(false);
+      button.focus();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (
+      button.getAttribute("aria-expanded") === "true" &&
+      !nav.contains(e.target) &&
+      !button.contains(e.target)
+    ) {
+      setMenu(false);
+    }
+  });
+
+  // following a link closes the menu (same-page anchors included)
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest("a")) setMenu(false);
+  });
 }
 
 function init() {
@@ -386,6 +153,8 @@ function init() {
     }
     setTheme(document.documentElement.dataset.theme); // refresh toggle label
   });
+
+  initMenu();
 }
 
 document.addEventListener("DOMContentLoaded", init);

@@ -3,23 +3,27 @@
   epher landing page (served at epher.org, see docs/website.md).
   - Languages: en, zh-CN, hi, es, fr, ar, de, pt — auto-detected, stored preference,
     English fallback (mirrors the Localizer in crates/i18n; see app.js).
+    The catalogs live in i18n/<lang>.js (loaded before app.js).
   - Themes: light/dark, defaults to the device preference, toggle persisted.
   - Accessibility: WCAG 2.2 AA — see docs/accessibility.md. The visible
     (English) text is the noscript fallback; app.js swaps in the other
     locales. lang/dir must match the active locale (3.1.1, RTL for ar).
+  - Navigation: the header collapses into a disclosure (hamburger) menu
+    below 880px (WAI-ARIA APG disclosure pattern: aria-expanded, Escape
+    closes, links hidden from the tab order when closed).
 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>epher</title>
+  <title>epher — a programmable, scriptable calculator</title>
   <meta
     name="description"
-    content="A programmable, scriptable calculator — command line, terminal UI, desktop app, and offline web app."
+    content="A programmable, scriptable calculator — command line, terminal UI, desktop app, and offline web app. Graphs in 2D and 3D, exact numerics, eight languages, no accounts."
   />
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
-  <link rel="icon" href="icon.svg?v=2" type="image/svg+xml" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+  <link rel="icon" href="icon.svg?v=3" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
   <script>
     // Apply the stored (or device-default) theme and the stored language
@@ -45,22 +49,33 @@
       } catch (e) {}
     })();
   </script>
+  <noscript>
+    <style>
+      /* without JavaScript the disclosure button cannot work: show the
+         links as a plain stacked row instead (progressive enhancement) */
+      .menu-toggle { display: none; }
+      .site-nav { display: flex !important; flex-direction: column; position: static;
+                  border: 0; box-shadow: none; padding: 0.5rem 0; }
+    </style>
+  </noscript>
 </head>
 <body>
   <a class="skip-link" href="#main" data-i18n="skip-link">Skip to content</a>
 
   <header class="site-header">
-    <p class="brand">
-      <img class="brand-icon" id="brand-icon" src="icon.svg?v=2" alt="" width="32" height="32" />
+    <a class="brand" href="./">
+      <img class="brand-icon" id="brand-icon" src="icon.svg?v=3" alt="" width="32" height="32" />
       <span>epher</span>
-    </p>
-    <nav class="header-actions" aria-label="Main" data-i18n-aria="nav-label">
-      <a class="gh-link" href="guide/en/" data-i18n="guide" data-i18n-href="guide">
-        User guide
-      </a>
+    </a>
+    <nav class="site-nav" id="site-nav" hidden aria-label="Main" data-i18n-aria="nav-label">
+      <a href="about.html" data-i18n="nav-about">About</a>
+      <a href="guide/en/" data-i18n="guide" data-i18n-href="guide">User guide</a>
+      <a href="privacy.html" data-i18n="nav-privacy">Privacy</a>
       <a class="gh-link" href="https://github.com/upyesp/epher" data-i18n="source-link">
         Source code
       </a>
+    </nav>
+    <div class="header-controls">
       <button type="button" id="theme-toggle" class="icon-btn" aria-pressed="false">
         <!-- the visible label names the theme the button switches TO -->
         <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24">
@@ -83,28 +98,104 @@
         <option value="de">Deutsch</option>
         <option value="pt">Português</option>
       </select>
-    </nav>
+    </div>
+    <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="site-nav">
+      <svg class="icon-burger" aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M3 6h18M3 12h18M3 18h18" />
+      </svg>
+      <span class="visually-hidden" data-i18n="menu-open">Menu</span>
+    </button>
   </header>
 
   <main id="main">
     <section class="hero" aria-labelledby="tagline">
-      <h1>epher</h1>
-      <p class="tagline" id="tagline" data-i18n="tagline">
-        A programmable, scriptable calculator
-      </p>
-      <p class="lede" data-i18n="lede">
-        One calculation engine, four ways to use it. Type expressions, save
-        functions and scripts, graph your results, and keep everything across
-        sessions — in any of eight languages.
-      </p>
-      <p class="hero-cta">
-        <a class="btn" href="guide/en/" data-i18n="guide-cta" data-i18n-href="guide">
-          Read the user guide
-        </a>
-      </p>
+      <div class="hero-copy">
+        <h1 id="tagline" data-i18n="tagline">A programmable, scriptable calculator</h1>
+        <p class="lede" data-i18n="lede">
+          One calculation engine, four ways to use it — the command line, the
+          terminal, the desktop, and an offline web app. Type expressions,
+          save functions and scripts, graph the results in 2D or 3D, and keep
+          everything between sessions. No account, no cloud: your work stays
+          on your device.
+        </p>
+        <p class="hero-cta">
+          <a class="btn btn-primary" href="#downloads" data-i18n="cta-download">Get epher</a>
+          <a class="btn" href="pwa/" data-i18n="cta-webapp">Open the web app</a>
+        </p>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="terminal-card">
+          <p class="terminal-prompt"><span class="terminal-dollar">$</span> epher "x = 10; x + 5"</p>
+          <p class="terminal-out">10</p>
+          <p class="terminal-out">15</p>
+        </div>
+        <div class="graph-card">
+          <svg viewBox="0 0 320 140" preserveAspectRatio="none">
+            <line x1="0" y1="118" x2="320" y2="118" />
+            <polyline points="0,70 20,64 40,48 60,28 80,14 100,18 120,36 140,58 160,70 180,64 200,48 220,28 240,14 260,18 280,36 300,58 320,70" />
+          </svg>
+        </div>
+      </div>
     </section>
 
-    <section class="builds" aria-labelledby="builds-title">
+    <section class="features" aria-labelledby="features-title">
+      <h2 id="features-title" data-i18n="features-title">Why epher</h2>
+      <ul class="feature-grid">
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l4 3-4 3M12 15h6"/></svg>
+          <h3 data-i18n="f1-title">One download, four frontends</h3>
+          <p data-i18n="f1-desc">
+            The same epher program runs as a one-shot command, a REPL, a
+            full-screen terminal UI, and a desktop app. Learn it once, use
+            it anywhere.
+          </p>
+        </li>
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4c0 2-4 3-4 8s3 8 3 8M16 4c0 2 4 3 4 8s-3 8-3 8M12 6v12"/></svg>
+          <h3 data-i18n="f2-title">A real language</h3>
+          <p data-i18n="f2-desc">
+            Variables, functions with recursion, loops, and scripts — with
+            honest error messages. Newlines and `;` separate statements;
+            both mean the same thing.
+          </p>
+        </li>
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+          <h3 data-i18n="f3-title">Exact when it matters</h3>
+          <p data-i18n="f3-desc">
+            Binary floats by default, with exact layers one call away:
+            frac(1, 3), dec(0.1) + dec(0.2), and big(10 ^ 20).
+          </p>
+        </li>
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 17c3-6 5 4 8-2s4 2 7-6"/><path d="M4 20h16M4 20V8l8-5 8 5v12" opacity="0"/></svg>
+          <h3 data-i18n="f4-title">Graphs in 2D and 3D</h3>
+          <p data-i18n="f4-desc">
+            Plot curves and surfaces, trace points, animate any constant
+            with a play button, and orbit 3D views with touch or keyboard.
+          </p>
+        </li>
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          <h3 data-i18n="f5-title">Private by design</h3>
+          <p data-i18n="f5-desc">
+            No accounts, no telemetry, no cloud. Everything is computed and
+            stored on your device — the web app even works fully offline.
+          </p>
+        </li>
+        <li class="feature-card">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18-3-4-3-14.5 0-18z"/></svg>
+          <h3 data-i18n="f6-title">Speaks your language</h3>
+          <p data-i18n="f6-desc">
+            The interface ships in eight languages — English, Chinese,
+            Hindi, Spanish, French, Arabic, German, and Portuguese — with
+            full right-to-left support.
+          </p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="builds" id="downloads" aria-labelledby="builds-title">
       <h2 id="builds-title" data-i18n="builds">Get epher</h2>
       <div class="cards">
         <p class="one-install" data-i18n="one-install">
@@ -189,13 +280,37 @@
   </main>
 
   <footer class="site-footer">
-    <p><a href="https://github.com/upyesp/epher" data-i18n="footer-source">Source code on GitHub</a></p>
-    <p data-i18n="footer-license">epher is free and open source (MIT).</p>
-    <p class="muted" data-i18n="footer-release">
-      Downloads come from the latest GitHub release.
-    </p>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <p class="brand"><img class="brand-icon" src="icon.svg?v=3" alt="" width="24" height="24" /> <span>epher</span></p>
+        <p class="muted" data-i18n="footer-license">epher is free and open source (MIT).</p>
+      </div>
+      <nav class="footer-col" aria-label="Site" data-i18n-aria="footer-site">
+        <h2 data-i18n="footer-site">Site</h2>
+        <ul>
+          <li><a href="about.html" data-i18n="nav-about">About</a></li>
+          <li><a href="guide/en/" data-i18n="guide" data-i18n-href="guide">User guide</a></li>
+          <li><a href="privacy.html" data-i18n="nav-privacy">Privacy</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-col" aria-label="Project" data-i18n-aria="footer-project">
+        <h2 data-i18n="footer-project">Project</h2>
+        <ul>
+          <li><a href="https://github.com/upyesp/epher" data-i18n="footer-source">Source code on GitHub</a></li>
+          <li><a href="https://github.com/upyesp/epher/releases" data-i18n="footer-release">Downloads come from the latest GitHub release.</a></li>
+        </ul>
+      </nav>
+    </div>
   </footer>
 
+  <script src="i18n/en.js"></script>
+  <script src="i18n/zh-CN.js"></script>
+  <script src="i18n/hi.js"></script>
+  <script src="i18n/es.js"></script>
+  <script src="i18n/fr.js"></script>
+  <script src="i18n/ar.js"></script>
+  <script src="i18n/de.js"></script>
+  <script src="i18n/pt.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

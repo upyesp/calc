@@ -1,37 +1,84 @@
-/* epher landing page — light/dark themes via [data-theme] on <html>.
-   Contrast (WCAG 2.2 AA, see docs/accessibility.md):
-   light: text 17.0:1, muted 5.3:1, border 4.5:1 (4.2:1 on panels),
-          button text 8.3:1, ring 5.2:1, links 5.6:1
-   dark:  text 17.0:1, muted 5.2:1, border 3.8:1 (3.1:1 on panels),
-          button text 8.3:1, ring 8.3:1, links 9.5:1
-   All layout uses logical properties so Arabic (dir="rtl") mirrors it. */
+/* epher website — light/dark themes via [data-theme] on <html>.
+
+   Design tokens (2026 redesign, see docs/research/modern-ui-accessibility.md
+   and docs/accessibility.md):
+
+   Accent: teal. The old amber read like every other developer site; teal
+   is distinct, technical, and passes contrast in both themes. WCAG 2.2 AA
+   contrast (computed with the relative-luminance formula, cross-checked
+   against docs/research/modern-ui-accessibility.md §5, 2026-08-20):
+
+   light (bg #ffffff):
+     text #1c1c1e        17.0:1
+     muted #5c5d63        6.6:1
+     link #0f766e         5.5:1   hover #115e59  7.6:1
+     primary btn text #ffffff on #0f766e   5.5:1 (hover bg #115e59 7.6:1)
+     accent icon #0d9488  3.7:1  (non-text: clears 1.4.11's 3:1)
+     ring #0d9488         3.7:1  (non-text indicator)
+     border-strong #5a5b60 6.8:1 (interactive control borders)
+   dark (bg #141416, L=0.007070):
+     text #f5f6f7        17.0:1
+     muted #9a9ba2        6.6:1
+     link #5eead4        12.4:1  hover underline thickened
+     primary btn text #0b1512 on #2dd4bf 10.0:1 (hover bg #5eead4 12.6:1)
+     accent #2dd4bf       9.9:1
+     ring #2dd4bf         9.9:1
+     border-strong #6a6b70 3.5:1 (vs bg; 3.1:1 vs --panel: interactive
+       control borders and card edges — 1.4.11's 3:1). Decorative
+       separators (header rule, section hairlines) use --border, which
+       carries no information: content headings identify the blocks.
+
+   All layout uses logical properties so Arabic (dir="rtl") mirrors it.
+   Interactive targets are at least 44x44 CSS px (WCAG 2.5.5 best
+   practice; 2.5.8 AA asks 24px). Motion is limited to 150ms color
+   transitions and is disabled under prefers-reduced-motion (2.3.3). */
 
 :root {
   color-scheme: light;
   --bg: #ffffff;
-  --panel: #f5f5f7;
-  --border: #76767a;
+  --panel: #f6f7f8;
+  --panel-2: #eef0f2;
+  --border: #e3e5e8;
+  --border-strong: #5a5b60;
   --text: #1c1c1e;
-  --muted: #6b6b70;
-  --accent: #ff9f0a;
-  --accent-text: #1c1c1e;
-  --link: #a35200;
-  --ring: #2563eb;
-  --shadow: 0 1px 3px rgb(0 0 0 / 8%), 0 8px 24px rgb(0 0 0 / 6%);
+  --muted: #5c5d63;
+  --accent: #0f766e;        /* text-safe accent on light surfaces */
+  --accent-hover: #115e59;
+  --accent-icon: #0d9488;   /* non-text accent: icons, rings (3:1+) */
+  --accent-btn: #0f766e;    /* primary button background */
+  --accent-btn-hover: #115e59;
+  --accent-contrast: #ffffff;
+  --link: #0f766e;
+  --ring: #0d9488;
+  --header-bg: rgba(255, 255, 255, 0.86);
+  --shadow: 0 1px 2px rgb(16 18 20 / 5%), 0 8px 24px rgb(16 18 20 / 6%);
+  --terminal-bg: #0c0d0f;
+  --terminal-border: #2a2c30;
+  --terminal-text: #d7dade;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1c1c1e;
-  --panel: #2c2c2e;
-  --border: #76767a;
-  --text: #ffffff;
-  --muted: #8e8e93;
-  --accent: #ff9f0a;
-  --accent-text: #1c1c1e;
-  --link: #ffb340;
-  --ring: #ff9f0a;
-  --shadow: 0 1px 3px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+  --bg: #141416;
+  --panel: #1d1f22;
+  --panel-2: #232529;
+  --border: #26282c;
+  --border-strong: #6a6b70;
+  --text: #f5f6f7;
+  --muted: #9a9ba2;
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --accent-icon: #2dd4bf;
+  --accent-btn: #2dd4bf;
+  --accent-btn-hover: #5eead4;
+  --accent-contrast: #0b1512;
+  --link: #5eead4;
+  --ring: #2dd4bf;
+  --header-bg: rgba(20, 20, 22, 0.86);
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 32%);
+  --terminal-bg: #0c0d0f;
+  --terminal-border: #2a2c30;
+  --terminal-text: #d7dade;
 }
 
 * {
@@ -41,7 +88,20 @@
 }
 
 html {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
@@ -49,18 +109,19 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
   flex: 1;
   width: 100%;
-  max-width: 960px;
+  max-width: 1100px;
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: clamp(1rem, 4vw, 2rem);
 }
 
 /* --- focus indicators (WCAG 2.4.7, 1.4.11) ------------------------------ */
@@ -74,14 +135,19 @@ main {
   outline-offset: 2px;
 }
 
-/* accent buttons get an inset ring: an outer ring would sit on the dark
-   page background, and an outline of the accent color is invisible against
-   the accent surface itself */
-.btn:focus-visible,
+/* accent-filled surfaces get an inset ring in their text color: an outer
+   ring would sit on the page background, and an outline of the accent
+   color is invisible against the accent surface itself */
+.btn-primary:focus-visible,
 .icon-btn:focus-visible,
+.menu-toggle:focus-visible,
 select:focus-visible {
   outline: none;
-  box-shadow: inset 0 0 0 3px var(--accent-text);
+  box-shadow: inset 0 0 0 3px var(--accent-contrast);
+}
+
+select:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ring);
 }
 
 /* --- links --------------------------------------------------------------- */
@@ -102,14 +168,13 @@ a:hover {
   position: absolute;
   top: -10rem;
   inset-inline-start: 1rem;
-  z-index: 10;
+  z-index: 20;
   padding: 0.625rem 1rem;
   border-radius: 0 0 10px 10px;
-  background: var(--accent);
-  color: var(--accent-text);
+  background: var(--accent-btn);
+  color: var(--accent-contrast);
   font-weight: 600;
   text-decoration: none;
-  transition: top 0.15s ease;
 }
 
 .skip-link:focus-visible {
@@ -120,61 +185,91 @@ a:hover {
 /* --- header -------------------------------------------------------------- */
 
 .site-header {
-  width: 100%;
-  max-width: 960px;
-  margin-inline: auto;
-  padding: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+  gap: 1rem;
+  min-height: 64px;
+  padding-block: 0.25rem;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+  background: var(--header-bg);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--border);
 }
 
 .brand {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.25rem;
   font-weight: 700;
+  font-size: 1.15rem;
   letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  margin-inline-end: auto;
 }
 
 .brand-icon {
+  display: block;
   border-radius: 8px;
 }
 
-/* The brand mark flips tile colors with the theme: dark tile + white glyph
-   on light backgrounds, light tile + dark glyph on dark ones (icon.svg /
-   icon-light.svg). content:url() swaps without JS in Chrome/Firefox; app.js
-   keeps the src in sync for engines without img content support (Safari).
-   The corner cutout is the tile's own rounding (both icons are rx=96/512). */
-[data-theme="dark"] .brand-icon {
-  content: url("icon-light.svg?v=2");
-}
-
-.header-actions {
+/* nav: inline row on wide screens, disclosure panel below 880px */
+.site-nav {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
-.gh-link {
+.site-nav a {
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
   font-weight: 500;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-nav a:hover {
+  color: var(--accent);
+  background: var(--panel);
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
 }
 
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px; /* target size (WCAG 2.5.8) */
+  width: 44px;
   height: 44px;
+  border: none;
   border-radius: 10px;
-  border: 2px solid var(--border);
-  background: var(--panel);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--panel);
+  color: var(--accent);
 }
 
 .icon-btn svg {
@@ -182,17 +277,10 @@ a:hover {
   height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 1.8;
   stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
-.icon-btn .icon-sun circle {
-  fill: currentColor;
-  stroke: none;
-}
-
-/* show the icon of the theme the button switches TO */
 .icon-sun {
   display: none;
 }
@@ -205,198 +293,451 @@ a:hover {
   display: block;
 }
 
-select {
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
+#lang-select {
   min-height: 44px;
+  padding-inline: 0.6rem;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  border: 2px solid var(--border);
-  background: var(--panel);
+  background: var(--bg);
   color: var(--text);
-  font-size: 1rem;
+  font: inherit;
   cursor: pointer;
+}
+
+/* the disclosure button: hidden on wide screens */
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.menu-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@media (max-width: 879px) {
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  /* collapsed panel under the header (its `hidden` state is toggled by
+     app.js / the guide's inline script; author rules beat the UA
+     `[hidden] { display: none }` only where we say so) */
+  .site-nav {
+    display: none;
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0.5rem clamp(1rem, 4vw, 2rem) 0.75rem;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .site-nav:not([hidden]) {
+    display: flex;
+  }
+
+  .site-nav a {
+    padding: 0.85rem 0.5rem;
+    font-size: 1.05rem;
+    border-radius: 8px;
+  }
+
+  /* the guide header has no language select; keep the toggle flush */
+  .guide-header .header-controls {
+    margin-inline-start: auto;
+  }
+}
+
+@media (min-width: 880px) {
+  .site-nav[hidden] {
+    display: flex;
+  }
+
+  .guide-header .header-controls {
+    margin-inline-start: auto;
+  }
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.7em 1.35em;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--accent-icon);
+  color: var(--accent);
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: var(--accent-btn);
+  color: var(--accent-contrast);
+}
+
+.btn-primary:hover {
+  background: var(--accent-btn-hover);
+  color: var(--accent-contrast);
 }
 
 /* --- hero ---------------------------------------------------------------- */
 
 .hero {
-  text-align: center;
-  max-width: 680px;
-  margin-inline: auto;
-  padding: 3rem 0 2rem;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  padding-block: clamp(3.5rem, 9vw, 6.5rem) clamp(2.5rem, 6vw, 4rem);
 }
 
-.hero h1 {
-  font-size: clamp(2.5rem, 9vw, 4.25rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-}
-
-.tagline {
-  font-size: clamp(1.1rem, 3vw, 1.4rem);
-  font-weight: 600;
-  margin-top: 0.75rem;
+.hero-copy h1 {
+  font-size: clamp(2.1rem, 1.4rem + 3.5vw, 3.3rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 750;
+  max-width: 15ch;
+  margin-block-end: 1rem;
 }
 
 .lede {
+  font-size: clamp(1.05rem, 1rem + 0.5vw, 1.2rem);
   color: var(--muted);
-  font-size: 1.05rem;
-  margin-top: 0.75rem;
+  max-width: 54ch;
+  margin-block-end: 1.75rem;
 }
 
 .hero-cta {
-  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
-.hero-cta .btn {
-  display: inline-flex;
+.hero-visual {
+  display: grid;
+  gap: 1rem;
+}
+
+/* the terminal is dark in both themes — code reads on a dark surface */
+.terminal-card {
+  direction: ltr;
+  background: var(--terminal-bg);
+  border: 1px solid var(--terminal-border);
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: 0.95rem;
+  color: var(--terminal-text);
+  box-shadow: var(--shadow);
+}
+
+.terminal-prompt {
+  margin-block-end: 0.5rem;
+}
+
+.terminal-dollar {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.terminal-out {
+  color: #f2f4f6;
+}
+
+.graph-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem;
+}
+
+.graph-card svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.graph-card line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.graph-card polyline {
+  fill: none;
+  stroke: var(--accent-icon);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 959px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-block-start: clamp(2.5rem, 8vw, 4rem);
+  }
+
+  .hero-copy h1 {
+    max-width: none;
+  }
+
+  .hero-visual {
+    max-width: 480px;
+  }
+}
+
+/* --- features ------------------------------------------------------------ */
+
+.features {
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+  border-block-start: 1px solid var(--border);
+}
+
+.features h2,
+.builds h2 {
+  font-size: clamp(1.4rem, 1.2rem + 1vw, 1.9rem);
+  letter-spacing: -0.015em;
+  margin-block-end: 1.75rem;
+}
+
+.feature-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+  gap: 1rem;
+}
+
+.feature-card {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 1.35rem;
+}
+
+.feature-card svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: var(--accent-icon);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-block-end: 0.9rem;
+}
+
+.feature-card h3 {
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+  margin-block-end: 0.4rem;
+}
+
+.feature-card p {
+  font-size: 0.93rem;
+  color: var(--muted);
 }
 
 /* --- build cards --------------------------------------------------------- */
 
-.builds h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 1.5rem 0 1rem;
+.builds {
+  padding-block: clamp(2.5rem, 6vw, 4rem);
+  border-block-start: 1px solid var(--border);
+}
+
+/* The one-install note spans the card grid and sets the offer: one
+   download, every frontend (the ADR-0011 story). */
+.one-install {
+  grid-column: 1 / -1;
+  font-size: 1.05rem;
+  max-width: 60ch;
+  margin-block-end: 0.5rem;
+  color: var(--muted);
 }
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
   gap: 1rem;
-  padding-bottom: 2rem;
-}
-
-/* The one-install note spans the card grid and sets the offer: one
-   download per platform, every frontend inside (ADR-0011). */
-.one-install {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 1.05rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1rem 1.25rem;
+  margin-block-start: 1.25rem;
 }
 
 .card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: var(--shadow);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 1.35rem;
 }
 
 .card h3 {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  margin-block-end: 0.4rem;
 }
 
-.card p {
-  font-size: 0.95rem;
+.card > p:not(.dl-title) {
+  font-size: 0.93rem;
+  color: var(--muted);
 }
 
 .dl-title {
-  font-size: 0.8rem !important;
   font-weight: 600;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
-  margin-top: auto;
-  padding-top: 0.5rem;
+  margin-block: 1rem 0.5rem;
 }
 
 .dl-list {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  gap: 0.6rem;
+  margin-block-end: 0.5rem;
 }
 
-.dl-list a {
-  display: flex;
-  align-items: center;
-  min-height: 44px; /* target size (WCAG 2.5.8) */
-  padding: 0.625rem 0.875rem;
-  border-radius: 10px;
-  background: var(--bg);
-  border: 2px solid var(--border);
+.card .note {
+  font-size: 0.85rem;
+}
+
+/* --- prose pages (about, privacy) ---------------------------------------- */
+
+.prose {
+  max-width: 66ch;
+  padding-block: clamp(2.5rem, 7vw, 4.5rem) clamp(3rem, 8vw, 5rem);
+}
+
+.prose h1 {
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem);
+  letter-spacing: -0.02em;
+  margin-block-end: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  margin-block: 2rem 0.6rem;
+}
+
+.prose p {
   color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-decoration: none;
+  margin-block-end: 1rem;
 }
 
-.dl-list a:hover {
-  border-color: var(--link);
-}
-
-/* primary action (PWA launch, download buttons) */
-.btn {
-  justify-content: center;
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--accent-text);
-  font-weight: 600;
-}
-
-.btn:hover {
-  border-color: transparent;
-}
-
-.note {
+.prose p:first-of-type {
+  font-size: 1.08rem;
   color: var(--muted);
-  font-size: 0.85rem !important;
 }
 
 /* --- footer -------------------------------------------------------------- */
 
 .site-footer {
-  width: 100%;
-  max-width: 960px;
-  margin-inline: auto;
-  padding: 1.5rem 1rem 2.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  text-align: center;
+  border-block-start: 1px solid var(--border);
+  background: var(--panel);
+  padding-block: 2.25rem;
+  margin-block-start: clamp(2rem, 6vw, 4rem);
 }
 
-.site-footer .muted {
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 2rem;
+  max-width: 1100px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+.footer-brand .brand {
+  font-size: 1rem;
+  margin-inline-end: 0;
+  margin-block-end: 0.5rem;
+}
+
+.footer-brand .muted {
+  font-size: 0.9rem;
+  max-width: 32ch;
+}
+
+.footer-col h2 {
   font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-block-end: 0.75rem;
+}
+
+.footer-col ul {
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.footer-col a {
+  font-size: 0.95rem;
+}
+
+/* guide pages keep their slim footer: one row of links + the tag */
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  max-width: 1100px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+  margin-block-end: 1rem;
+}
+
+@media (max-width: 720px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 /* --- utilities ----------------------------------------------------------- */
-
-.muted {
-  color: var(--muted);
-}
 
 .visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
   margin: -1px;
+  padding: 0;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .skip-link {
-    transition: none;
-  }
+.muted {
+  color: var(--muted);
 }

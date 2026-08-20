@@ -20,14 +20,14 @@ const LANGS = ["en", "zh-CN", "hi", "es", "fr", "ar", "de", "pt"];
 // site/app.js; the guide page itself is single-language so no runtime i18n).
 // copy/copied label the example-block copy button (and its announcement).
 const CHROME = {
-  en: { title: "epher — User guide", back: "Back to home", contents: "Contents", themeDark: "Use dark theme", themeLight: "Use light theme", footer: "epher user guide", copy: "Copy", copied: "Copied" },
-  "zh-CN": { title: "epher — 用户指南", back: "返回主页", contents: "目录", themeDark: "使用深色主题", themeLight: "使用浅色主题", footer: "epher 用户指南", copy: "复制", copied: "已复制" },
-  hi: { title: "epher — उपयोगकर्ता गाइड", back: "मुख्य पृष्ठ पर वापस जाएँ", contents: "विषय-सूची", themeDark: "गहरी थीम का उपयोग करें", themeLight: "हल्की थीम का उपयोग करें", footer: "epher उपयोगकर्ता गाइड", copy: "कॉपी करें", copied: "कॉपी हो गया" },
-  es: { title: "epher — Guía de usuario", back: "Volver al inicio", contents: "Contenido", themeDark: "Usar tema oscuro", themeLight: "Usar tema claro", footer: "Guía de usuario de epher", copy: "Copiar", copied: "Copiado" },
-  fr: { title: "epher — Guide de l'utilisateur", back: "Retour à l'accueil", contents: "Sommaire", themeDark: "Utiliser le thème sombre", themeLight: "Utiliser le thème clair", footer: "Guide de l'utilisateur de epher", copy: "Copier", copied: "Copié" },
-  ar: { title: "epher — دليل المستخدم", back: "العودة إلى الصفحة الرئيسية", contents: "المحتويات", themeDark: "استخدام المظهر الداكن", themeLight: "استخدام المظهر الفاتح", footer: "دليل مستخدم epher", copy: "نسخ", copied: "تم النسخ" },
-  de: { title: "epher — Benutzerhandbuch", back: "Zurück zur Startseite", contents: "Inhalt", themeDark: "Dunkles Design verwenden", themeLight: "Helles Design verwenden", footer: "epher-Benutzerhandbuch", copy: "Kopieren", copied: "Kopiert" },
-  pt: { title: "epher — Guia de utilizador", back: "Voltar ao início", contents: "Índice", themeDark: "Usar tema escuro", themeLight: "Usar tema claro", footer: "Guia de utilizador do epher", copy: "Copiar", copied: "Copiado" },
+  en: { title: "epher — User guide", back: "Back to home", contents: "Contents", themeDark: "Use dark theme", themeLight: "Use light theme", footer: "epher user guide", copy: "Copy", copied: "Copied", about: "About", privacy: "Privacy", menu: "Menu" },
+  "zh-CN": { title: "epher — 用户指南", back: "返回主页", contents: "目录", themeDark: "使用深色主题", themeLight: "使用浅色主题", footer: "epher 用户指南", copy: "复制", copied: "已复制", about: "关于", privacy: "隐私", menu: "菜单" },
+  hi: { title: "epher — उपयोगकर्ता गाइड", back: "मुख्य पृष्ठ पर वापस जाएँ", contents: "विषय-सूची", themeDark: "गहरी थीम का उपयोग करें", themeLight: "हल्की थीम का उपयोग करें", footer: "epher उपयोगकर्ता गाइड", copy: "कॉपी करें", copied: "कॉपी हो गया", about: "परिचय", privacy: "गोपनीयता", menu: "मेनू" },
+  es: { title: "epher — Guía de usuario", back: "Volver al inicio", contents: "Contenido", themeDark: "Usar tema oscuro", themeLight: "Usar tema claro", footer: "Guía de usuario de epher", copy: "Copiar", copied: "Copiado", about: "Acerca de", privacy: "Privacidad", menu: "Menú" },
+  fr: { title: "epher — Guide de l'utilisateur", back: "Retour à l'accueil", contents: "Sommaire", themeDark: "Utiliser le thème sombre", themeLight: "Utiliser le thème clair", footer: "Guide de l'utilisateur de epher", copy: "Copier", copied: "Copié", about: "À propos", privacy: "Confidentialité", menu: "Menu" },
+  ar: { title: "epher — دليل المستخدم", back: "العودة إلى الصفحة الرئيسية", contents: "المحتويات", themeDark: "استخدام المظهر الداكن", themeLight: "استخدام المظهر الفاتح", footer: "دليل مستخدم epher", copy: "نسخ", copied: "تم النسخ", about: "حول", privacy: "الخصوصية", menu: "القائمة" },
+  de: { title: "epher — Benutzerhandbuch", back: "Zurück zur Startseite", contents: "Inhalt", themeDark: "Dunkles Design verwenden", themeLight: "Helles Design verwenden", footer: "epher-Benutzerhandbuch", copy: "Kopieren", copied: "Kopiert", about: "Über", privacy: "Datenschutz", menu: "Menü" },
+  pt: { title: "epher — Guia de utilizador", back: "Voltar ao início", contents: "Índice", themeDark: "Usar tema escuro", themeLight: "Usar tema claro", footer: "Guia de utilizador do epher", copy: "Copiar", copied: "Copiado", about: "Sobre", privacy: "Privacidade", menu: "Menu" },
 };
 
 // --- example code blocks ------------------------------------------------
@@ -86,7 +86,7 @@ function highlightEpher(code) {
 
 function exampleBlock(code, info) {
   return `<div class="example">
-<pre><code class="language-${info}">${highlightEpher(code)}</code></pre>
+<pre tabindex="0"><code class="language-${info}">${highlightEpher(code)}</code></pre>
 <div class="example-bar">
 <button type="button" class="copy-btn">
 <svg class="icon-copy" aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -101,8 +101,10 @@ marked.use({
   renderer: {
     code(code, infostring) {
       const info = (infostring || "").trim().split(/\s+/)[0];
+      // tabindex: long lines scroll horizontally — keyboard users must be
+      // able to focus and scroll the region (axe scrollable-region-focusable)
       if (info === "epher" || info === "sh") return exampleBlock(code, info);
-      return `<pre><code class="language-text">${escapeHtml(code)}\n</code></pre>`;
+      return `<pre tabindex="0"><code class="language-text">${escapeHtml(code)}\n</code></pre>`;
     },
   },
 });
@@ -171,31 +173,48 @@ function page(lang, body, toc) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${c.title}</title>
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1e" />
-  <link rel="icon" href="../../icon.svg?v=2" type="image/svg+xml" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+  <link rel="icon" href="../../icon.svg?v=3" type="image/svg+xml" />
   <link rel="stylesheet" href="../../styles.css" />
   <link rel="stylesheet" href="../../guide.css" />
   ${themeScript()}
+  <noscript>
+      <style>
+        /* without JavaScript the disclosure button cannot work: show the
+           links as a plain stacked row instead (progressive enhancement) */
+        .menu-toggle { display: none; }
+        .site-nav { display: flex !important; flex-direction: column; position: static;
+                    border: 0; box-shadow: none; padding: 0.5rem 0; }
+      </style>
+    </noscript>
 </head>
 <body>
   <a class="skip-link" href="#main">${c.back}</a>
   <header class="site-header guide-header">
     <a class="brand" href="../../">
-      <img class="brand-icon" id="brand-icon" src="../../icon.svg?v=2" alt="" width="32" height="32" />
+      <img class="brand-icon" id="brand-icon" src="../../icon.svg?v=3" alt="" width="32" height="32" />
       <span>epher</span>
     </a>
-    <nav class="header-actions" aria-label="${c.contents}">
-      <a class="gh-link" href="../../">${c.back}</a>
+    <nav class="site-nav" id="site-nav" hidden aria-label="epher">
+      <a href="../../about.html">${c.about}</a>
+      <a href="../../">${c.back}</a>
+      <a href="../../privacy.html">${c.privacy}</a>
+    </nav>
+    <div class="header-controls">
       <button type="button" id="theme-toggle" class="icon-btn" aria-pressed="false" aria-label="${c.themeDark}">
         <svg class="icon-moon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z" /></svg>
         <svg class="icon-sun" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" /></svg>
         <span class="visually-hidden">${c.themeDark}</span>
       </button>
-    </nav>
+    </div>
+    <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="site-nav">
+      <svg class="icon-burger" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+      <span class="visually-hidden">${c.menu}</span>
+    </button>
   </header>
 
   <main id="main" class="guide">
-    <nav class="toc" aria-label="${c.contents}">
+    <nav class="toc" aria-label="${c.contents}" tabindex="0">
       <h2 class="toc-title">${c.contents}</h2>
       <ul>${toc.join("")}</ul>
     </nav>
@@ -205,6 +224,11 @@ function page(lang, body, toc) {
   </main>
 
   <footer class="site-footer">
+    <nav class="footer-links" aria-label="${c.footer}">
+      <a href="../../about.html">${c.about}</a>
+      <a href="../../">${c.back}</a>
+      <a href="../../privacy.html">${c.privacy}</a>
+    </nav>
     <p class="muted">${c.footer}</p>
   </footer>
 
@@ -228,6 +252,33 @@ function page(lang, body, toc) {
       toggle.addEventListener("click", function () {
         setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
       });
+      // disclosure nav (mobile): same pattern as app.js on the site pages
+      var menuBtn = document.getElementById("menu-toggle");
+      var nav = document.getElementById("site-nav");
+      if (menuBtn && nav) {
+        var setMenu = function (open) {
+          menuBtn.setAttribute("aria-expanded", String(open));
+          nav.hidden = !open;
+        };
+        menuBtn.addEventListener("click", function () {
+          setMenu(menuBtn.getAttribute("aria-expanded") !== "true");
+        });
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && menuBtn.getAttribute("aria-expanded") === "true") {
+            setMenu(false);
+            menuBtn.focus();
+          }
+        });
+        document.addEventListener("click", function (e) {
+          if (menuBtn.getAttribute("aria-expanded") === "true" &&
+              !nav.contains(e.target) && !menuBtn.contains(e.target)) {
+            setMenu(false);
+          }
+        });
+        nav.addEventListener("click", function (e) {
+          if (e.target.closest("a")) setMenu(false);
+        });
+      }
     })();
   </script>
 
