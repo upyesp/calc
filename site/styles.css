@@ -190,8 +190,10 @@ a:hover {
   z-index: 10;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  row-gap: 0.25rem;
+  /* One row, always: the header must never wrap — a wrapped row can land
+     the menu toggle at the left edge (it happened at 320px with long
+     language names). When space is short the language select shrinks
+     instead; the 44px buttons keep their target size (WCAG 2.5.8). */
   gap: 1rem;
   min-height: 64px;
   padding-block: 0.25rem;
@@ -212,6 +214,7 @@ a:hover {
   color: var(--text);
   text-decoration: none;
   margin-inline-end: auto;
+  flex-shrink: 0;
 }
 
 .brand-icon {
@@ -252,6 +255,7 @@ a:hover {
   align-items: center;
   gap: 0.5rem;
   margin-inline-start: auto;
+  min-width: 0;
 }
 
 .icon-btn {
@@ -260,6 +264,7 @@ a:hover {
   justify-content: center;
   width: 44px;
   height: 44px;
+  flex-shrink: 0;
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -302,6 +307,10 @@ a:hover {
   color: var(--text);
   font: inherit;
   cursor: pointer;
+  /* the select alone is allowed to shrink on very narrow screens; the
+     full names stay available in its dropdown */
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* the disclosure button: hidden on wide screens */
@@ -311,6 +320,7 @@ a:hover {
   justify-content: center;
   width: 44px;
   height: 44px;
+  flex-shrink: 0;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   background: var(--bg);

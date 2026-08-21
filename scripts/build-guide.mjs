@@ -125,10 +125,12 @@ function slugify(text) {
 }
 
 function postprocess(html) {
-  // wrap tables for horizontal scroll (mobile + 200% zoom)
+  // wrap tables for horizontal scroll (mobile + 200% zoom); the wrap gets
+  // tabindex="0" so the scrollable region is keyboard-focusable
+  // (WCAG 2.1.1 / axe scrollable-region-focusable)
   html = html.replace(
     /<table>/g,
-    '<div class="table-wrap"><table>'
+    '<div class="table-wrap" tabindex="0"><table>'
   ).replace(
     /<\/table>/g,
     "</table></div>"
