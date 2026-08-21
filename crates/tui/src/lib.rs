@@ -37,7 +37,46 @@ pub struct App {
     surface: Vec<Surface>,
     view: View3D,
     play: Option<Play>,
+    /// Keypad focus mode (ADR-0016): Tab opens the button grid, arrows
+    /// move the highlight, Enter appends the token, Esc/Tab closes.
+    keypad: bool,
+    kp_row: usize,
+    kp_col: usize,
 }
+
+/// The TUI keypad (ADR-0016): a condensed 4×5 grid of the most-used
+/// tokens — the full set lives on the web keypad; the terminal stays
+/// compact. (display, insert-at-end).
+const KEYPAD: &[&[(&str, &str)]] = &[
+    &[
+        ("sin", "sin("),
+        ("cos", "cos("),
+        ("tan", "tan("),
+        ("ln", "ln("),
+        ("log", "log("),
+    ],
+    &[
+        ("sqrt", "sqrt("),
+        ("abs", "abs("),
+        ("floor", "floor("),
+        ("ceil", "ceil("),
+        ("round", "round("),
+    ],
+    &[
+        ("pi", "pi"),
+        ("e", "e"),
+        ("tau", "tau"),
+        ("frac", "frac("),
+        ("dec", "dec("),
+    ],
+    &[
+        ("big", "big("),
+        ("graph", "graph "),
+        ("graph3d", "graph3d "),
+        ("table", "table "),
+        ("clear", "clear "),
+    ],
+];
 
 impl App {
     pub fn with_session(session: Session) -> Self {
@@ -50,7 +89,47 @@ impl App {
             surface: Vec::new(),
             view: View3D::default(),
             play: None,
+            keypad: false,
+            kp_row: 0,
+            kp_col: 0,
         }
+    }
+
+    // --- keypad mode (ADR-0016) ---
+
+    pub fn keypad_focused(&self) -> bool {
+        self.keypad
+    }
+
+    pub fn keypad_row(&self) -> usize {
+        self.kp_row
+    }
+
+    pub fn keypad_col(&self) -> usize {
+        self.kp_col
+    }
+
+    pub fn keypad_open(&mut self) {
+        self.keypad = true;
+    }
+
+    pub fn keypad_close(&mut self) {
+        self.keypad = false;
+    }
+
+    /// Move the highlight, wrapping around the grid edges.
+    pub fn keypad_move(&mut self, dr: isize, dc: isize) {
+        let rows = KEYPAD.len() as isize;
+        let cols = KEYPAD.first().map(|r| r.len() as isize).unwrap_or(1);
+        self.kp_row = (self.kp_row as isize + dr).rem_euclid(rows) as usize;
+        self.kp_col = (self.kp_col as isize + dc).rem_euclid(cols) as usize;
+    }
+
+    /// Append the highlighted token to the end of the input (the terminal
+    /// cursor already lives there).
+    pub fn keypad_insert(&mut self) {
+        let token = KEYPAD[self.kp_row][self.kp_col].1;
+        self.input.push_str(token);
     }
 
     pub fn set_input(&mut self, input: &str) {
@@ -625,7 +704,23 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                         app.clear_history();
                         let _ = save_history(&store, app.history());
                     }
-                    KeyCode::Char('q') if app.input().is_empty() => return Ok(()),
+                    KeyCode::Char('q') if app.input().is_empty() && !app.keypad_focused() => {
+                        return Ok(());
+                    }
+                    // Keypad mode (ADR-0016): Tab opens/closes the button
+                    // grid; inside it, arrows move and Enter inserts.
+                    KeyCode::Tab => {
+                        if app.keypad_focused() {
+                            app.keypad_close();
+                        } else {
+                            app.keypad_open();
+                        }
+                    }
+                    KeyCode::Left if app.keypad_focused() => app.keypad_move(0, -1),
+                    KeyCode::Right if app.keypad_focused() => app.keypad_move(0, 1),
+                    KeyCode::Up if app.keypad_focused() => app.keypad_move(-1, 0),
+                    KeyCode::Down if app.keypad_focused() => app.keypad_move(1, 0),
+                    KeyCode::Esc if app.keypad_focused() => app.keypad_close(),
                     // 3D orbit (ADR-0015): arrows rotate when the input line
                     // is empty, so typing never loses an arrow key.
                     KeyCode::Left if app.input().is_empty() => app.rotate_view(-0.15, 0.0),
@@ -636,12 +731,17 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     KeyCode::Char(' ') if app.input().is_empty() => {
                         app.toggle_play();
                     }
-                    KeyCode::Char(c) if !is_enter => app.push_char(c),
+                    // Any typed character leaves keypad mode first — typing
+                    // is the other spelling of the same input.
+                    KeyCode::Char(c) if !is_enter => {
+                        app.keypad_close();
+                        app.push_char(c);
+                    }
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Esc => app.clear_input(),
                     _ => {}
                 }
-                if is_enter {
+                if is_enter && !app.keypad_focused() {
                     let line = app.input().trim().to_string();
                     if let Some(code) = app.submit_line(&line, &store, &localizer) {
                         localizer = Localizer::resolve(Some(&code), &[]);
@@ -651,6 +751,8 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     // multi-line paste leaves a clean slate for the next
                     // line instead of appending to the leftover.
                     app.clear_input();
+                } else if is_enter {
+                    app.keypad_insert();
                 }
             }
         }
@@ -663,14 +765,32 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     use ratatui::text::Line;
     use ratatui::widgets::{Block, Borders, Paragraph};
 
-    let layout = Layout::vertical([
-        Constraint::Length(3),  // input
-        Constraint::Length(1),  // result
-        Constraint::Min(0),     // history
-        Constraint::Length(20), // graph
-        Constraint::Length(1),  // hints
-    ])
+    // Keypad focus (ADR-0016) borrows six rows from the graph panel so
+    // the button grid fits without shrinking history.
+    let layout = if app.keypad_focused() {
+        Layout::vertical([
+            Constraint::Length(3),  // input
+            Constraint::Length(1),  // result
+            Constraint::Min(0),     // history
+            Constraint::Length(14), // graph (shrunk while keypad is open)
+            Constraint::Length(6),  // keypad
+            Constraint::Length(1),  // hints
+        ])
+    } else {
+        Layout::vertical([
+            Constraint::Length(3),  // input
+            Constraint::Length(1),  // result
+            Constraint::Min(0),     // history
+            Constraint::Length(20), // graph
+            Constraint::Length(1),  // hints
+        ])
+    }
     .split(frame.area());
+    let (graph_area, keypad_area, hints_area) = if app.keypad_focused() {
+        (layout[3], Some(layout[4]), layout[5])
+    } else {
+        (layout[3], None, layout[4])
+    };
 
     let input = Paragraph::new(app.input())
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-expression")));
@@ -742,11 +862,42 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     }
     let graph = Paragraph::new(graph_text)
         .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-graph")));
-    frame.render_widget(graph, layout[3]);
+    frame.render_widget(graph, graph_area);
+
+    // The keypad grid (ADR-0016): the highlighted cell inserts its token.
+    if let Some(kp_area) = keypad_area {
+        use ratatui::text::Span;
+        let rows: Vec<Line> = KEYPAD
+            .iter()
+            .enumerate()
+            .map(|(r, row)| {
+                let cells: Vec<Span> = row
+                    .iter()
+                    .enumerate()
+                    .map(|(c, (disp, _))| {
+                        let selected = r == app.keypad_row() && c == app.keypad_col();
+                        let style = if selected {
+                            Style::default()
+                                .bg(Color::Cyan)
+                                .fg(Color::Black)
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default()
+                        };
+                        Span::styled(format!(" {:<7}", disp), style)
+                    })
+                    .collect();
+                Line::from(cells)
+            })
+            .collect();
+        let keypad = Paragraph::new(rows)
+            .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-keypad")));
+        frame.render_widget(keypad, kp_area);
+    }
 
     let hints = Paragraph::new(localizer.lookup("tui-hints"))
         .style(Style::default().fg(Color::DarkGray));
-    frame.render_widget(hints, layout[4]);
+    frame.render_widget(hints, hints_area);
 
     // Focus visible: the terminal cursor must sit at the end of the input
     // text, not wherever the shell left it.

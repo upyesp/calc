@@ -391,6 +391,22 @@ pub fn graph_svg(curves: &[SampledCurve], pois: &[Poi], trace: Option<TracePoint
 /// Pointer/keyboard interaction uses native listeners (gloo-events) bound
 /// to the element through a NodeRef — Yew's synthetic event delegation
 /// does not reach SVG children.
+/// Map an element-local pixel position to viewBox coordinates, accounting
+/// for the letterbox bands of `preserveAspectRatio="xMidYMid meet"` — the
+/// SVG now fits a fixed-size pane instead of owning its aspect ratio
+/// (ADR-0016), so edge pixels lie outside the plotted area.
+fn to_viewbox(el: &web_sys::Element, offset_x: f64, offset_y: f64) -> (f64, f64) {
+    let w = el.client_width().max(1) as f64;
+    let h = el.client_height().max(1) as f64;
+    let content_w = w.min(h * WIDTH / HEIGHT);
+    let content_h = content_w * HEIGHT / WIDTH;
+    let ox = (w - content_w) / 2.0;
+    let oy = (h - content_h) / 2.0;
+    let px = (offset_x - ox).max(0.0).min(content_w) * WIDTH / content_w.max(1.0);
+    let py = (offset_y - oy).max(0.0).min(content_h) * HEIGHT / content_h.max(1.0);
+    (px, py)
+}
+
 #[derive(Properties, PartialEq)]
 pub struct GraphProps {
     pub curves: Vec<SampledCurve>,
@@ -430,10 +446,7 @@ pub fn graph_html(props: &GraphProps) -> Html {
                         let Some(me) = e.dyn_ref::<web_sys::PointerEvent>() else {
                             return;
                         };
-                        let w = el_closure.client_width().max(1) as f64;
-                        let h = el_closure.client_height().max(1) as f64;
-                        let px = me.offset_x() as f64 * WIDTH / w;
-                        let py = me.offset_y() as f64 * HEIGHT / h;
+                        let (px, py) = to_viewbox(&el_closure, me.offset_x() as f64, me.offset_y() as f64);
                         on_trace.emit((px, py));
                     },
                 ));
@@ -445,10 +458,7 @@ pub fn graph_html(props: &GraphProps) -> Html {
                     let Some(me) = e.dyn_ref::<web_sys::MouseEvent>() else {
                         return;
                     };
-                    let w = el_closure.client_width().max(1) as f64;
-                    let h = el_closure.client_height().max(1) as f64;
-                    let px = me.offset_x() as f64 * WIDTH / w;
-                    let py = me.offset_y() as f64 * HEIGHT / h;
+                    let (px, py) = to_viewbox(&el_closure, me.offset_x() as f64, me.offset_y() as f64);
                     on_trace.emit((px, py));
                 }));
             }
@@ -561,7 +571,7 @@ pub fn graph_html(props: &GraphProps) -> Html {
     });
 
     html! {
-        <svg ref={svg_ref} viewBox={format!("0 0 {WIDTH} {HEIGHT}")} role="img" aria-label={aria_label(&props.curves)} tabindex="0" xmlns="http://www.w3.org/2000/svg">
+        <svg ref={svg_ref} viewBox={format!("0 0 {WIDTH} {HEIGHT}")} preserveAspectRatio="xMidYMid meet" role="img" aria-label={aria_label(&props.curves)} tabindex="0" xmlns="http://www.w3.org/2000/svg">
             <title>{ aria_label(&props.curves) }</title>
             { for grid_lines }
             { x_axis }
@@ -772,6 +782,7 @@ pub fn graph3d_html(props: &Graph3DProps) -> Html {
             role="img"
             aria-label={props.aria_label.clone()}
             viewBox={props.view_box.clone()}
+            preserveAspectRatio="xMidYMid meet"
             class="graph3d-svg"
         >
             <g ref={g_ref}></g>

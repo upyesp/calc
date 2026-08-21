@@ -29,6 +29,12 @@ The PWA is dark-only and shares the marketing site's design tokens
 contrast numbers) — see `docs/research/modern-ui-accessibility.md` and the
 contrast comments in `crates/web/index.html`.
 
+The app layout is ADR-0016: a fixed-viewport scientific calculator —
+answer panel, input, scrollable history, and a five-tab keypad covering
+every function the language supports — with the graph in a fixed pane
+beside the calculator on desktop (≥880px) and one horizontal swipe away
+on mobile (scroll-snap panes plus pane-switch buttons).
+
 The landing page links to release assets via
 `https://github.com/upyesp/epher/releases/latest/download/<asset>` so download
 links never need a version number.

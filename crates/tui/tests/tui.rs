@@ -410,3 +410,48 @@ fn submit_line_skips_empty_semicolon_pieces() {
     assert_eq!(app.result(), "= 5");
     assert_eq!(app.history().len(), 1);
 }
+
+// --- keypad mode (ADR-0016) ---
+
+#[test]
+fn keypad_insert_appends_token() {
+    let mut app = App::default();
+    assert!(!app.keypad_focused());
+    app.keypad_open();
+    assert!(app.keypad_focused());
+    app.keypad_insert(); // (0,0) = sin(
+    assert_eq!(app.input(), "sin(");
+    app.keypad_move(0, 1);
+    app.keypad_insert(); // cos(
+    assert_eq!(app.input(), "sin(cos(");
+}
+
+#[test]
+fn keypad_move_wraps_around_edges() {
+    let mut app = App::default();
+    app.keypad_open();
+    app.keypad_move(0, -1); // from col 0 → col 4
+    assert_eq!(app.keypad_col(), 4);
+    app.keypad_move(-1, 0); // from row 0 → row 3
+    assert_eq!(app.keypad_row(), 3);
+    app.keypad_move(1, 0); // wraps back to row 0
+    assert_eq!(app.keypad_row(), 0);
+}
+
+#[test]
+fn keypad_close_clears_focus_state() {
+    let mut app = App::default();
+    app.keypad_open();
+    assert!(app.keypad_focused());
+    app.keypad_close();
+    assert!(!app.keypad_focused());
+}
+
+#[test]
+fn keypad_has_the_graph_commands() {
+    let mut app = App::default();
+    app.keypad_open();
+    app.keypad_move(3, 1); // graph
+    app.keypad_insert();
+    assert_eq!(app.input(), "graph ");
+}

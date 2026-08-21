@@ -14,8 +14,10 @@
     "windows": [
       {
         "title": "epher",
-        "width": 800,
-        "height": 600,
+        "width": 1024,
+        "height": 720,
+        "minWidth": 900,
+        "minHeight": 640,
         "resizable": true,
         "fullscreen": false,
         "backgroundColor": "#141416",

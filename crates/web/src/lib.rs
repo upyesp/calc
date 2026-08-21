@@ -171,11 +171,169 @@ fn curve_at(curves: &[SampledCurve], index: usize) -> Option<&SampledCurve> {
     curves.get(index)
 }
 
+// ===== keypad (ADR-0016) =====
+
+/// What a keypad press does: insert text at the cursor, insert `name(`,
+/// submit the form, clear the entry, or backspace. The scripting language
+/// itself is untouched — the keypad is a second spelling of the same input.
+#[derive(Clone, Copy, PartialEq)]
+enum KeyAction {
+    Text(&'static str),
+    Call(&'static str),
+    Submit,
+    Clear,
+    Backspace,
+}
+
+struct KeyDef {
+    label: &'static str,
+    act: KeyAction,
+    cls: &'static str,
+}
+
+struct TabDef {
+    id: &'static str,
+    label: &'static str,
+    i18n: &'static str,
+    keys: &'static [KeyDef],
+}
+
+const fn key(label: &'static str, act: KeyAction, cls: &'static str) -> KeyDef {
+    KeyDef { label, act, cls }
+}
+
+/// Every function, constant, and command the language supports, grouped
+/// like a scientific calculator's key banks (ADR-0016). Labels are the
+/// language tokens themselves (ADR-0007 — the language is never
+/// localized); `÷`/`×`/`−` show the operator glyphs but insert the ASCII
+/// tokens the language spells them with.
+static TABS: &[TabDef] = &[
+    TabDef {
+        id: "digits",
+        label: "123",
+        i18n: "keypad-tab-digits",
+        keys: &[
+            key("C", KeyAction::Clear, "act"),
+            key("⌫", KeyAction::Backspace, "act"),
+            key("(", KeyAction::Text("("), "op"),
+            key(")", KeyAction::Text(")"), "op"),
+            key("÷", KeyAction::Text("/"), "op"),
+            key("7", KeyAction::Text("7"), ""),
+            key("8", KeyAction::Text("8"), ""),
+            key("9", KeyAction::Text("9"), ""),
+            key("×", KeyAction::Text("*"), "op"),
+            key("−", KeyAction::Text("-"), "op"),
+            key("4", KeyAction::Text("4"), ""),
+            key("5", KeyAction::Text("5"), ""),
+            key("6", KeyAction::Text("6"), ""),
+            key("+", KeyAction::Text("+"), "op"),
+            key("^", KeyAction::Text("^"), "op"),
+            key("1", KeyAction::Text("1"), ""),
+            key("2", KeyAction::Text("2"), ""),
+            key("3", KeyAction::Text("3"), ""),
+            key(";", KeyAction::Text(";"), "op"),
+            key(",", KeyAction::Text(","), "op"),
+            key("0", KeyAction::Text("0"), ""),
+            key(".", KeyAction::Text("."), ""),
+            key("ans", KeyAction::Text("ans"), "fn"),
+            key("=", KeyAction::Submit, "eq"),
+        ],
+    },
+    TabDef {
+        id: "trig",
+        label: "trig",
+        i18n: "keypad-tab-trig",
+        keys: &[
+            key("sin", KeyAction::Call("sin"), "fn"),
+            key("cos", KeyAction::Call("cos"), "fn"),
+            key("tan", KeyAction::Call("tan"), "fn"),
+            key("asin", KeyAction::Call("asin"), "fn"),
+            key("acos", KeyAction::Call("acos"), "fn"),
+            key("atan", KeyAction::Call("atan"), "fn"),
+            key("sinh", KeyAction::Call("sinh"), "fn"),
+            key("cosh", KeyAction::Call("cosh"), "fn"),
+            key("tanh", KeyAction::Call("tanh"), "fn"),
+            key("asinh", KeyAction::Call("asinh"), "fn"),
+            key("acosh", KeyAction::Call("acosh"), "fn"),
+            key("atanh", KeyAction::Call("atanh"), "fn"),
+            key("deg", KeyAction::Call("deg"), "fn"),
+            key("rad", KeyAction::Call("rad"), "fn"),
+            key("atan2", KeyAction::Call("atan2"), "fn"),
+        ],
+    },
+    TabDef {
+        id: "func",
+        label: "ƒ",
+        i18n: "keypad-tab-func",
+        keys: &[
+            key("ln", KeyAction::Call("ln"), "fn"),
+            key("log", KeyAction::Call("log"), "fn"),
+            key("log2", KeyAction::Call("log2"), "fn"),
+            key("logb", KeyAction::Call("logb"), "fn"),
+            key("exp", KeyAction::Call("exp"), "fn"),
+            key("sqrt", KeyAction::Call("sqrt"), "fn"),
+            key("cbrt", KeyAction::Call("cbrt"), "fn"),
+            key("root", KeyAction::Call("root"), "fn"),
+            key("hypot", KeyAction::Call("hypot"), "fn"),
+            key("abs", KeyAction::Call("abs"), "fn"),
+            key("floor", KeyAction::Call("floor"), "fn"),
+            key("ceil", KeyAction::Call("ceil"), "fn"),
+            key("round", KeyAction::Call("round"), "fn"),
+            key("trunc", KeyAction::Call("trunc"), "fn"),
+            key("sign", KeyAction::Call("sign"), "fn"),
+            key("min", KeyAction::Call("min"), "fn"),
+            key("max", KeyAction::Call("max"), "fn"),
+        ],
+    },
+    TabDef {
+        id: "num",
+        label: "nΣ",
+        i18n: "keypad-tab-num",
+        keys: &[
+            key("gcd", KeyAction::Call("gcd"), "fn"),
+            key("lcm", KeyAction::Call("lcm"), "fn"),
+            key("mod", KeyAction::Call("mod"), "fn"),
+            key("fact", KeyAction::Call("fact"), "fn"),
+            key("ncr", KeyAction::Call("ncr"), "fn"),
+            key("npr", KeyAction::Call("npr"), "fn"),
+            key("sum", KeyAction::Call("sum"), "fn"),
+            key("product", KeyAction::Call("product"), "fn"),
+            key("mean", KeyAction::Call("mean"), "fn"),
+            key("median", KeyAction::Call("median"), "fn"),
+            key("variance", KeyAction::Call("variance"), "fn"),
+            key("stdev", KeyAction::Call("stdev"), "fn"),
+            key("frac", KeyAction::Call("frac"), "fn"),
+            key("dec", KeyAction::Call("dec"), "fn"),
+            key("big", KeyAction::Call("big"), "fn"),
+        ],
+    },
+    TabDef {
+        id: "const",
+        label: "π∇",
+        i18n: "keypad-tab-const",
+        keys: &[
+            key("pi", KeyAction::Text("pi"), "fn"),
+            key("e", KeyAction::Text("e"), "fn"),
+            key("tau", KeyAction::Text("tau"), "fn"),
+            key("phi", KeyAction::Text("phi"), "fn"),
+            key("x", KeyAction::Text("x"), "fn"),
+            key("t", KeyAction::Text("t"), "fn"),
+            key("ans", KeyAction::Text("ans"), "fn"),
+            key("graph", KeyAction::Text("graph "), "fn"),
+            key("graph3d", KeyAction::Text("graph3d "), "fn"),
+            key("table", KeyAction::Text("table "), "fn"),
+            key("clear", KeyAction::Text("clear "), "fn"),
+            key("history", KeyAction::Text("history "), "fn"),
+        ],
+    },
+];
+
 #[function_component(EpherApp)]
 fn epher_app() -> Html {
     let session = use_state(Session::new);
     let input = use_state(String::new);
     let form_ref = use_node_ref();
+    let input_ref = use_node_ref();
     let result = use_state(String::new);
     let localizer = use_state(|| Localizer::resolve(None, &[]));
     let graph = use_state(Vec::<SampledCurve>::new);
@@ -191,6 +349,9 @@ fn epher_app() -> Html {
     // The 3D viewBox from the latest render; play start freezes it.
     let rendered_box = use_state(|| Rc::new(RefCell::new(None::<String>)));
     let show_install_cli = use_state(|| false);
+    // Keypad tab + which pane faces the user on mobile (ADR-0016).
+    let key_tab = use_state(|| "digits".to_string());
+    let active_pane = use_state(|| "calc".to_string());
     let bridge = Bridge::detect();
 
     // Clear history (the button next to the list): empty the session's
@@ -719,6 +880,116 @@ fn epher_app() -> Html {
 
     let is_error = result.starts_with("error:") || result.starts_with("warning:");
 
+    // Keypad presses (ADR-0016): insert text at the textarea cursor —
+    // selection-replacing, cursor after the inserted text — or act like
+    // the pocket calculator keys they are. Focus returns to the input so
+    // typing continues right after a press. The language itself is
+    // untouched: the keypad only spells input the evaluator already reads.
+    let on_keypad = {
+        let input = input.clone();
+        let input_ref = input_ref.clone();
+        let form_ref = form_ref.clone();
+        Callback::from(move |act: KeyAction| {
+            let Some(ta) = input_ref.cast::<HtmlTextAreaElement>() else {
+                return;
+            };
+            let cursor = |v: &str| -> (usize, usize) {
+                let s = ta
+                    .selection_start()
+                    .ok()
+                    .flatten()
+                    .unwrap_or(0) as usize;
+                let e = ta
+                    .selection_end()
+                    .ok()
+                    .flatten()
+                    .unwrap_or(0) as usize;
+                (s.min(v.len()), e.min(v.len()))
+            };
+            match act {
+                KeyAction::Submit => {
+                    if let Some(form) = form_ref.cast::<web_sys::HtmlFormElement>() {
+                        let _ = form.request_submit();
+                    }
+                }
+                KeyAction::Clear => {
+                    input.set(String::new());
+                    ta.set_value("");
+                    ta.set_selection_start(Some(0)).ok();
+                    ta.set_selection_end(Some(0)).ok();
+                }
+                KeyAction::Backspace => {
+                    let mut v = (*input).clone();
+                    let (s, e) = cursor(&v);
+                    let (lo, hi) = if s == e { (s.saturating_sub(1), s) } else { (s, e) };
+                    v.replace_range(lo..hi, "");
+                    input.set(v.clone());
+                    ta.set_value(&v);
+                    ta.set_selection_start(Some(lo as u32)).ok();
+                    ta.set_selection_end(Some(lo as u32)).ok();
+                }
+                KeyAction::Text(t) => {
+                    let mut v = (*input).clone();
+                    let (s, e) = cursor(&v);
+                    v.replace_range(s..e, t);
+                    input.set(v.clone());
+                    ta.set_value(&v);
+                    let pos = s + t.len();
+                    ta.set_selection_start(Some(pos as u32)).ok();
+                    ta.set_selection_end(Some(pos as u32)).ok();
+                }
+                KeyAction::Call(name) => {
+                    let mut v = (*input).clone();
+                    let (s, e) = cursor(&v);
+                    let t = format!("{name}(");
+                    v.replace_range(s..e, &t);
+                    input.set(v.clone());
+                    ta.set_value(&v);
+                    let pos = s + t.len();
+                    ta.set_selection_start(Some(pos as u32)).ok();
+                    ta.set_selection_end(Some(pos as u32)).ok();
+                }
+            }
+            let _ = ta.focus();
+        })
+    };
+
+    // Pane switching (ADR-0016): mobile swipes horizontally between the
+    // calculator and the graph; these buttons are the non-swipe spelling.
+    // The jump is instant — one discrete step, which is also the
+    // reduced-motion behavior (WCAG 2.3.3).
+    let scroll_pane = Callback::from(|id: &'static str| {
+        let Some(doc) = web_sys::window().and_then(|w| w.document()) else {
+            return;
+        };
+        let (Some(panes), Some(pane)) = (
+            doc.get_element_by_id("panes"),
+            doc.get_element_by_id(id),
+        ) else {
+            return;
+        };
+        let offset = pane
+            .dyn_ref::<web_sys::HtmlElement>()
+            .map(|el| el.offset_left())
+            .unwrap_or(0);
+        let target = offset.saturating_sub(panes.client_left());
+        panes.set_scroll_left(target);
+    });
+    let on_panes_scroll = {
+        let active_pane = active_pane.clone();
+        Callback::from(move |e: Event| {
+            let panes = e.target_unchecked_into::<web_sys::HtmlElement>();
+            let next = if panes.scroll_left() > panes.client_width() / 2 {
+                "graph"
+            } else {
+                "calc"
+            };
+            if *active_pane != next {
+                active_pane.set(next.to_string());
+            }
+        })
+    };
+
     // The trace announcement: coordinates in the current UI language-free
     // numeric form, announced politely (the plot itself is an image).
     let trace_text = (*trace).map(|t| format!("x = {:.3}, y = {:.3}", t.x, t.y));
@@ -822,133 +1093,245 @@ fn epher_app() -> Html {
 
     html! {
         <main class="epher">
-            <h1>{ "epher" }</h1>
-            <form ref={form_ref.clone()} onsubmit={on_submit}>
-                <textarea
-                    rows="1"
-                    placeholder={"expression or script"}
-                    value={(*input).clone()}
-                    oninput={on_input}
-                    onkeydown={on_keydown}
-                    autofocus={true}
-                    aria-label="expression"
-                    aria-invalid={if is_error { "true" } else { "false" }}
-                    aria-describedby={if is_error { "epher-result" } else { "" }}
-                />
-                <button type="submit" aria-label="Evaluate">{ "=" }</button>
-            </form>
-            <div id="epher-result" class="result" role="status" aria-live="polite">{ (*result).clone() }</div>
-            {
-                if *show_install_cli {
-                    html! {
-                        <button
-                            type="button"
-                            class="install-cli"
-                            onclick={on_install_cli}
-                        >
-                            { localizer.lookup("install-cli") }
-                        </button>
-                    }
-                } else {
-                    html! {}
-                }
-            }
-            {
-                if !(*graph).is_empty() {
-                    html! {
-                        <section class="graph">
-                            <ul class="legend">
-                                { for legend_items }
-                            </ul>
-                            <Graph
-                                curves={(*graph).clone()}
-                                pois={(*pois).clone()}
-                                trace={*trace}
-                                on_trace={on_trace}
-                                on_key={on_trace_key}
-                                on_leave={on_trace_leave}
-                            />
-                            <p class="trace" role="status" aria-live="polite">
-                                { trace_text }
-                            </p>
-                            {
-                                if !(*pois).is_empty() {
-                                    html! {
-                                        <>
-                                            <p class="poi-heading">{ localizer.lookup("graph-points") }</p>
-                                            <ul class="poi-list">
-                                                { for poi_items }
-                                            </ul>
-                                        </>
-                                    }
-                                } else {
-                                    html! {}
-                                }
-                            }
-                            <div class="sliders">
-                                { for curve_rows }
-                            </div>
-                            <button type="button" class="copy-svg" onclick={on_copy_svg}>
-                                { localizer.lookup("graph-copy") }
-                            </button>
-                        </section>
-                    }
-                } else {
-                    html! {}
-                }
-            }
-            {
-                if !(*surface).is_empty() {
-                    let rendered = graph::surface_svg(&surface, &view);
-                    let aria = format!(
-                        "{}: {}",
-                        "3D",
-                        (*surface)
-                            .iter()
-                            .map(|s| format!("z = {}", s.source.trim()))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    );
-                    if let Some((view_box, content)) = rendered {
-                        // Record for play-freeze; while playing, keep the
-                        // frozen box so the layout stays put.
-                        *rendered_box.borrow_mut() = Some(view_box.clone());
-                        let shown_box = (*play)
-                            .as_ref()
-                            .and_then(|p| p.freeze.clone())
-                            .unwrap_or(view_box);
-                        html! {
-                            <section class="graph graph3d">
-                                <h2 class="graph3d-title">{ "3D" }</h2>
-                                <Graph3D
-                                    view_box={shown_box}
-                                    content={content}
-                                    aria_label={aria}
-                                    on_orbit={on_orbit}
-                                />
-                                <p class="graph3d-hint">{ localizer.lookup("graph3d-hint") }</p>
-                                <div class="sliders">
-                                    { for surface_rows }
-                                </div>
-                            </section>
-                        }
-                    } else {
-                        html! {}
-                    }
-                } else {
-                    html! {}
-                }
-            }
-            <div class="history-head">
-                <h2>{ localizer.lookup("history") }</h2>
-                <button type="button" class="clear-history" onclick={on_clear_history}>
-                    { localizer.lookup("clear-history") }
+            <h1 class="visually-hidden">{ localizer.lookup("app-name") }</h1>
+            <nav class="pane-switch">
+                <button
+                    type="button"
+                    aria-pressed={(*active_pane == "calc").to_string()}
+                    aria-label={localizer.lookup("calc-pane")}
+                    onclick={{
+                        let scroll_pane = scroll_pane.clone();
+                        Callback::from(move |_| scroll_pane.emit("calc-pane"))
+                    }}
+                >
+                    { localizer.lookup("calc-pane") }
                 </button>
+                <button
+                    type="button"
+                    aria-pressed={(*active_pane == "graph").to_string()}
+                    aria-label={localizer.lookup("graph-pane")}
+                    onclick={{
+                        let scroll_pane = scroll_pane.clone();
+                        Callback::from(move |_| scroll_pane.emit("graph-pane"))
+                    }}
+                >
+                    { localizer.lookup("graph-pane") }
+                </button>
+            </nav>
+            <div class="panes" id="panes" onscroll={on_panes_scroll}>
+                <section class="pane" id="calc-pane">
+                    {
+                        if *show_install_cli {
+                            html! {
+                                <button
+                                    type="button"
+                                    class="install-cli"
+                                    onclick={on_install_cli}
+                                >
+                                    { localizer.lookup("install-cli") }
+                                </button>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                    <div class="answer">
+                        <span class="visually-hidden" id="answer-label">
+                            { localizer.lookup("answer") }
+                        </span>
+                        <div
+                            id="epher-result"
+                            class="result"
+                            role="status"
+                            aria-live="polite"
+                            aria-labelledby="answer-label"
+                        >
+                            { (*result).clone() }
+                        </div>
+                    </div>
+                    <form ref={form_ref.clone()} onsubmit={on_submit}>
+                        <textarea
+                            ref={input_ref.clone()}
+                            rows="1"
+                            placeholder={"expression or script"}
+                            value={(*input).clone()}
+                            oninput={on_input}
+                            onkeydown={on_keydown}
+                            autofocus={true}
+                            aria-label="expression"
+                            aria-invalid={if is_error { "true" } else { "false" }}
+                            aria-describedby={if is_error { "epher-result" } else { "" }}
+                        />
+                    </form>
+                    <section class="history-box" tabindex="0" aria-label={localizer.lookup("history")}>
+                        <div class="history-head">
+                            <h2>{ localizer.lookup("history") }</h2>
+                            <button type="button" class="clear-history" onclick={on_clear_history}>
+                                { localizer.lookup("clear-history") }
+                            </button>
+                        </div>
+                        <ul class="history">
+                            { for session.history().iter().rev().map(|h| html! { <li>{ h.clone() } </li> }) }
+                        </ul>
+                    </section>
+                    <section class="keypad" aria-label={localizer.lookup("keypad")}>
+                        <div class="keypad-tabs" role="tablist" aria-label={localizer.lookup("keypad")}>
+                            { for TABS.iter().map(|t| {
+                                let on_tab = {
+                                    let key_tab = key_tab.clone();
+                                    let id = t.id;
+                                    Callback::from(move |_| key_tab.set(id.to_string()))
+                                };
+                                html! {
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        id={format!("keypad-tab-{}", t.id)}
+                                        aria-selected={(*key_tab == t.id).to_string()}
+                                        aria-controls="keypad-panel"
+                                        aria-label={localizer.lookup(t.i18n)}
+                                        onclick={on_tab}
+                                    >
+                                        { t.label }
+                                    </button>
+                                }
+                            }) }
+                        </div>
+                        <div
+                            class="keypad-grid"
+                            role="tabpanel"
+                            id="keypad-panel"
+                            aria-labelledby={format!("keypad-tab-{}", (*key_tab).as_str())}
+                        >
+                            { for TABS.iter()
+                                .find(|t| t.id == *key_tab)
+                                .map(|t| t.keys.iter().map(|k| {
+                                    let on_key = {
+                                        let on_keypad = on_keypad.clone();
+                                        let act = k.act;
+                                        Callback::from(move |_| on_keypad.emit(act))
+                                    };
+                                    html! {
+                                        <button
+                                            type="button"
+                                            class={format!("keypad-btn {}", k.cls)}
+                                            aria-label={k.label}
+                                            onclick={on_key}
+                                        >
+                                            { k.label }
+                                        </button>
+                                    }
+                                }).collect::<Vec<Html>>())
+                                .unwrap_or_default() }
+                        </div>
+                    </section>
+                </section>
+                <section class="pane" id="graph-pane" aria-label={localizer.lookup("graph-pane")}>
+                    {
+                        if !(*graph).is_empty() {
+                            html! {
+                                <section class="graph">
+                                    <ul class="legend">
+                                        { for legend_items }
+                                    </ul>
+                                    <div class="plot-box">
+                                        <Graph
+                                            curves={(*graph).clone()}
+                                            pois={(*pois).clone()}
+                                            trace={*trace}
+                                            on_trace={on_trace}
+                                            on_key={on_trace_key}
+                                            on_leave={on_trace_leave}
+                                        />
+                                    </div>
+                                    <p class="trace" role="status" aria-live="polite">
+                                        { trace_text }
+                                    </p>
+                                    {
+                                        if !(*pois).is_empty() {
+                                            html! {
+                                                <>
+                                                    <p class="poi-heading">{ localizer.lookup("graph-points") }</p>
+                                                    <ul class="poi-list">
+                                                        { for poi_items }
+                                                    </ul>
+                                                </>
+                                            }
+                                        } else {
+                                            html! {}
+                                        }
+                                    }
+                                    <div class="sliders">
+                                        { for curve_rows }
+                                    </div>
+                                    <button type="button" class="copy-svg" onclick={on_copy_svg}>
+                                        { localizer.lookup("graph-copy") }
+                                    </button>
+                                </section>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                    {
+                        if !(*surface).is_empty() {
+                            let rendered = graph::surface_svg(&surface, &view);
+                            let aria = format!(
+                                "{}: {}",
+                                "3D",
+                                (*surface)
+                                    .iter()
+                                    .map(|s| format!("z = {}", s.source.trim()))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            );
+                            if let Some((view_box, content)) = rendered {
+                                // Record for play-freeze; while playing, keep the
+                                // frozen box so the layout stays put.
+                                *rendered_box.borrow_mut() = Some(view_box.clone());
+                                let shown_box = (*play)
+                                    .as_ref()
+                                    .and_then(|p| p.freeze.clone())
+                                    .unwrap_or(view_box);
+                                html! {
+                                    <section class="graph graph3d">
+                                        <h2 class="graph3d-title">{ "3D" }</h2>
+                                        <div class="plot-box">
+                                            <Graph3D
+                                                view_box={shown_box}
+                                                content={content}
+                                                aria_label={aria}
+                                                on_orbit={on_orbit}
+                                            />
+                                        </div>
+                                        <p class="graph3d-hint">{ localizer.lookup("graph3d-hint") }</p>
+                                        <div class="sliders">
+                                            { for surface_rows }
+                                        </div>
+                                    </section>
+                                }
+                            } else {
+                                html! {}
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                    {
+                        if (*graph).is_empty() && (*surface).is_empty() {
+                            html! {
+                                <p class="graph-empty">
+                                    { "graph sin(x)   ·   graph3d x ^ 2 - y ^ 2" }
+                                </p>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                </section>
             </div>
-            <ul class="history">
-                { for session.history().iter().rev().map(|h| html! { <li>{ h.clone() } </li> }) }
-            </ul>
         </main>
+
     }
 }
 

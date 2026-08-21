@@ -23,6 +23,10 @@
       --muted: #9a9ba2;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Fixed viewport, no page scrolling (ADR-0016): the app is one screen —
+       answer, input, history, keypad, graph. Growth happens inside fixed
+       regions (history, graph pane) that scroll themselves. */
+    html, body { height: 100%; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -30,18 +34,93 @@
         "Noto Sans", "Noto Sans Arabic", "Noto Sans Devanagari", sans-serif;
       display: flex;
       justify-content: center;
-      padding: 2rem 1rem;
-      min-height: 100vh;
+      min-height: 100dvh;
+      height: 100dvh;
+      overflow: hidden;
     }
     .epher {
       width: 100%;
-      max-width: 480px;
+      max-width: 100%;
+      height: 100dvh;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
     }
     h1 { font-size: 1.5rem; font-weight: 600; }
-    form { display: flex; gap: 0.5rem; }
+    /* --- pane switching (mobile: the graph is one swipe away) ---------- */
+    .pane-switch {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0 0;
+      flex: none;
+    }
+    .pane-switch button {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0.4rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+    .pane-switch button[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .panes {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      overscroll-behavior-x: contain;
+    }
+    .pane {
+      flex: 0 0 100%;
+      min-width: 100%;
+      scroll-snap-align: start;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      /* fallback for very short viewports (landscape phones): content can
+         overflow the pane and this scrolls — the app page itself never
+         does */
+      overflow-y: auto;
+    }
+    /* --- calculator pane: answer / input / history / keypad ------------ */
+    #calc-pane {
+      padding: 0 0.75rem 0.5rem;
+      gap: 0.5rem;
+    }
+    /* the answer panel: fixed height, always visible (ADR-0016) */
+    .answer {
+      flex: none;
+      min-height: 3.4rem;
+      display: flex;
+      align-items: center;
+      padding: 0.25rem 0.25rem 0;
+    }
+    .result {
+      font-size: 1.6rem;
+      font-weight: 300;
+      overflow-wrap: anywhere;
+      max-height: 3.2rem;
+      overflow-y: auto;
+      flex: 1;
+      /* tables and multi-line outputs need monospace alignment and
+         preserved line breaks */
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+    form {
+      flex: none;
+      display: flex;
+      gap: 0.5rem;
+    }
     input, textarea {
       flex: 1;
       padding: 0.75rem;
@@ -82,49 +161,29 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
       }
     }
-    button {
-      padding: 0.75rem 1.25rem;
-      font-size: 1.1rem;
-      border-radius: 10px;
-      border: none;
-      background: var(--accent);
-      color: #0b1512; /* 10.0:1 on the accent (WCAG 1.4.3) */
-      font-weight: 600;
-      min-width: 48px; /* target size ≥ 24px (WCAG 2.5.8); 48px comfortable */
-      min-height: 48px;
-    }
-    .result {
-      font-size: 2rem;
-      font-weight: 300;
-      min-height: 3rem;
-      padding: 0.5rem 0;
-      overflow-wrap: anywhere;
-      /* tables and multi-line outputs need monospace alignment and
-         preserved line breaks */
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      white-space: pre-wrap;
-    }
-    /* The macOS "install the epher command" action (ADR-0011): a quiet,
-       secondary button — it must not compete with the = button. Contrast
-       9.9:1 accent-on-background (WCAG 1.4.3); 48px target (2.5.8). */
-    .install-cli {
-      font-size: 0.95rem;
-      font-weight: 500;
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      padding: 0.5rem 1rem;
-      min-height: 48px;
-      align-self: flex-start;
-      margin-bottom: 0.75rem;
+    /* --- history: fixed region, scrolls inside (ADR-0016) -------------- */
+    .history-box {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+      padding-top: 0.25rem;
+      /* keyboard-scrollable region (WCAG 2.1.1) */
+      outline: none;
     }
     .history-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
+      background: var(--bg);
+      padding-block: 0.25rem;
     }
     .history-head h2 {
       font-size: 1rem;
@@ -148,11 +207,105 @@
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      padding-bottom: 0.5rem;
+    }
+    /* --- keypad (ADR-0016) --------------------------------------------- */
+    .keypad {
+      flex: none;
+      padding-top: 0.25rem;
+      border-top: 1px solid var(--border);
+    }
+    /* screen-reader-only text (WCAG 1.3.1: labelled, not duplicated) */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      clip-path: inset(50%);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .keypad-tabs {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: center;
+      padding-bottom: 0.4rem;
+    }
+    .keypad-tabs [role="tab"] {
+      min-height: 40px;
+      min-width: 44px;
+      padding: 0.25rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg);
+      color: var(--muted);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .keypad-tabs [role="tab"][aria-selected="true"] {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--panel);
+    }
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-auto-rows: minmax(44px, auto);
+      align-content: start;
+      gap: 0.4rem;
+      /* reserve five rows: short tabs leave blank space below instead of
+         resizing the history region (ADR-0016) */
+      min-height: calc(5 * 44px + 4 * 0.4rem);
+      padding: 0 0 0.25rem;
+    }
+    .keypad-btn {
+      min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .keypad-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .keypad-btn.op { color: var(--accent); font-weight: 600; }
+    .keypad-btn.fn { font-size: 0.92rem; }
+    .keypad-btn.eq {
+      grid-column: span 2;
+      background: var(--accent);
+      color: #0b1512; /* 10.0:1 on the accent (WCAG 1.4.3) */
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+    .keypad-btn.eq:hover { color: #0b1512; border-color: var(--accent); }
+    .keypad-btn.act { color: var(--muted); }
+    /* --- graph pane ----------------------------------------------------- */
+    #graph-pane {
+      overflow-y: auto; /* chrome may exceed short viewports; scrolls inside */
+      padding: 0.5rem 0.75rem 0.75rem;
+      gap: 0.25rem;
     }
     .graph {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      flex: 1;
+      min-height: 0;
+    }
+    .graph-empty {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.95rem;
+      padding: 1rem 0;
     }
     /* The visible text alternative for the plot (WCAG 1.1.1): what is
        plotted, readable by everyone. --muted is 6.6:1 on --bg (1.4.3). */
@@ -165,14 +318,35 @@
        blend toward the background at opacity 0.5 to ~5.4:1 — both clear
        the 3:1 graphics threshold (WCAG 1.4.11). */
     .graph svg { color: var(--accent); }
-    .graph svg {
+    /* The plot lives in a fixed-size pane (ADR-0016): the SVG fills its
+       box and letterboxes to its own aspect ratio (viewBox +
+       preserveAspectRatio), so every plot fits the pane. */
+    .plot-box {
+      flex: 1;
+      min-height: 96px;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+    .plot-box svg {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
       width: 100%;
-      height: auto;
+      height: 100%;
       display: block;
       border-radius: 10px;
-      touch-action: none; /* pointer tracing over the plot, not scrolling */
+      background: var(--panel);
+      /* The 2D plot traces taps and vertical drags; horizontal swipes stay
+         the browser's, so swiping back from the graph reaches the
+         calculator pane (ADR-0016). The 3D plot below keeps full capture
+         — orbiting needs both axes. */
+      touch-action: pan-x;
     }
-    .graph svg:focus-visible {
+    .graph3d-svg {
+      touch-action: none;
+    }
+    .plot-box svg:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
@@ -296,13 +470,8 @@
       color: var(--text);
     }
     .graph3d-svg {
-      width: 100%;
-      height: auto;
       display: block;
       color: var(--accent);
-      background: var(--panel);
-      border-radius: 10px;
-      touch-action: none;
       cursor: grab;
     }
     .graph3d-svg:active { cursor: grabbing; }
@@ -321,6 +490,42 @@
       min-height: 48px;
       align-self: flex-start;
       margin-top: 0.75rem;
+    }
+    /* The macOS "install the epher command" action (ADR-0011): a quiet,
+       secondary button — it must not compete with the = button. Contrast
+       9.9:1 accent-on-background (WCAG 1.4.3); 48px target (2.5.8). */
+    .install-cli {
+      font-size: 0.95rem;
+      font-weight: 500;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 0.5rem 1rem;
+      min-height: 48px;
+      align-self: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    /* --- desktop: the graph pane sits beside the calculator (ADR-0016) - */
+    @media (min-width: 880px) {
+      .pane-switch { display: none; }
+      .panes {
+        overflow: visible;
+        gap: 0;
+      }
+      /* lift the mobile full-width basis: desktop panes share the row */
+      .pane {
+        min-width: 0;
+        flex-basis: auto;
+      }
+      #calc-pane {
+        flex: 0 0 360px;
+        border-inline-end: 1px solid var(--border);
+      }
+      #graph-pane {
+        flex: 1 1 auto;
+        padding-inline-start: 1rem;
+      }
     }
   </style>
 </head>
