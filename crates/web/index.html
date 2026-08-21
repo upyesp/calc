@@ -537,7 +537,42 @@
   <link data-trunk rel="copy-file" href="public/manifest.webmanifest" />
   <link data-trunk rel="copy-file" href="public/sw.js" />
   <link data-trunk rel="copy-file" href="public/icon.svg" />
+  <!-- Boot diagnostic: if the wasm app has not mounted after six seconds,
+       say so instead of leaving a blank window. The app's own markup has
+       class="epher", so its presence is the success signal. -->
+  <div id="boot-fallback" hidden>
+    <p>epher could not start in this window.</p>
+    <p>Try again, or use the web app at epher.org — your device's web
+       browser works everywhere the desktop window does.</p>
+  </div>
+  <style>
+    /* display:none by default — the `hidden` attribute plus the id rule
+       must not fight the UA stylesheet; :not([hidden]) turns it on */
+    #boot-fallback {
+      display: none;
+      position: fixed;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      background: #141416;
+      color: #f5f6f7;
+      font: 1rem/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+    }
+    #boot-fallback:not([hidden]) {
+      display: flex;
+    }
+  </style>
   <script>
+    setTimeout(function () {
+      if (!document.querySelector(".epher")) {
+        var el = document.getElementById("boot-fallback");
+        if (el) el.hidden = false;
+      }
+    }, 6000);
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(function () {});
     }
