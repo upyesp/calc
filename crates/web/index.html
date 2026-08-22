@@ -840,11 +840,16 @@
   <link data-trunk rel="copy-file" href="public/icon.svg" />
   <!-- Boot diagnostic: if the wasm app has not mounted after six seconds,
        say so instead of leaving a blank window. The app's own markup has
-       class="epher", so its presence is the success signal. -->
+       class="epher", so its presence is the success signal. While the
+       fallback is visible the script keeps watching — a late mount (slow
+       disk, antivirus scanning the wasm) hides it again — and any
+       script/module error captured meanwhile is shown as the detail line,
+       so a failed start names its reason. -->
   <div id="boot-fallback" hidden>
     <p>epher could not start in this window.</p>
     <p>Try again, or use the web app at epher.org — your device's web
        browser works everywhere the desktop window does.</p>
+    <p id="boot-fallback-detail" class="boot-detail"></p>
   </div>
   <style>
     /* display:none by default — the `hidden` attribute plus the id rule
@@ -866,14 +871,60 @@
     #boot-fallback:not([hidden]) {
       display: flex;
     }
+    /* the technical detail line (an error message when one was captured) —
+       smaller, monospaced, muted but still 4.5:1 on the fallback background */
+    #boot-fallback .boot-detail {
+      font: 0.8125rem/1.4 ui-monospace, Consolas, monospace;
+      color: #9aa4af;
+      max-width: 44rem;
+      overflow-wrap: anywhere;
+    }
+    #boot-fallback .boot-detail:empty {
+      display: none;
+    }
   </style>
   <script>
-    setTimeout(function () {
-      if (!document.querySelector(".epher")) {
-        var el = document.getElementById("boot-fallback");
-        if (el) el.hidden = false;
+    (function () {
+      var fallback = document.getElementById("boot-fallback");
+      var detail = document.getElementById("boot-fallback-detail");
+      var errors = [];
+      function record(msg) {
+        if (!msg) return;
+        errors.push(String(msg).slice(0, 300));
+        if (errors.length > 3) errors.shift();
       }
-    }, 6000);
+      // capture phase: resource errors (the module script and the wasm
+      // fetch) fire here, not in the bubble phase
+      window.addEventListener(
+        "error",
+        function (e) {
+          var src = e.target && (e.target.src || e.target.href);
+          record(e.message || (src ? "could not load " + src : "script error"));
+        },
+        true
+      );
+      window.addEventListener("unhandledrejection", function (e) {
+        var r = e.reason;
+        record(r && (r.message || r.name) ? r.message || r.name : "unhandled rejection");
+      });
+      function mounted() {
+        return !!document.querySelector(".epher");
+      }
+      setTimeout(function () {
+        if (mounted()) return;
+        fallback.hidden = false;
+        if (errors.length) detail.textContent = errors.join(" · ");
+        // a late mount (e.g. a slow first compile) recovers on its own
+        var iv = setInterval(function () {
+          if (mounted()) {
+            clearInterval(iv);
+            fallback.hidden = true;
+            detail.textContent = "";
+          }
+        }, 500);
+        setTimeout(function () { clearInterval(iv); }, 30000);
+      }, 6000);
+    })();
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("./sw.js").catch(function () {});
     }
