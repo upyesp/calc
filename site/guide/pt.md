@@ -663,6 +663,11 @@ https://epher.org/pwa/
 Não é necessária qualquer instalação — funciona em qualquer navegador
 moderno, num computador, telemóvel ou tablet.
 
+Este guia também está integrado na aplicação: abra **Help → User guide**
+na barra de menu (toque em **☰** num telemóvel) para o ler dentro da
+aplicação, no idioma atual da aplicação. Toque num exemplo desse guia
+para o carregar no campo de entrada.
+
 ### 2.2 O seu primeiro cálculo
 
 1. Clique no campo de texto (já vem focado quando a página carrega).
@@ -698,7 +703,9 @@ graph f(x)
 
 Cada linha `graph` acrescenta outra curva ao mesmo gráfico, cada uma com
 a sua cor e o seu padrão de traço, e uma legenda dá-lhes nome.
-`graph clear` esvazia o gráfico.
+`graph clear` esvazia o gráfico — e um botão **Clear graph** no topo
+do painel do gráfico faz o mesmo para curvas e superfícies 3D em
+conjunto. A TUI mantém o comando no seu menu **Graph**.
 
 ```epher
 graph x ^ 2
@@ -892,7 +899,9 @@ Inicie o epher como qualquer outra aplicação. Obtém uma janela com a mesma
 interface da aplicação web: escreva uma expressão, prima **Enter** ou
 clique em **=** e leia o resultado. Os gráficos também funcionam aqui —
 `graph x ^ 2` desenha na janela (capítulo 2.4). A janela pode ser
-redimensionada livremente.
+redimensionada livremente. A barra de menu inclui
+**Help → User guide** — o mesmo guia desta página, com exemplos que
+se carregam com um toque.
 
 Também pode abri-la a partir de um terminal: um `epher` simples (ou
 `epher gui`) inicia a aplicação de ambiente de trabalho. No macOS, use o
@@ -1154,6 +1163,7 @@ O ecrã está dividido em painéis:
 | **q** | sair (quando a entrada está vazia) |
 | **Arrow keys** | rodar a vista 3D (quando a entrada está vazia) |
 | **Space** | iniciar/parar a animação (quando a entrada está vazia) |
+| **F10** | abrir os menus (Ficheiro, Editar, Gráfico, Definições, Ajuda) |
 | **Ctrl+L** | limpar o histórico |
 
 ### 5.3 Gráficos
@@ -1167,6 +1177,10 @@ graph x ^ 2
 O epher amostra a curva de x = −10 a x = 10 e desenha-a como um gráfico
 ASCII no painel Graph; a legenda por cima do gráfico dá nome ao que está
 traçado.
+
+`graph clear` esvazia o gráfico, e o menu **Graph** faz o mesmo; o
+menu **Help** abre este guia dentro da TUI (as setas fazem rolar,
+**Esc** fecha).
 
 Pode desenhar o gráfico de qualquer expressão, incluindo as suas próprias
 funções — primeiro defina uma, depois desenhe o gráfico:

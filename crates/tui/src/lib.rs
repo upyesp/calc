@@ -69,6 +69,10 @@ pub enum MenuAction {
     Paste,
     SetTheme(&'static str),
     SetLanguage(&'static str),
+    /// Empty the graph pane (curves, points of interest, 3D surfaces).
+    ClearGraph,
+    /// Open the in-app user guide (ADR-0018).
+    OpenGuide,
 }
 
 /// An active parameter animation: `name` steps by `step` within `lo..=hi`,
@@ -104,6 +108,9 @@ pub struct App {
     menu: Option<(usize, usize)>,
     /// An active file prompt: its kind and the path typed so far.
     prompt: Option<(PromptKind, String)>,
+    /// The in-app user guide view (ADR-0018): `Some(scroll)` when open,
+    /// the offset counting wrapped rows from the top.
+    guide: Option<usize>,
 }
 
 /// The TUI keypad (ADR-0016): a condensed 4×5 grid of the most-used
@@ -157,6 +164,7 @@ impl App {
             theme: Theme::default(),
             menu: None,
             prompt: None,
+            guide: None,
         }
     }
 
@@ -208,15 +216,17 @@ impl App {
         self.theme = theme;
     }
 
-    /// The menu bar: three top-level menus (File, Edit, Settings).
-    pub const MENUS: [&'static str; 3] = ["file", "edit", "settings"];
+    /// The menu bar: File, Edit, Graph, Settings, Help.
+    pub const MENUS: [&'static str; 5] = ["file", "edit", "graph", "settings", "help"];
 
     /// How many items a menu has.
     pub fn menu_len(menu: usize) -> usize {
         match menu {
             0 => 3,  // File: open, save history, save script
             1 => 3,  // Edit: cut, copy, paste
-            2 => 11, // Settings: 3 themes + 8 languages
+            2 => 1,  // Graph: clear graph
+            3 => 11, // Settings: 3 themes + 8 languages
+            4 => 1,  // Help: user guide
             _ => 0,
         }
     }
@@ -226,7 +236,7 @@ impl App {
     }
 
     pub fn menu_open(&mut self, menu: usize) {
-        self.menu = Some((menu.min(2), 0));
+        self.menu = Some((menu.min(4), 0));
         self.keypad = false;
     }
 
@@ -264,6 +274,8 @@ impl App {
                 1 => MenuAction::Copy,
                 _ => MenuAction::Paste,
             },
+            2 => MenuAction::ClearGraph,
+            4 => MenuAction::OpenGuide,
             _ => match item {
                 0 => MenuAction::SetTheme("light"),
                 1 => MenuAction::SetTheme("dark"),
@@ -280,6 +292,45 @@ impl App {
         };
         self.menu = None;
         Some(action)
+    }
+
+    /// The in-app user guide view: open/closed and the scroll offset.
+    pub fn guide_active(&self) -> bool {
+        self.guide.is_some()
+    }
+
+    pub fn guide_open(&mut self) {
+        self.guide = Some(0);
+        self.menu = None;
+        self.keypad = false;
+    }
+
+    pub fn guide_close(&mut self) {
+        self.guide = None;
+    }
+
+    pub fn guide_scroll(&mut self, delta: isize) {
+        if let Some(offset) = &mut self.guide {
+            *offset = offset.saturating_add_signed(delta);
+        }
+    }
+
+    pub fn guide_scroll_to(&mut self, offset: usize) {
+        self.guide = Some(offset);
+    }
+
+    /// The current scroll offset (clamped to the content at draw time).
+    pub fn guide_offset(&self) -> Option<usize> {
+        self.guide
+    }
+
+    /// Empty the graph pane: curves, points of interest, 3D surfaces —
+    /// the menu spelling of `graph clear` + `graph3d clear` (ADR-0018).
+    pub fn clear_graph(&mut self) {
+        self.graph.clear();
+        self.pois.clear();
+        self.surface.clear();
+        self.play = None;
     }
 
     // --- file prompts ---
@@ -916,6 +967,24 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
         }
         if let Some(Event::Key(key)) = event {
             if key.kind == KeyEventKind::Press {
+                // The user guide view (ADR-0018) is modal: only scrolling
+                // and closing keys act; nothing reaches the calculator.
+                if app.guide_active() {
+                    match key.code {
+                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                            return Ok(());
+                        }
+                        KeyCode::Esc | KeyCode::Char('q') => app.guide_close(),
+                        KeyCode::Up => app.guide_scroll(-1),
+                        KeyCode::Down => app.guide_scroll(1),
+                        KeyCode::PageUp => app.guide_scroll(-12),
+                        KeyCode::PageDown => app.guide_scroll(12),
+                        KeyCode::Home => app.guide_scroll_to(0),
+                        KeyCode::End => app.guide_scroll_to(usize::MAX),
+                        _ => {}
+                    }
+                    continue;
+                }
                 // Pasted newlines arrive as LF, which crossterm parses as
                 // Ctrl+J (the terminal convention for line feed). Treat it
                 // as Enter so multi-line pastes submit line by line, like
@@ -1058,6 +1127,12 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                                 localizer = Localizer::resolve(Some(code), &[]);
                                 let _ = save_language(&store, code);
                             }
+                            MenuAction::ClearGraph => {
+                                app.clear_graph();
+                                let msg = localizer.lookup("graph-cleared");
+                                app.set_result(&msg);
+                            }
+                            MenuAction::OpenGuide => app.guide_open(),
                         }
                     }
                 } else if is_enter && !app.keypad_focused() {
@@ -1081,7 +1156,7 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
 fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     use ratatui::layout::{Constraint, Layout, Position, Rect};
     use ratatui::style::{Color, Modifier, Style};
-    use ratatui::text::{Line, Span};
+    use ratatui::text::{Line, Span, Text};
     use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
     // The theme palette (ADR-0017): dark is the terminal's natural look,
@@ -1130,7 +1205,69 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             .title(title)
     };
 
-    // The menu bar row (ADR-0017): File | Edit | Settings.
+    // The user guide view (ADR-0018): a full-screen pager over the same
+    // markdown the website guide pages and the web overlay are built
+    // from, rendered in the current interface language.
+    if let Some(offset) = app.guide_offset() {
+        let rows = Layout::vertical([
+            Constraint::Length(1), // title
+            Constraint::Min(0),    // content
+            Constraint::Length(1), // scroll hint
+        ])
+        .split(frame.area());
+        let title = localizer.lookup("menu-guide");
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                format!(" {title} "),
+                Style::default().bg(sel_bg).fg(sel_fg).add_modifier(Modifier::BOLD),
+            ))),
+            rows[0],
+        );
+        let mut lines = Vec::new();
+        for t in epher_guide::render_text(epher_guide::guide(localizer.locale())) {
+            match t {
+                epher_guide::TLine::Heading(level, text) => {
+                    let style = if level == 1 {
+                        Style::default().fg(fg).add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+                    } else {
+                        Style::default().fg(fg).add_modifier(Modifier::BOLD)
+                    };
+                    lines.push(Line::from(Span::styled(text, style)));
+                }
+                epher_guide::TLine::Text(text) => {
+                    lines.push(Line::from(Span::styled(text, Style::default().fg(fg))));
+                }
+                epher_guide::TLine::Code(text) => {
+                    lines.push(Line::from(Span::styled(text, hints_style)));
+                }
+                epher_guide::TLine::Quote(text) => {
+                    lines.push(Line::from(Span::styled(text, hints_style)));
+                }
+                epher_guide::TLine::Blank => lines.push(Line::from("")),
+            }
+        }
+        // The offset counts wrapped rows; clamp to the last page.
+        let content_rows = rows[1].height as usize;
+        let max = lines.len().saturating_sub(content_rows);
+        let offset = offset.min(max);
+        frame.render_widget(
+            Paragraph::new(Text::from(lines))
+                .style(Style::default().fg(fg))
+                .wrap(ratatui::widgets::Wrap { trim: false })
+                .scroll((offset as u16, 0)),
+            rows[1],
+        );
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                localizer.lookup("guide-hint"),
+                hints_style,
+            ))),
+            rows[2],
+        );
+        return;
+    }
+
+    // The menu bar row (ADR-0017): File | Edit | Graph | Settings | Help.
     let base = Layout::vertical([Constraint::Length(1), Constraint::Min(0)])
         .split(frame.area());
     let (menu_area, body) = (base[0], base[1]);
@@ -1138,7 +1275,9 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
     let menu_labels = [
         localizer.lookup("menu-file"),
         localizer.lookup("menu-edit"),
+        localizer.lookup("menu-graph"),
         localizer.lookup("menu-settings"),
+        localizer.lookup("menu-help"),
     ];
     let mut bar = Vec::new();
     for (i, label) in menu_labels.iter().enumerate() {
@@ -1167,6 +1306,8 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
                 localizer.lookup("menu-copy"),
                 localizer.lookup("menu-paste"),
             ],
+            2 => vec![localizer.lookup("graph-clear")],
+            4 => vec![localizer.lookup("menu-guide")],
             _ => {
                 let mut v = vec![
                     localizer.lookup("theme-light"),
@@ -1180,7 +1321,7 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             }
         };
         let checked_item = match menu {
-            2 => Some(item_checked(app)),
+            3 => Some(item_checked(app)),
             _ => None,
         };
         let lines: Vec<Line> = items
@@ -1190,7 +1331,7 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
                 let mark = match checked_item {
                     Some(ci) if ci == i => "\u{2713} ",
                     _ => match menu {
-                        2 => "  ",
+                        3 => "  ",
                         _ => "",
                     },
                 };

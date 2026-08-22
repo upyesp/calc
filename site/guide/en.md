@@ -657,6 +657,11 @@ https://epher.org/pwa/
 No installation is needed — it works in any modern browser on a computer,
 phone, or tablet.
 
+This guide is also built into the app: open **Help → User guide** in the
+menu bar (tap **☰** on a phone) to read it inside the app, in the app's
+current language. Tap any example in that guide to load it into the entry
+field.
+
 ### 2.2 Your first calculation
 
 1. Click the text field (it is already focused when the page loads).
@@ -692,7 +697,9 @@ graph f(x)
 
 Every `graph` line adds another curve to the same plot, each with its own
 colour and dash pattern, and a legend naming them. `graph clear` empties
-the plot.
+the plot — and a **Clear graph** button at the top of the graph pane does
+the same for curves and 3D surfaces together. The TUI keeps the command in
+its **Graph** menu.
 
 ```epher
 graph x ^ 2
@@ -877,7 +884,9 @@ command. On Linux, the package puts `epher` in `/usr/bin`.
 Launch epher like any other application. You get a window with the same
 interface as the web app: type an expression, press **Enter** or click
 **=**, and read the result. Graphing works here too — `graph x ^ 2` draws
-in the window (chapter 2.4). The window can be resized freely.
+in the window (chapter 2.4). The window can be resized freely. The menu bar
+includes **Help → User guide** — the same guide as this page, with
+tap-to-load examples.
 
 You can also open it from a terminal: a bare `epher` (or `epher gui`) starts
 the desktop app. On macOS, use the **Install the epher command** button inside
@@ -1130,6 +1139,7 @@ The screen is divided into panels:
 | **q** | quit (when the input is empty) |
 | **Arrow keys** | rotate the 3D view (when the input is empty) |
 | **Space** | start/stop the animation (when the input is empty) |
+| **F10** | open the menus (File, Edit, Graph, Settings, Help) |
 | **Ctrl+L** | clear the history |
 
 ### 5.3 Graphing
@@ -1142,6 +1152,10 @@ graph x ^ 2
 
 epher samples the curve from x = −10 to x = 10 and draws it as an ASCII
 plot in the Graph panel; the legend above the plot names what is plotted.
+
+`graph clear` empties the plot, and the **Graph** menu does the same; the
+**Help** menu opens this guide inside the TUI (arrow keys scroll, **Esc**
+closes).
 
 You can graph any expression, including your own functions — first define
 one, then graph it:

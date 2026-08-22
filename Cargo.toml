@@ -5,6 +5,7 @@ members = [
     "crates/store",
     "crates/i18n",
     "crates/shell",
+    "crates/guide",
     "crates/cli",
     "crates/tui",
     "crates/web",

@@ -64,6 +64,7 @@
       overflow: hidden;
     }
     .epher {
+      position: relative;
       width: 100%;
       max-width: 100%;
       height: 100dvh;
@@ -663,6 +664,143 @@
       margin-bottom: 0.75rem;
     }
 
+    /* --- clear the graph pane (ADR-0018) -------------------------------- */
+    .graph-head {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.2rem 0 0.3rem;
+    }
+    .graph-clear-btn {
+      min-height: 40px;
+      padding: 0.3rem 0.9rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+    .graph-clear-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    /* --- the in-app user guide overlay (ADR-0018) -----------------------
+       Same content as the website guide: site/guide/*.md embedded at
+       build time and rendered here; ```epher / ```sh examples are
+       buttons that load the example into the entry field. */
+    .guide-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: var(--bg);
+      padding: 0.75rem;
+    }
+    .guide-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .guide-head h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .guide-close-btn {
+      min-height: 44px;
+      padding: 0.4rem 1rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+    .guide-insert-hint {
+      color: var(--muted);
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    .guide-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1.1rem;
+    }
+    .guide-body h1 { font-size: 1.6rem; margin: 0.5rem 0 0.4rem; }
+    .guide-body h2 {
+      font-size: 1.3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.2rem;
+      margin: 1.2rem 0 0.4rem;
+    }
+    .guide-body h3 { font-size: 1.1rem; margin: 1rem 0 0.3rem; }
+    .guide-body h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem; }
+    .guide-body p,
+    .guide-body li { line-height: 1.55; }
+    .guide-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: var(--bg);
+      padding: 0 0.25rem;
+      border-radius: 4px;
+    }
+    .guide-body blockquote {
+      margin: 0.5rem 0;
+      padding: 0.4rem 0.8rem;
+      border-inline-start: 3px solid var(--accent);
+      color: var(--muted);
+    }
+    .guide-body table {
+      border-collapse: collapse;
+      margin: 0.6rem 0;
+      width: 100%;
+    }
+    .guide-body th,
+    .guide-body td {
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.6rem;
+      text-align: start;
+      vertical-align: top;
+    }
+    .guide-body th { background: var(--bg); }
+    .guide-example { margin: 0.5rem 0; }
+    .guide-example-btn {
+      display: block;
+      width: 100%;
+      text-align: start;
+      min-height: 44px;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    .guide-example-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .guide-out {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0.5rem 0;
+    }
     /* --- mobile: the menu bar folds into the hamburger (ADR-0017) ------ */
     @media (max-width: 879.98px) {
       .menubar { display: none; }

@@ -661,6 +661,11 @@ https://epher.org/pwa/
 No necesita instalación — funciona en cualquier navegador moderno, en
 ordenador, móvil o tableta.
 
+Esta guía también está integrada en la aplicación: abre **Help → User
+guide** en la barra de menús (toca **☰** en el móvil) para leerla dentro de
+la app, en el idioma que tengas activo. Toca cualquier ejemplo de esa guía
+para cargarlo en el campo de entrada.
+
 ### 2.2 Tu primer cálculo
 
 1. Haz clic en el campo de texto (ya está enfocado cuando la página carga).
@@ -696,7 +701,9 @@ graph f(x)
 
 Cada línea `graph` añade otra curva al mismo gráfico, cada una con su
 propio color y patrón de trazos, y una leyenda que las nombra.
-`graph clear` vacía el gráfico.
+`graph clear` vacía el gráfico — y un botón **Clear graph** en la parte
+superior del panel de la gráfica hace lo mismo para curvas y superficies 3D
+a la vez. La TUI mantiene el comando en su menú **Graph**.
 
 ```epher
 graph x ^ 2
@@ -891,7 +898,8 @@ Inicia epher como cualquier otra aplicación. Obtienes una ventana con la misma
 interfaz que la aplicación web: escribe una expresión, pulsa **Intro** o
 haz clic en **=**, y lee el resultado. Las gráficas también funcionan aquí
 — `graph x ^ 2` dibuja en la ventana (capítulo 2.4). La ventana se puede
-redimensionar libremente.
+redimensionar libremente. La barra de menús incluye **Help → User guide** —
+la misma guía que esta página, con ejemplos que se cargan al tocarlos.
 
 También puedes abrirla desde una terminal: un `epher` sin argumentos (o
 `epher gui`) inicia la aplicación de escritorio. En macOS, usa el botón
@@ -1152,6 +1160,7 @@ La pantalla está dividida en paneles:
 | **q** | salir (cuando la entrada está vacía) |
 | **Teclas de flecha** | girar la vista 3D (cuando la entrada está vacía) |
 | **Espacio** | iniciar/detener la animación (cuando la entrada está vacía) |
+| **F10** | abrir los menús (File, Edit, Graph, Settings, Help) |
 | **Ctrl+L** | borrar el historial |
 
 ### 5.3 Gráficas
@@ -1165,6 +1174,10 @@ graph x ^ 2
 epher muestrea la curva de x = −10 a x = 10 y la dibuja como una gráfica
 ASCII en el panel Graph; la leyenda sobre la gráfica nombra lo que se
 representa.
+
+`graph clear` vacía la gráfica, y el menú **Graph** hace lo mismo; el menú
+**Help** abre esta guía dentro de la TUI (las teclas de flecha desplazan,
+**Esc** cierra).
 
 Puedes graficar cualquier expresión, incluidas tus propias funciones —
 primero define una y luego grafícala:

@@ -29,6 +29,11 @@ The PWA is dark-only and shares the marketing site's design tokens
 contrast numbers) — see `docs/research/modern-ui-accessibility.md` and the
 contrast comments in `crates/web/index.html`.
 
+The user guide (ADR-0018) has one source: `site/guide/<lang>.md`. The
+website pages, the web/desktop overlay, and the TUI pager all render
+those files; the apps embed them at build time, so a guide edit reaches
+every frontend on the next build.
+
 The app layout is ADR-0016: a fixed-viewport scientific calculator —
 input, answer panel, scrollable history, and a five-tab keypad covering
 every function the language supports — with the graph in a fixed pane

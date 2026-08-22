@@ -671,6 +671,11 @@ https://epher.org/pwa/
 Aucune installation n'est nécessaire — elle fonctionne dans tout navigateur
 moderne, sur ordinateur, téléphone ou tablette.
 
+Ce guide est également intégré à l'application : ouvrez **Help → User guide**
+dans la barre de menus (touchez **☰** sur un téléphone) pour le lire dans
+l'application, dans la langue actuelle de l'application. Touchez n'importe
+quel exemple de ce guide pour le charger dans le champ de saisie.
+
 ### 2.2 Votre premier calcul
 
 1. Cliquez sur le champ de texte (il est déjà focalisé au chargement).
@@ -706,7 +711,9 @@ graph f(x)
 
 Chaque ligne `graph` ajoute une autre courbe au même tracé, chacune avec
 sa propre couleur et son propre motif de tirets, et une légende qui les
-nomme. `graph clear` vide le tracé.
+nomme. `graph clear` vide le tracé — et un bouton **Clear graph** en haut
+du panneau graphique fait la même chose pour les courbes et les surfaces 3D
+à la fois. La TUI conserve la commande dans son menu **Graph**.
 
 ```epher
 graph x ^ 2
@@ -907,7 +914,9 @@ Lancez epher comme n'importe quelle application. Vous obtenez une fenêtre
 avec la même interface que l'application web : tapez une expression,
 appuyez sur **Entrée** ou cliquez sur **=**, et lisez le résultat. Les
 graphiques fonctionnent aussi ici — `graph x ^ 2` dessine dans la fenêtre
-(chapitre 2.4). La fenêtre se redimensionne librement.
+(chapitre 2.4). La fenêtre se redimensionne librement. La barre de menus
+comprend **Help → User guide** — le même guide que cette page, avec des
+exemples à charger d'un toucher.
 
 Vous pouvez aussi l'ouvrir depuis un terminal : un `epher` sans argument (ou
 `epher gui`) lance l'application de bureau. Sur macOS, utilisez le bouton
@@ -1168,6 +1177,7 @@ L'écran est divisé en panneaux :
 | **q** | quitter (quand la saisie est vide) |
 | **Touches fléchées** | faire pivoter la vue 3D (quand la saisie est vide) |
 | **Espace** | démarrer/arrêter l'animation (quand la saisie est vide) |
+| **F10** | ouvrir les menus (Fichier, Édition, Graphique, Paramètres, Aide) |
 | **Ctrl+L** | effacer l'historique |
 
 ### 5.3 Les graphiques
@@ -1181,6 +1191,10 @@ graph x ^ 2
 epher échantillonne la courbe de x = −10 à x = 10 et la dessine sous
 forme de graphique ASCII dans le panneau Graph ; la légende au-dessus du
 tracé nomme ce qui est tracé.
+
+`graph clear` vide le tracé, et le menu **Graph** fait de même ; le menu
+**Help** ouvre ce guide dans la TUI (les touches fléchées font défiler,
+**Esc** ferme).
 
 Vous pouvez tracer n'importe quelle expression, y compris vos propres
 fonctions — définissez-en d'abord une, puis tracez-la :

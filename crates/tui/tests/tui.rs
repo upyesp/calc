@@ -481,18 +481,27 @@ fn menu_navigation_and_actions() {
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SaveHistory));
     assert_eq!(app.menu_active(), None);
 
-    // Right arrow from the last menu wraps to the first.
-    app.menu_open(2);
+    // Right arrow from the last menu (Help) wraps to the first.
+    app.menu_open(4);
     app.menu_move(1, 0);
     assert_eq!(app.menu_active(), Some((0, 0)));
-    // Settings: theme radios first, then languages.
+    // Graph menu: exactly one item, clearing the graph (ADR-0018).
     app.menu_open(2);
+    assert_eq!(epher_tui::App::menu_len(2), 1);
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::ClearGraph));
+    // Settings moved to slot 3: theme radios first, then languages.
+    app.menu_open(3);
+    assert_eq!(epher_tui::App::menu_len(3), 11);
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetTheme("light")));
-    app.menu_open(2);
+    app.menu_open(3);
     for _ in 0..4 {
         app.menu_move(0, 1);
     }
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetLanguage("zh-CN")));
+    // Help menu: one item, the user guide.
+    app.menu_open(4);
+    assert_eq!(epher_tui::App::menu_len(4), 1);
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::OpenGuide));
 
     // Typing a character dismisses the menu (the event loop calls
     // menu_close before push_char; here we check the state transitions
@@ -500,6 +509,49 @@ fn menu_navigation_and_actions() {
     app.menu_open(0);
     app.menu_close();
     assert_eq!(app.menu_active(), None);
+}
+
+#[test]
+fn clear_graph_empties_the_pane() {
+    let dir = std::env::temp_dir().join(format!("epher-tui-clear-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let store = epher_store::DocStore::new(epher_store::FsStore::new(&dir));
+    let localizer = epher_i18n::Localizer::resolve(None, &[]);
+    let mut app = App::with_session(epher_core::Session::new());
+    app.submit_line("graph x ^ 2", &store, &localizer);
+    assert!(!app.graph().is_empty());
+    app.clear_graph();
+    assert!(app.graph().is_empty());
+    assert!(app.surfaces().is_empty());
+    // The menu spelling and the typed commands agree.
+    app.submit_line("graph x ^ 3", &store, &localizer);
+    assert!(!app.graph().is_empty());
+    app.submit_line("graph clear", &store, &localizer);
+    assert!(app.graph().is_empty());
+}
+
+#[test]
+fn guide_view_opens_scrolls_and_closes() {
+    let mut app = App::with_session(epher_core::Session::new());
+    assert!(!app.guide_active());
+    app.guide_open();
+    assert!(app.guide_active());
+    assert_eq!(app.guide_offset(), Some(0));
+    app.guide_scroll(5);
+    assert_eq!(app.guide_offset(), Some(5));
+    app.guide_scroll(-20); // clamps at zero
+    assert_eq!(app.guide_offset(), Some(0));
+    app.guide_scroll_to(usize::MAX); // End: clamped to content at draw time
+    assert_eq!(app.guide_offset(), Some(usize::MAX));
+    app.guide_close();
+    assert!(!app.guide_active());
+    // The embedded guide renders in every interface language (the TUI's
+    // own crate embeds the same site/guide/*.md as the website).
+    for l in epher_i18n::SUPPORTED_LOCALES {
+        let lines = epher_guide::render_text(epher_guide::guide(l));
+        assert!(!lines.is_empty());
+        assert!(lines.iter().any(|t| matches!(t, epher_guide::TLine::Heading(1, _))));
+    }
 }
 
 #[test]

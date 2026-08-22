@@ -1,0 +1,432 @@
+//! The epher user guide, shared by the web app and the TUI (ADR-0018).
+//!
+//! The single source of truth is `site/guide/<locale>.md` — the same
+//! files the website build (`scripts/build-guide.mjs`) turns into the
+//! guide pages. `guide(locale)` returns the embedded markdown; each
+//! frontend renders it with the renderer that fits its medium:
+//! [`render_html`] for the web/desktop overlay (every `` ```epher `` /
+//! `` ```sh `` fence becomes a clickable example button), [`render_text`]
+//! for the TUI pager. The markdown feature set is bounded by the guide
+//! itself: ATX headings (1–4), fenced code blocks (`epher`, `sh`, `text`),
+//! flat lists, pipe tables, blockquotes, paragraphs, and the inline marks
+//! `` `code` ``, `**bold**`, `*italic*`. No links, images, or raw HTML —
+//! so both renderers stay small and every byte of text is escaped.
+
+include!(concat!(env!("OUT_DIR"), "/content.rs"));
+
+/// Escape text for inclusion in generated HTML.
+fn escape_html(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
+/// Inline markdown → HTML. Escapes first, then applies the three inline
+/// marks the guide uses. `` `code` `` spans win over everything else, and
+/// `**bold**` is applied before `*italic*`.
+fn inline(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for (i, seg) in s.split('`').enumerate() {
+        if i % 2 == 1 {
+            // A code span: no further marks inside.
+            out.push_str("<code>");
+            out.push_str(&escape_html(seg));
+            out.push_str("</code>");
+            continue;
+        }
+        for (j, part) in seg.split("**").enumerate() {
+            if j % 2 == 1 {
+                out.push_str("<strong>");
+            }
+            for (k, sub) in part.split('*').enumerate() {
+                if k % 2 == 1 {
+                    out.push_str("<em>");
+                }
+                out.push_str(&escape_html(sub));
+                if k % 2 == 1 {
+                    out.push_str("</em>");
+                }
+            }
+            if j % 2 == 1 {
+                out.push_str("</strong>");
+            }
+        }
+    }
+    out
+}
+
+/// Strip the inline marks for plain-text output.
+fn strip_inline(s: &str) -> String {
+    s.replace("**", "").replace('*', "").replace('`', "")
+}
+
+/// `#`–`####` → (level, rest); nothing else.
+fn heading(line: &str) -> Option<(u8, &str)> {
+    for (lvl, mark) in [(4, "#### "), (3, "### "), (2, "## "), (1, "# ")] {
+        if let Some(rest) = line.strip_prefix(mark) {
+            return Some((lvl, rest));
+        }
+    }
+    None
+}
+
+fn is_table_separator(line: &str) -> bool {
+    line.starts_with('|') && line.chars().all(|c| matches!(c, '|' | '-' | ':' | ' '))
+}
+
+fn table_cells(line: &str) -> Vec<&str> {
+    let trimmed = line.trim().trim_start_matches('|').trim_end_matches('|');
+    trimmed.split('|').map(str::trim).collect()
+}
+
+fn is_ol_line(l: &str) -> bool {
+    let digits = l.chars().take_while(|c| c.is_ascii_digit()).count();
+    digits > 0 && l[digits..].starts_with(". ")
+}
+
+/// Render the guide markdown as HTML for the web/desktop overlay.
+///
+/// `` ```epher `` and `` ```sh `` fences become clickable example blocks:
+/// a `<button class="guide-example-btn">` whose `data-code` attribute
+/// carries the exact text to insert into the entry field. `` ```text ``
+/// fences are plain output boxes. Everything else maps to the obvious
+/// element; all text is escaped.
+pub fn render_html(md: &str) -> String {
+    let lines: Vec<&str> = md.lines().collect();
+    let mut out = String::with_capacity(md.len() * 2);
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        if line.trim().is_empty() {
+            i += 1;
+            continue;
+        }
+        if let Some(lang) = line.strip_prefix("```") {
+            let lang = lang.trim();
+            i += 1;
+            let mut code = String::new();
+            while i < lines.len() && !lines[i].starts_with("```") {
+                if !code.is_empty() {
+                    code.push('\n');
+                }
+                code.push_str(lines[i]);
+                i += 1;
+            }
+            i += 1; // closing fence
+            match lang {
+                "epher" | "sh" => {
+                    out.push_str("<div class=\"guide-example\"><button type=\"button\" class=\"guide-example-btn\" data-code=\"");
+                    out.push_str(&escape_html(&code));
+                    out.push_str("\">");
+                    out.push_str(&escape_html(&code));
+                    out.push_str("</button></div>");
+                }
+                _ => {
+                    out.push_str("<pre class=\"guide-out\"><code>");
+                    out.push_str(&escape_html(&code));
+                    out.push_str("</code></pre>");
+                }
+            }
+            continue;
+        }
+        if let Some((lvl, rest)) = heading(line) {
+            let tag = match lvl {
+                2 => "h2",
+                3 => "h3",
+                4 => "h4",
+                _ => "h1",
+            };
+            out.push_str(&format!("<{tag}>{}</{tag}>", inline(rest)));
+            i += 1;
+            continue;
+        }
+        if line.starts_with('|') && i + 1 < lines.len() && is_table_separator(lines[i + 1]) {
+            let header = table_cells(line);
+            i += 2;
+            let mut rows = Vec::new();
+            while i < lines.len() && lines[i].starts_with('|') {
+                rows.push(table_cells(lines[i]));
+                i += 1;
+            }
+            out.push_str("<table><thead><tr>");
+            for c in &header {
+                out.push_str(&format!("<th>{}</th>", inline(c)));
+            }
+            out.push_str("</tr></thead><tbody>");
+            for row in &rows {
+                out.push_str("<tr>");
+                for n in 0..header.len() {
+                    let cell = row.get(n).copied().unwrap_or("");
+                    out.push_str(&format!("<td>{}</td>", inline(cell)));
+                }
+                out.push_str("</tr>");
+            }
+            out.push_str("</tbody></table>");
+            continue;
+        }
+        if line == ">" || line.starts_with("> ") {
+            let mut parts = Vec::new();
+            while i < lines.len() && (lines[i] == ">" || lines[i].starts_with("> ")) {
+                let rest = lines[i].strip_prefix("> ").unwrap_or("");
+                if !rest.is_empty() {
+                    parts.push(rest);
+                }
+                i += 1;
+            }
+            out.push_str("<blockquote><p>");
+            out.push_str(&inline(&parts.join(" ")));
+            out.push_str("</p></blockquote>");
+            continue;
+        }
+        if let Some(item) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
+            out.push_str("<ul>");
+            out.push_str(&format!("<li>{}</li>", inline(item)));
+            i += 1;
+            while i < lines.len() {
+                match lines[i]
+                    .strip_prefix("- ")
+                    .or_else(|| lines[i].strip_prefix("* "))
+                {
+                    Some(item) => {
+                        out.push_str(&format!("<li>{}</li>", inline(item)));
+                        i += 1;
+                    }
+                    None => break,
+                }
+            }
+            out.push_str("</ul>");
+            continue;
+        }
+        if is_ol_line(line) {
+            out.push_str("<ol>");
+            while i < lines.len() && is_ol_line(lines[i]) {
+                let dot = lines[i].find('.').unwrap();
+                out.push_str(&format!("<li>{}</li>", inline(&lines[i][dot + 2..])));
+                i += 1;
+            }
+            out.push_str("</ol>");
+            continue;
+        }
+        let mut parts = vec![line];
+        i += 1;
+        while i < lines.len()
+            && !lines[i].trim().is_empty()
+            && !lines[i].starts_with("```")
+            && heading(lines[i]).is_none()
+            && !lines[i].starts_with('|')
+            && lines[i] != ">"
+            && !lines[i].starts_with("> ")
+            && !lines[i].starts_with("- ")
+            && !lines[i].starts_with("* ")
+            && !is_ol_line(lines[i])
+        {
+            parts.push(lines[i]);
+            i += 1;
+        }
+        out.push_str("<p>");
+        out.push_str(&inline(&parts.join(" ")));
+        out.push_str("</p>");
+    }
+    out
+}
+
+/// One line of the plain-text rendering for the TUI pager.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TLine {
+    /// Chapter/section heading; the u8 is the heading level (1–4).
+    Heading(u8, String),
+    /// Body text, list items, and table rows.
+    Text(String),
+    /// Fenced code (examples and transcripts).
+    Code(String),
+    /// Blockquote paragraphs.
+    Quote(String),
+    /// An empty line.
+    Blank,
+}
+
+/// Render the guide markdown as plain text lines for the TUI pager. The
+/// same parser as [`render_html`], minus the inline styling.
+pub fn render_text(md: &str) -> Vec<TLine> {
+    let lines: Vec<&str> = md.lines().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        if line.trim().is_empty() {
+            out.push(TLine::Blank);
+            i += 1;
+            continue;
+        }
+        if let Some(lang) = line.strip_prefix("```") {
+            i += 1;
+            let mut code = Vec::new();
+            while i < lines.len() && !lines[i].starts_with("```") {
+                code.push(lines[i].to_string());
+                i += 1;
+            }
+            i += 1;
+            let _ = lang;
+            out.push(TLine::Blank);
+            for c in code {
+                out.push(TLine::Code(c));
+            }
+            out.push(TLine::Blank);
+            continue;
+        }
+        if let Some((lvl, rest)) = heading(line) {
+            out.push(TLine::Heading(lvl, strip_inline(rest)));
+            i += 1;
+            continue;
+        }
+        if line.starts_with('|') && i + 1 < lines.len() && is_table_separator(lines[i + 1]) {
+            let header = table_cells(line);
+            i += 2;
+            out.push(TLine::Text(header.join(" | ")));
+            while i < lines.len() && lines[i].starts_with('|') {
+                out.push(TLine::Text(table_cells(lines[i]).join(" | ")));
+                i += 1;
+            }
+            continue;
+        }
+        if line == ">" || line.starts_with("> ") {
+            let mut parts = Vec::new();
+            while i < lines.len() && (lines[i] == ">" || lines[i].starts_with("> ")) {
+                let rest = lines[i].strip_prefix("> ").unwrap_or("");
+                if !rest.is_empty() {
+                    parts.push(rest);
+                }
+                i += 1;
+            }
+            out.push(TLine::Quote(strip_inline(&parts.join(" "))));
+            continue;
+        }
+        if let Some(item) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
+            out.push(TLine::Text(format!("• {}", strip_inline(item))));
+            i += 1;
+            while i < lines.len() {
+                match lines[i]
+                    .strip_prefix("- ")
+                    .or_else(|| lines[i].strip_prefix("* "))
+                {
+                    Some(item) => {
+                        out.push(TLine::Text(format!("• {}", strip_inline(item))));
+                        i += 1;
+                    }
+                    None => break,
+                }
+            }
+            continue;
+        }
+        if is_ol_line(line) {
+            let mut n = 1;
+            while i < lines.len() && is_ol_line(lines[i]) {
+                let dot = lines[i].find('.').unwrap();
+                out.push(TLine::Text(format!("{n}. {}", strip_inline(&lines[i][dot + 2..]))));
+                n += 1;
+                i += 1;
+            }
+            continue;
+        }
+        let mut parts = vec![line];
+        i += 1;
+        while i < lines.len()
+            && !lines[i].trim().is_empty()
+            && !lines[i].starts_with("```")
+            && heading(lines[i]).is_none()
+            && !lines[i].starts_with('|')
+            && lines[i] != ">"
+            && !lines[i].starts_with("> ")
+            && !lines[i].starts_with("- ")
+            && !lines[i].starts_with("* ")
+            && !is_ol_line(lines[i])
+        {
+            parts.push(lines[i]);
+            i += 1;
+        }
+        out.push(TLine::Text(strip_inline(&parts.join(" "))));
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guide_has_all_locales_and_english_fallback() {
+        assert!(guide("en").contains("epher user guide"));
+        assert!(guide("de").contains("epher"));
+        assert!(!guide("de").contains("epher user guide")); // translated, not the English text
+        assert_eq!(guide("xx"), guide("en"));
+    }
+
+    #[test]
+    fn html_headings_lists_and_paragraphs() {
+        let md = "# Title\n\nIntro line.\nwrapped line.\n\n- one\n- two\n\n1. first\n2. second\n";
+        let h = render_html(md);
+        assert!(h.contains("<h1>Title</h1>"), "{h}");
+        assert!(h.contains("<p>Intro line. wrapped line.</p>"), "{h}");
+        assert!(h.contains("<ul><li>one</li><li>two</li></ul>"), "{h}");
+        assert!(h.contains("<ol><li>first</li><li>second</li></ol>"), "{h}");
+    }
+
+    #[test]
+    fn html_epher_fences_become_clickable_examples_and_text_is_escaped() {
+        let md = "```epher\n2 + 3 * 4\n```\n\n```text\n14\n```\n";
+        let h = render_html(md);
+        assert!(h.contains("class=\"guide-example-btn\" data-code=\"2 + 3 * 4\">2 + 3 * 4"), "{h}");
+        assert!(h.contains("<pre class=\"guide-out\"><code>14</code></pre>"), "{h}");
+        // angle brackets and quotes inside code are escaped in the attribute
+        let md2 = "```epher\nx > 1 and \"a\"\n```\n";
+        let h2 = render_html(md2);
+        assert!(h2.contains("data-code=\"x &gt; 1 and &quot;a&quot;\""), "{h2}");
+    }
+
+    #[test]
+    fn html_tables_blockquotes_and_inline() {
+        let md = "| a | b |\n|---|---|\n| 1 | 2 |\n\n> note **bold** and `code`.\n\nPara with **b** and *i* and `c`.\n";
+        let h = render_html(md);
+        assert!(h.contains("<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"), "{h}");
+        assert!(h.contains("<blockquote><p>note <strong>bold</strong> and <code>code</code>.</p></blockquote>"), "{h}");
+        assert!(h.contains("Para with <strong>b</strong> and <em>i</em> and <code>c</code>."), "{h}");
+    }
+
+    #[test]
+    fn html_h4_headings_survive() {
+        let h = render_html("#### Small\n");
+        assert!(h.contains("<h4>Small</h4>"), "{h}");
+    }
+
+    #[test]
+    fn full_guides_in_every_locale_render_without_panic() {
+        for l in ["ar", "de", "en", "es", "fr", "hi", "pt", "zh-CN"] {
+            let md = guide(l);
+            assert!(md.len() > 5000, "guide {l} suspiciously short");
+            let html = render_html(md);
+            assert!(html.contains("<h1>"), "guide {l}: no h1 in HTML");
+            assert!(html.contains("guide-example-btn"), "guide {l}: no examples");
+            let text = render_text(md);
+            assert!(!text.is_empty());
+            assert!(text.iter().any(|t| matches!(t, TLine::Heading(1, _))));
+        }
+    }
+
+    #[test]
+    fn text_mode_strips_marks_and_keeps_structure() {
+        let md = "## Chap\n\nPara `code` **bold**.\n\n```epher\n1+1\n```\n\n> note\n";
+        let t = render_text(md);
+        assert_eq!(t[0], TLine::Heading(2, "Chap".into()));
+        assert!(t.contains(&TLine::Text("Para code bold.".into())));
+        assert!(t.contains(&TLine::Code("1+1".into())));
+        assert!(t.contains(&TLine::Quote("note".into())));
+    }
+}

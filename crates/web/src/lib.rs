@@ -374,6 +374,22 @@ fn epher_app() -> Html {
     let theme = use_state(|| "dark".to_string());
     let menu_open = use_state(|| Option::<&'static str>::None);
     let hamburger_open = use_state(|| false);
+    let guide_open = use_state(|| false);
+    let guide_close_ref = use_node_ref();
+    {
+        // Focus the close button whenever the guide opens so Escape works
+        // from the first keypress (autofocus only fires on first insert).
+        let guide_open = guide_open.clone();
+        let guide_close_ref = guide_close_ref.clone();
+        use_effect_with(guide_open, move |open| {
+            if **open {
+                if let Some(el) = guide_close_ref.cast::<web_sys::HtmlElement>() {
+                    let _ = el.focus();
+                }
+            }
+            || {}
+        });
+    }
     let file_ref = use_node_ref();
     let bridge = Bridge::detect();
 
@@ -1434,6 +1450,42 @@ fn epher_app() -> Html {
         })
     };
 
+    // ADR-0018: clear the graph pane — curves, points of interest, 3D
+    // surfaces, and any trace/animation state (the same as the `graph
+    // clear` / `graph3d clear` commands, in one button).
+    let on_graph_clear = {
+        let graph = graph.clone();
+        let pois = pois.clone();
+        let surface = surface.clone();
+        let trace = trace.clone();
+        let play = play.clone();
+        let play_cell = play_cell.clone();
+        let live = live.clone();
+        let result = result.clone();
+        let localizer = localizer.clone();
+        Callback::from(move |_| {
+            graph.set(Vec::new());
+            pois.set(Vec::new());
+            surface.set(Vec::new());
+            trace.set(None);
+            play.set(None);
+            *play_cell.borrow_mut() = None;
+            *live.borrow_mut() = GraphLive::default();
+            result.set(localizer.lookup("graph-cleared"));
+        })
+    };
+
+    // ADR-0018: the in-app user guide — the same markdown the website
+    // guide pages are built from, rendered for the current language.
+    let on_open_guide = {
+        let guide_open = guide_open.clone();
+        Callback::from(move |_: web_sys::MouseEvent| guide_open.set(true))
+    };
+    let on_close_guide = {
+        let guide_open = guide_open.clone();
+        Callback::from(move |_: web_sys::MouseEvent| guide_open.set(false))
+    };
+
     html! {
         <main class="epher">
             <h1 class="visually-hidden">{ localizer.lookup("app-name") }</h1>
@@ -1600,6 +1652,38 @@ fn epher_app() -> Html {
                             } else { html! {} }
                         }
                     </div>
+                    <div class="menu">
+                        <button
+                            type="button"
+                            role="menuitem"
+                            aria-haspopup="menu"
+                            aria-expanded={(*menu_open == Some("help")).to_string()}
+                            class={if *menu_open == Some("help") { "menu-top open" } else { "menu-top" }}
+                            onclick={{
+                                let menu_open = menu_open.clone();
+                                Callback::from(move |_| menu_open.set(if *menu_open == Some("help") { None } else { Some("help") }))
+                            }}
+                        >
+                            { localizer.lookup("menu-help") }
+                        </button>
+                        {
+                            if *menu_open == Some("help") {
+                                html! {
+                                    <div class="menu-drop" role="menu" aria-label={localizer.lookup("menu-help")}>
+                                        <button type="button" role="menuitem" class="menu-item"
+                                            onclick={Callback::from({
+                                                let menu_open = menu_open.clone();
+                                                let on_open_guide = on_open_guide.clone();
+                                                move |e: web_sys::MouseEvent| { menu_open.set(None); on_open_guide.emit(e); }
+                                            })}
+                                        >
+                                            { localizer.lookup("menu-guide") }
+                                        </button>
+                                    </div>
+                                }
+                            } else { html! {} }
+                        }
+                    </div>
                 </nav>
                 <nav class="pane-switch">
                     <button
@@ -1724,6 +1808,14 @@ fn epher_app() -> Html {
                                         </button>
                                     }
                                 }) }
+                                <div class="menu-sep" role="separator"></div>
+                                <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-help") }</p>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(Callback::from({
+                                    let on_open_guide = on_open_guide.clone();
+                                    move |e: web_sys::MouseEvent| on_open_guide.emit(e)
+                                }))}>
+                                    { localizer.lookup("menu-guide") }
+                                </button>
                             </div>
                         }
                     } else {
@@ -1842,6 +1934,19 @@ fn epher_app() -> Html {
                 </section>
                 <section class="pane" id="graph-pane" aria-label={localizer.lookup("graph-pane")}>
                     {
+                        if !(*graph).is_empty() || !(*surface).is_empty() {
+                            html! {
+                                <div class="graph-head">
+                                    <button type="button" class="graph-clear-btn" onclick={on_graph_clear.clone()}>
+                                        { localizer.lookup("graph-clear") }
+                                    </button>
+                                </div>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
+                    {
                         if !(*graph).is_empty() {
                             html! {
                                 <section class="graph">
@@ -1933,6 +2038,71 @@ fn epher_app() -> Html {
                     }
                 </section>
             </div>
+            {
+                if *guide_open {
+                    html! {
+                        <div
+                            class="guide-overlay"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={localizer.lookup("menu-guide")}
+                            onkeydown={{
+                                let guide_open = guide_open.clone();
+                                Callback::from(move |e: web_sys::KeyboardEvent| {
+                                    if e.key() == "Escape" {
+                                        guide_open.set(false);
+                                    }
+                                })
+                            }}
+                        >
+                            <div class="guide-head">
+                                <h2>{ localizer.lookup("menu-guide") }</h2>
+                                <button type="button" class="guide-close-btn" ref={guide_close_ref.clone()} onclick={on_close_guide.clone()}>
+                                    { localizer.lookup("guide-close") }
+                                </button>
+                            </div>
+                            <p class="guide-insert-hint">{ localizer.lookup("guide-insert-hint") }</p>
+                            <div class="guide-body" tabindex="0" onclick={Callback::from({
+                                let input = input.clone();
+                                let input_ref = input_ref.clone();
+                                let guide_open = guide_open.clone();
+                                let scroll_pane = scroll_pane.clone();
+                                move |e: web_sys::MouseEvent| {
+                                    // Clicking an example loads its code into
+                                    // the entry field and returns to the
+                                    // calculator (ADR-0018).
+                                    if let Some(target) =
+                                        e.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+                                    {
+                                        if let Some(btn) =
+                                            target.closest(".guide-example-btn").ok().flatten()
+                                        {
+                                            if let Some(code) = btn.get_attribute("data-code") {
+                                                input.set(code);
+                                                guide_open.set(false);
+                                                scroll_pane.emit("calc-pane");
+                                                if let Some(ta) =
+                                                    input_ref.cast::<web_sys::HtmlTextAreaElement>()
+                                                {
+                                                    let _ = ta.focus();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            })}>
+                                {
+                                    Html::from_html_unchecked(
+                                        epher_guide::render_html(epher_guide::guide(localizer.locale())).into(),
+                                    )
+                                }
+                            </div>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
         </main>
 
     }

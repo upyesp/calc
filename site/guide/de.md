@@ -668,6 +668,11 @@ https://epher.org/pwa/
 Keine Installation nötig — sie funktioniert in jedem modernen Browser auf
 Computer, Telefon oder Tablet.
 
+Dieses Handbuch ist auch in die App eingebaut: öffne **Help → User guide**
+in der Menüleiste (tippe auf einem Telefon auf **☰**), um es in der App in
+der aktuell eingestellten Sprache zu lesen. Tippe ein beliebiges Beispiel
+in diesem Handbuch an, um es ins Eingabefeld zu laden.
+
 ### 2.2 Deine erste Berechnung
 
 1. Klicke auf das Textfeld (es ist beim Laden der Seite bereits fokussiert).
@@ -704,7 +709,9 @@ graph f(x)
 
 Jede `graph`-Zeile fügt demselben Plot eine weitere Kurve hinzu, jede mit
 eigener Farbe und eigenem Strichmuster, und eine Legende benennt sie.
-`graph clear` leert den Plot.
+`graph clear` leert den Plot — und ein Button **Clear graph** oben im
+Graph-Panel macht dasselbe für Kurven und 3D-Flächen zusammen. Die TUI
+behält den Befehl in ihrem **Graph**-Menü.
 
 ```epher
 graph x ^ 2
@@ -899,7 +906,9 @@ Starte epher wie jede andere Anwendung. Du bekommst ein Fenster mit
 derselben Oberfläche wie die Web-App: tippe einen Ausdruck, drücke
 **Enter** oder klicke auf **=**, und lies das Ergebnis. Graphen zeichnen
 funktioniert auch hier — `graph x ^ 2` zeichnet im Fenster (Kapitel 2.4).
-Das Fenster lässt sich frei skalieren.
+Das Fenster lässt sich frei skalieren. Die Menüleiste enthält
+**Help → User guide** — dasselbe Handbuch wie diese Seite, mit antippbaren
+Beispielen.
 
 Du kannst es auch aus einem Terminal öffnen: ein bloßes `epher` (oder
 `epher gui`) startet die Desktop-App. Verwende unter macOS den Button
@@ -1162,6 +1171,7 @@ Der Bildschirm ist in Panels unterteilt:
 | **q** | beenden (wenn die Eingabe leer ist) |
 | **Arrow keys** | die 3D-Ansicht drehen (wenn die Eingabe leer ist) |
 | **Space** | die Animation starten/stoppen (wenn die Eingabe leer ist) |
+| **F10** | die Menüs öffnen (Datei, Bearbeiten, Graph, Einstellungen, Hilfe) |
 | **Ctrl+L** | den Verlauf leeren |
 
 ### 5.3 Graphen zeichnen
@@ -1175,6 +1185,10 @@ graph x ^ 2
 epher tastet die Kurve von x = −10 bis x = 10 ab und zeichnet sie als
 ASCII-Plot in das Panel Graph; die Legende über dem Plot benennt, was
 gezeichnet wird.
+
+`graph clear` leert den Plot, und das **Graph**-Menü macht dasselbe; das
+**Help**-Menü öffnet dieses Handbuch in der TUI (Pfeiltasten scrollen,
+**Esc** schließt).
 
 Du kannst jeden Ausdruck zeichnen, auch deine eigenen Funktionen —
 definiere zuerst eine und zeichne sie dann:
