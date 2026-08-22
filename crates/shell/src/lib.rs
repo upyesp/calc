@@ -20,6 +20,8 @@ pub enum Command {
     Save { name: String },
     SaveScript { name: String },
     Language { code: String },
+    /// `theme light|dark|night` — the UI theme (ADR-0017).
+    Theme { name: String },
     /// `table <expr> [from a to b] [points n]` — a table of values (ADR-0014).
     Table { source: String },
 }
@@ -31,6 +33,7 @@ pub enum Prepared {
     SaveConstant { name: String, source: String },
     SaveScript { name: String, source: String },
     Language { code: String },
+    Theme { name: String },
     /// A preformatted table of values (monospace text, one row per line).
     Table { text: String },
 }
@@ -59,6 +62,13 @@ pub fn classify(line: &str) -> Option<Command> {
         let code = code.trim();
         if !code.is_empty() {
             return Some(Command::Language { code: code.to_string() });
+        }
+        return None;
+    }
+    if let Some(name) = line.strip_prefix("theme ") {
+        let name = name.trim();
+        if !name.is_empty() {
+            return Some(Command::Theme { name: name.to_string() });
         }
         return None;
     }
@@ -123,6 +133,16 @@ pub fn prepare(cmd: &Command, session: &Session, localizer: &Localizer) -> Resul
                 ))
             }
         }
+        Command::Theme { name } => {
+            if matches!(name.as_str(), "light" | "dark" | "night") {
+                Ok(Prepared::Theme { name: name.clone() })
+            } else {
+                Err(localizer.lookup_args(
+                    "unsupported-theme",
+                    &[("supported", "light, dark, night")],
+                ))
+            }
+        }
         Command::Table { source } => {
             let spec = epher_core::graph::parse_table_source(source)
                 .map_err(|e| format!("error: {e}"))?;
@@ -179,6 +199,14 @@ pub fn message(prepared: &Prepared, localizer: &Localizer) -> String {
         Prepared::Language { code, .. } => {
             localizer.lookup_args("language-set", &[("code", code)])
         }
+        Prepared::Theme { name, .. } => {
+            let label = match name.as_str() {
+                "light" => localizer.lookup("theme-light"),
+                "night" => localizer.lookup("theme-night"),
+                _ => localizer.lookup("theme-dark"),
+            };
+            localizer.lookup_args("theme-set", &[("name", &label)])
+        }
         Prepared::Table { text } => text.clone(),
     }
 }
@@ -203,17 +231,20 @@ pub struct Handled {
     pub message: String,
     pub error: bool,
     pub language: Option<String>,
+    /// The new theme preference when a `theme` command changed it
+    /// (frontends re-apply their palette).
+    pub theme: Option<String>,
 }
 
 impl Handled {
     /// A successful answer: message to stdout, no language switch.
     fn ok(message: String) -> Self {
-        Handled { message, error: false, language: None }
+        Handled { message, error: false, language: None, theme: None }
     }
 
     /// A rejected command: message to stderr, store untouched.
     fn err(message: String) -> Self {
-        Handled { message, error: true, language: None }
+        Handled { message, error: true, language: None, theme: None }
     }
 }
 
@@ -234,6 +265,7 @@ pub fn run_command<S: Storage>(
         Prepared::SaveConstant { name, source } => persist::save_constant(store, name, source),
         Prepared::SaveScript { name, source } => persist::save_script(store, name, source),
         Prepared::Language { code } => persist::save_language(store, code),
+        Prepared::Theme { name } => persist::save_theme(store, name),
         // A table is pure computation — nothing to persist.
         Prepared::Table { .. } => Ok(()),
     };
@@ -244,8 +276,14 @@ pub fn run_command<S: Storage>(
             } else {
                 None
             };
+            let theme = if let Prepared::Theme { name } = &prepared {
+                Some(name.clone())
+            } else {
+                None
+            };
             let mut handled = Handled::ok(message(&prepared, localizer));
             handled.language = language;
+            handled.theme = theme;
             handled
         }
         Err(e) => Handled::err(e.to_string()),

@@ -34,6 +34,7 @@ impl DesktopStore {
             history: persist::history(&self.store)?,
             replay: persist::replay_lines(&self.store)?,
             language: persist::load_language(&self.store)?,
+            theme: persist::load_theme(&self.store)?,
         })
     }
 
@@ -56,6 +57,10 @@ impl DesktopStore {
     pub fn save_language(&self, language: &str) -> epher_store::StoreResult<()> {
         persist::save_language(&self.store, language)
     }
+
+    pub fn save_theme(&self, theme: &str) -> epher_store::StoreResult<()> {
+        persist::save_theme(&self.store, theme)
+    }
 }
 
 /// The answer to `init`: the store's contents as plain data, so the webview
@@ -65,6 +70,8 @@ pub struct InitState {
     pub history: Vec<String>,
     pub replay: Vec<String>,
     pub language: Option<String>,
+    /// The theme preference (light/dark/night), if the user set one.
+    pub theme: Option<String>,
 }
 
 #[tauri::command]
@@ -98,6 +105,11 @@ pub mod dispatch;
 #[tauri::command]
 fn save_language(state: State<DesktopStore>, code: String) -> Result<(), String> {
     state.save_language(&code).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_theme(state: State<DesktopStore>, name: String) -> Result<(), String> {
+    state.save_theme(&name).map_err(|e| e.to_string())
 }
 
 /// Can this shell install the `epher` terminal command? (macOS app bundle
@@ -135,6 +147,7 @@ pub fn run() {
             save_script,
             save_history,
             save_language,
+            save_theme,
             cli_install_supported,
             install_cli
         ])

@@ -328,6 +328,22 @@ static TABS: &[TabDef] = &[
     },
 ];
 
+/// The name of a language in itself — the menu lists languages the way
+/// their speakers write them, independent of the UI language.
+fn native_language_name(code: &str) -> &str {
+    match code {
+        "en" => "English",
+        "zh-CN" => "\u{7b80}\u{4f53}\u{4e2d}\u{6587}",
+        "hi" => "\u{939}\u{93f}\u{928}\u{94d}\u{926}\u{940}",
+        "es" => "Espa\u{f1}ol",
+        "fr" => "Fran\u{e7}ais",
+        "ar" => "\u{627}\u{644}\u{639}\u{631}\u{628}\u{64a}\u{629}",
+        "de" => "Deutsch",
+        "pt" => "Portugu\u{ea}s",
+        _ => code,
+    }
+}
+
 #[function_component(EpherApp)]
 fn epher_app() -> Html {
     let session = use_state(Session::new);
@@ -352,6 +368,12 @@ fn epher_app() -> Html {
     // Keypad tab + which pane faces the user on mobile (ADR-0016).
     let key_tab = use_state(|| "digits".to_string());
     let active_pane = use_state(|| "calc".to_string());
+    // The UI theme (ADR-0017): dark is the default; light and night are
+    // set from the Settings menu or the `theme` command. The open menu
+    // bar item (File/Edit/Settings) drives the dropdown (ADR-0017).
+    let theme = use_state(|| "dark".to_string());
+    let menu_open = use_state(|| Option::<&'static str>::None);
+    let file_ref = use_node_ref();
     let bridge = Bridge::detect();
 
     // Clear history (the button next to the list): empty the session's
@@ -376,6 +398,7 @@ fn epher_app() -> Html {
         let session = session.clone();
         let result = result.clone();
         let localizer = localizer.clone();
+        let theme = theme.clone();
         use_effect_with((), move |_| {
             if bridge == Bridge::Tauri {
                 spawn_local(async move {
@@ -384,6 +407,7 @@ fn epher_app() -> Html {
                             history,
                             replay,
                             language,
+                            theme: theme_pref,
                         }) => {
                             let mut s = Session::with_history(history);
                             for line in &replay {
@@ -393,6 +417,9 @@ fn epher_app() -> Html {
                             if let Some(code) = language {
                                 localizer.set(Localizer::resolve(Some(&code), &[]));
                             }
+                            if let Some(name) = theme_pref {
+                                theme.set(name);
+                            }
                         }
                         Err(e) => {
                             result.set(format!(
@@ -401,6 +428,33 @@ fn epher_app() -> Html {
                         }
                     }
                 });
+            } else {
+                // The web app persists its theme and language overrides in
+                // localStorage (no native store here, ADR-0010).
+                let win = web_sys::window();
+                if let Some(store) = win.as_ref().and_then(|w| w.local_storage().ok().flatten()) {
+                    if let Ok(Some(t)) = store.get_item("epher-theme") {
+                        if matches!(t.as_str(), "light" | "dark" | "night") {
+                            theme.set(t);
+                        }
+                    }
+                    if let Ok(Some(code)) = store.get_item("epher-language") {
+                        localizer.set(Localizer::resolve(Some(&code), &[]));
+                    }
+                }
+            }
+            || {}
+        });
+    }
+
+    // Apply the theme token set (ADR-0017): the attribute swaps every
+    // CSS custom property in one move, curves included.
+    {
+        let theme = theme.clone();
+        use_effect_with((*theme).clone(), move |t| {
+            let doc = web_sys::window().and_then(|w| w.document());
+            if let Some(el) = doc.as_ref().and_then(|d| d.document_element()) {
+                let _ = el.set_attribute("data-theme", t.as_str());
             }
             || {}
         });
@@ -441,6 +495,245 @@ fn epher_app() -> Html {
         })
     };
 
+    // ---- menu actions (ADR-0017) ------------------------------------
+    // Set the theme everywhere it lives: the render (state + attribute
+    // effect above) and the persistence layer — the native store in the
+    // desktop shell, localStorage in the browser.
+    let on_set_theme = {
+        let theme = theme.clone();
+        Callback::from(move |name: String| {
+            if matches!(name.as_str(), "light" | "dark" | "night") {
+                if let Some(store) = web_sys::window()
+                    .and_then(|w| w.local_storage().ok().flatten())
+                {
+                    let _ = store.set_item("epher-theme", &name);
+                }
+                bridge.save_theme(&name);
+                theme.set(name);
+            }
+        })
+    };
+
+    // Set the UI language: re-resolve the localizer and persist it.
+    let on_set_language = {
+        let localizer = localizer.clone();
+        Callback::from(move |code: String| {
+            if epher_i18n::SUPPORTED_LOCALES.contains(&code.as_str()) {
+                localizer.set(Localizer::resolve(Some(&code), &[]));
+                if let Some(store) = web_sys::window()
+                    .and_then(|w| w.local_storage().ok().flatten())
+                {
+                    let _ = store.set_item("epher-language", &code);
+                }
+                bridge.save_language(&code);
+            }
+        })
+    };
+
+    // File → Open: the hidden input's picker; the chosen file's text
+    // lands in the entry field for review before running.
+    let on_open = {
+        let file_ref = file_ref.clone();
+        Callback::from(move |_| {
+            if let Some(el) = file_ref.cast::<web_sys::HtmlInputElement>() {
+                el.click();
+            }
+        })
+    };
+    let on_file_chosen = {
+        let input = input.clone();
+        let result = result.clone();
+        let localizer = localizer.clone();
+        Callback::from(move |e: Event| {
+            let target = e.target_unchecked_into::<web_sys::HtmlInputElement>();
+            let Some(files) = target.files() else {
+                return;
+            };
+            let Some(file) = files.item(0) else {
+                return;
+            };
+            let input = input.clone();
+            let result = result.clone();
+            let localizer = localizer.clone();
+            spawn_local(async move {
+                if let Ok(text) = wasm_bindgen_futures::JsFuture::from(file.text())
+                    .await
+                    .and_then(|v| v.as_string().ok_or(()).map_err(|()| wasm_bindgen::JsValue::NULL))
+                {
+                    input.set(text);
+                    result.set(localizer.lookup("menu-loaded"));
+                }
+            });
+            // Allow picking the same file twice in a row.
+            target.set_value("");
+        })
+    };
+
+    // File → Save: a Blob download. History lines, or the entry field's
+    // script — the two things a user may want on disk.
+    let save_text_file = |filename: &str, text: String| {
+        let Some(win) = web_sys::window() else {
+            return;
+        };
+        let parts = js_sys::Array::new();
+        parts.push(&wasm_bindgen::JsValue::from_str(&text));
+        let Ok(blob) = web_sys::Blob::new_with_str_sequence(&parts) else {
+            return;
+        };
+        let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) else {
+            return;
+        };
+        // The anchor must live in the document for the download to start,
+        // and the blob URL must outlive the click — revoke it later, not
+        // synchronously.
+        if let Some(doc) = win.document() {
+            if let Some(a) = doc.create_element("a").ok().and_then(|el| {
+                el.dyn_into::<web_sys::HtmlAnchorElement>().ok()
+            }) {
+                a.set_href(&url);
+                a.set_download(filename);
+                if let Some(body) = doc.body() {
+                    let _ = body.append_child(&a);
+                    a.click();
+                    let _ = body.remove_child(&a);
+                }
+            }
+        }
+        let url_clone = url;
+        spawn_local(async move {
+            gloo_timers::future::TimeoutFuture::new(10_000).await;
+            let _ = web_sys::Url::revoke_object_url(&url_clone);
+        });
+    };
+
+    let on_save_history = {
+        let session = session.clone();
+        let result = result.clone();
+        let localizer = localizer.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            let text = session.history().join("\n");
+            save_text_file("epher-history.epher", text);
+            result.set(localizer.lookup("menu-saved"));
+            menu_open.set(None);
+        })
+    };
+
+    let on_save_script = {
+        let input = input.clone();
+        let result = result.clone();
+        let localizer = localizer.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            let text = (*input).clone();
+            if !text.trim().is_empty() {
+                save_text_file("epher-script.epher", text);
+                result.set(localizer.lookup("menu-saved"));
+            }
+            menu_open.set(None);
+        })
+    };
+
+    // Edit → Cut/Copy/Paste: the platform clipboard. Copy takes the last
+    // result (or the entry when nothing ran yet); Cut moves the entry to
+    // the clipboard; Paste reads the clipboard into the entry at the
+    // cursor. When the browser withholds read access, say so — Ctrl+V
+    // still works directly in the field.
+    let on_copy = {
+        let result = result.clone();
+        let input = input.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            let text = if (*result).is_empty() {
+                (*input).clone()
+            } else {
+                (*result).clone()
+            };
+            if let Some(clipboard) =
+                web_sys::window().map(|w| w.navigator().clipboard())
+            {
+                spawn_local(async move {
+                    let _ = wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&text)).await;
+                });
+            }
+            menu_open.set(None);
+        })
+    };
+
+    let on_cut = {
+        let result = result.clone();
+        let input = input.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            let text = (*input).clone();
+            if !text.is_empty() {
+                if let Some(clipboard) =
+                    web_sys::window().map(|w| w.navigator().clipboard())
+                {
+                    let text_for_clip = text.clone();
+                    spawn_local(async move {
+                        let _ =
+                            wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&text_for_clip)).await;
+                    });
+                }
+                input.set(String::new());
+            }
+            let _ = result; // cut stays quiet: the emptied field is the feedback
+            menu_open.set(None);
+        })
+    };
+
+    let on_paste = {
+        let input = input.clone();
+        let input_ref = input_ref.clone();
+        let result = result.clone();
+        let localizer = localizer.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            let Some(clipboard) =
+                web_sys::window().map(|w| w.navigator().clipboard())
+            else {
+                return;
+            };
+            let input = input.clone();
+            let input_ref = input_ref.clone();
+            let result = result.clone();
+            let localizer = localizer.clone();
+            let menu_open = menu_open.clone();
+            spawn_local(async move {
+                match wasm_bindgen_futures::JsFuture::from(clipboard.read_text()).await {
+                    Ok(v) => {
+                        if let Some(text) = v.as_string() {
+                            // Insert at the cursor, exactly like a keypad
+                            // token: replace the selection if there is one.
+                            if let Some(ta) =
+                                input_ref.cast::<web_sys::HtmlTextAreaElement>()
+                            {
+                                let start =
+                                    ta.selection_start().unwrap_or_default().unwrap_or(0);
+                                let end = ta.selection_end().unwrap_or_default().unwrap_or(0);
+                                let value = ta.value();
+                                let start = (start as usize).min(value.len());
+                                let end = (end as usize).max(start).min(value.len());
+                                let mut spliced = String::with_capacity(value.len() + text.len());
+                                spliced.push_str(&value[..start]);
+                                spliced.push_str(&text);
+                                spliced.push_str(&value[end..]);
+                                ta.set_value(&spliced);
+                                let _ = ta.focus();
+                                input.set(spliced);
+                            } else {
+                                input.set(format!("{}{text}", *input));
+                            }
+                        }
+                    }
+                    Err(_) => result.set(localizer.lookup("paste-blocked")),
+                }
+                menu_open.set(None);
+            });
+        })
+    };
+
     let on_input = {
         let input = input.clone();
         Callback::from(move |e: InputEvent| {
@@ -470,6 +763,7 @@ fn epher_app() -> Html {
         let input = input.clone();
         let result = result.clone();
         let localizer = localizer.clone();
+        let theme = theme.clone();
         let graph = graph.clone();
         let pois = pois.clone();
         let trace = trace.clone();
@@ -564,6 +858,20 @@ fn epher_app() -> Html {
                                     epher_shell::Prepared::Language { code } => {
                                         bridge.save_language(code);
                                         localizer.set(Localizer::resolve(Some(code), &[]));
+                                        if let Some(store) = web_sys::window()
+                                            .and_then(|w| w.local_storage().ok().flatten())
+                                        {
+                                            let _ = store.set_item("epher-language", code);
+                                        }
+                                    }
+                                    epher_shell::Prepared::Theme { name } => {
+                                        bridge.save_theme(name);
+                                        theme.set(name.clone());
+                                        if let Some(store) = web_sys::window()
+                                            .and_then(|w| w.local_storage().ok().flatten())
+                                        {
+                                            let _ = store.set_item("epher-theme", name);
+                                        }
                                     }
                                     epher_shell::Prepared::Table { .. } => {}
                                 }
@@ -578,6 +886,17 @@ fn epher_app() -> Html {
                                 epher_shell::Command::Table { .. } => {
                                     match prepare(&cmd, &s, &localizer) {
                                         Ok(prepared) => result.set(message(&prepared, &localizer)),
+                                        Err(msg) => result.set(msg),
+                                    }
+                                }
+                                // Themes apply for the session in the
+                                // browser; the menu persists them properly.
+                                epher_shell::Command::Theme { name } => {
+                                    match prepare(&cmd, &s, &localizer) {
+                                        Ok(prepared) => {
+                                            result.set(message(&prepared, &localizer));
+                                            theme.set(name.clone());
+                                        }
                                         Err(msg) => result.set(msg),
                                     }
                                 }
@@ -1098,30 +1417,195 @@ fn epher_app() -> Html {
     html! {
         <main class="epher">
             <h1 class="visually-hidden">{ localizer.lookup("app-name") }</h1>
-            <nav class="pane-switch">
-                <button
-                    type="button"
-                    aria-pressed={(*active_pane == "calc").to_string()}
-                    aria-label={localizer.lookup("calc-pane")}
-                    onclick={{
-                        let scroll_pane = scroll_pane.clone();
-                        Callback::from(move |_| scroll_pane.emit("calc-pane"))
+            <header class="topbar">
+                {
+                    // File → Open: a real file picker, hidden from the tab
+                    // order (it is reached through the menu item).
+                    html! {
+                        <input
+                            type="file"
+                            accept=".epher,.txt,text/plain"
+                            class="visually-hidden-file"
+                            ref={file_ref.clone()}
+                            onchange={on_file_chosen}
+                            tabindex="-1"
+                            aria-hidden="true"
+                        />
+                    }
+                }
+                <nav
+                    class="menubar"
+                    role="menubar"
+                    onkeydown={{
+                        let menu_open = menu_open.clone();
+                        Callback::from(move |e: web_sys::KeyboardEvent| {
+                            if e.key() == "Escape" {
+                                menu_open.set(None);
+                            }
+                        })
                     }}
                 >
-                    { localizer.lookup("calc-pane") }
-                </button>
-                <button
-                    type="button"
-                    aria-pressed={(*active_pane == "graph").to_string()}
-                    aria-label={localizer.lookup("graph-pane")}
-                    onclick={{
-                        let scroll_pane = scroll_pane.clone();
-                        Callback::from(move |_| scroll_pane.emit("graph-pane"))
-                    }}
-                >
-                    { localizer.lookup("graph-pane") }
-                </button>
-            </nav>
+                    <div class="menu">
+                        <button
+                            type="button"
+                            role="menuitem"
+                            aria-haspopup="menu"
+                            aria-expanded={(*menu_open == Some("file")).to_string()}
+                            class={if *menu_open == Some("file") { "menu-top open" } else { "menu-top" }}
+                            onclick={{
+                                let menu_open = menu_open.clone();
+                                Callback::from(move |_| menu_open.set(if *menu_open == Some("file") { None } else { Some("file") }))
+                            }}
+                        >
+                            { localizer.lookup("menu-file") }
+                        </button>
+                        {
+                            if *menu_open == Some("file") {
+                                html! {
+                                    <div class="menu-drop" role="menu" aria-label={localizer.lookup("menu-file")}>
+                                        <button type="button" role="menuitem" class="menu-item"
+                                            onclick={Callback::from({
+                                                let menu_open = menu_open.clone();
+                                                let on_open = on_open.clone();
+                                                move |_| { menu_open.set(None); on_open.emit(()); }
+                                            })}
+                                        >
+                                            { localizer.lookup("menu-open") }
+                                        </button>
+                                        <button type="button" role="menuitem" class="menu-item" onclick={on_save_history.clone()}>
+                                            { localizer.lookup("menu-save-history") }
+                                        </button>
+                                        <button type="button" role="menuitem" class="menu-item" onclick={on_save_script.clone()}>
+                                            { localizer.lookup("menu-save-script") }
+                                        </button>
+                                    </div>
+                                }
+                            } else { html! {} }
+                        }
+                    </div>
+                    <div class="menu">
+                        <button
+                            type="button"
+                            role="menuitem"
+                            aria-haspopup="menu"
+                            aria-expanded={(*menu_open == Some("edit")).to_string()}
+                            class={if *menu_open == Some("edit") { "menu-top open" } else { "menu-top" }}
+                            onclick={{
+                                let menu_open = menu_open.clone();
+                                Callback::from(move |_| menu_open.set(if *menu_open == Some("edit") { None } else { Some("edit") }))
+                            }}
+                        >
+                            { localizer.lookup("menu-edit") }
+                        </button>
+                        {
+                            if *menu_open == Some("edit") {
+                                html! {
+                                    <div class="menu-drop" role="menu" aria-label={localizer.lookup("menu-edit")}>
+                                        <button type="button" role="menuitem" class="menu-item" onclick={on_cut.clone()}>
+                                            { localizer.lookup("menu-cut") }
+                                        </button>
+                                        <button type="button" role="menuitem" class="menu-item" onclick={on_copy.clone()}>
+                                            { localizer.lookup("menu-copy") }
+                                        </button>
+                                        <button type="button" role="menuitem" class="menu-item" onclick={on_paste.clone()}>
+                                            { localizer.lookup("menu-paste") }
+                                        </button>
+                                    </div>
+                                }
+                            } else { html! {} }
+                        }
+                    </div>
+                    <div class="menu">
+                        <button
+                            type="button"
+                            role="menuitem"
+                            aria-haspopup="menu"
+                            aria-expanded={(*menu_open == Some("settings")).to_string()}
+                            class={if *menu_open == Some("settings") { "menu-top open" } else { "menu-top" }}
+                            onclick={{
+                                let menu_open = menu_open.clone();
+                                Callback::from(move |_| menu_open.set(if *menu_open == Some("settings") { None } else { Some("settings") }))
+                            }}
+                        >
+                            { localizer.lookup("menu-settings") }
+                        </button>
+                        {
+                            if *menu_open == Some("settings") {
+                                html! {
+                                    <div class="menu-drop wide" role="menu" aria-label={localizer.lookup("menu-settings")}>
+                                        <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-theme") }</p>
+                                        { for ["light", "dark", "night"].map(|name| {
+                                            let label = match name {
+                                                "light" => localizer.lookup("theme-light"),
+                                                "night" => localizer.lookup("theme-night"),
+                                                _ => localizer.lookup("theme-dark"),
+                                            };
+                                            let checked = *theme == name;
+                                            html! {
+                                                <button type="button" role="menuitemradio" class="menu-item"
+                                                    aria-checked={checked.to_string()}
+                                                    onclick={Callback::from({
+                                                        let menu_open = menu_open.clone();
+                                                        let on_set_theme = on_set_theme.clone();
+                                                        let name = name.to_string();
+                                                        move |_| { on_set_theme.emit(name.clone()); menu_open.set(None); }
+                                                    })}
+                                                >
+                                                    <span class="menu-check" aria-hidden="true">{ if checked { "\u{2713}" } else { "" } }</span>
+                                                    { label }
+                                                </button>
+                                            }
+                                        }) }
+                                        <div class="menu-sep" role="separator"></div>
+                                        <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-language") }</p>
+                                        { for epher_i18n::SUPPORTED_LOCALES.iter().map(|code| {
+                                            let checked = localizer.locale() == *code;
+                                            html! {
+                                                <button type="button" role="menuitemradio" class="menu-item"
+                                                    aria-checked={checked.to_string()}
+                                                    onclick={Callback::from({
+                                                        let menu_open = menu_open.clone();
+                                                        let on_set_language = on_set_language.clone();
+                                                        let code = code.to_string();
+                                                        move |_| { on_set_language.emit(code.clone()); menu_open.set(None); }
+                                                    })}
+                                                >
+                                                    <span class="menu-check" aria-hidden="true">{ if checked { "\u{2713}" } else { "" } }</span>
+                                                    { native_language_name(code) }
+                                                </button>
+                                            }
+                                        }) }
+                                    </div>
+                                }
+                            } else { html! {} }
+                        }
+                    </div>
+                </nav>
+                <nav class="pane-switch">
+                    <button
+                        type="button"
+                        aria-pressed={(*active_pane == "calc").to_string()}
+                        aria-label={localizer.lookup("calc-pane")}
+                        onclick={{
+                            let scroll_pane = scroll_pane.clone();
+                            Callback::from(move |_| scroll_pane.emit("calc-pane"))
+                        }}
+                    >
+                        { localizer.lookup("calc-pane") }
+                    </button>
+                    <button
+                        type="button"
+                        aria-pressed={(*active_pane == "graph").to_string()}
+                        aria-label={localizer.lookup("graph-pane")}
+                        onclick={{
+                            let scroll_pane = scroll_pane.clone();
+                            Callback::from(move |_| scroll_pane.emit("graph-pane"))
+                        }}
+                    >
+                        { localizer.lookup("graph-pane") }
+                    </button>
+                </nav>
+            </header>
             <div class="panes" id="panes" onscroll={on_panes_scroll}>
                 <section class="pane" id="calc-pane">
                     {

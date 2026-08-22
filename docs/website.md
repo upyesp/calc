@@ -33,7 +33,12 @@ The app layout is ADR-0016: a fixed-viewport scientific calculator —
 input, answer panel, scrollable history, and a five-tab keypad covering
 every function the language supports — with the graph in a fixed pane
 beside the calculator on desktop (≥880px) and one horizontal swipe away
-on mobile (scroll-snap panes plus pane-switch buttons).
+on mobile (scroll-snap panes plus pane-switch buttons). ADR-0017 adds a
+menu bar (File/Edit/Settings) above the panes, three themes (light,
+dark, night — token sets selected by a `data-theme` attribute, with the
+same recorded-contrast discipline as the base palette), and file
+open/save; the TUI mirrors all of it (F10 menu bar, side-by-side graph
+at ≥104 columns, OSC 52 clipboard).
 
 The landing page links to release assets via
 `https://github.com/upyesp/epher/releases/latest/download/<asset>` so download

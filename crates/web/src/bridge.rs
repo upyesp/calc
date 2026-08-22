@@ -16,6 +16,7 @@ pub struct InitState {
     pub history: Vec<String>,
     pub replay: Vec<String>,
     pub language: Option<String>,
+    pub theme: Option<String>,
 }
 
 /// Which persistence backend this frontend instance can reach.
@@ -82,6 +83,12 @@ impl Bridge {
         self.spawn("save_language", args);
     }
 
+    pub fn save_theme(self, name: &str) {
+        let args =
+            serde_wasm_bindgen::to_value(&ThemeArgs { name }).unwrap_or(JsValue::UNDEFINED);
+        self.spawn("save_theme", args);
+    }
+
     /// Can this desktop shell install the `epher` terminal command?
     /// (macOS only, ADR-0011.) The UI asks at startup.
     pub async fn cli_install_supported(self) -> Result<bool, String> {
@@ -141,4 +148,9 @@ struct HistoryArgs<'a> {
 #[derive(serde::Serialize)]
 struct CodeArgs<'a> {
     code: &'a str,
+}
+
+#[derive(serde::Serialize)]
+struct ThemeArgs<'a> {
+    name: &'a str,
 }

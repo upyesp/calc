@@ -16,13 +16,13 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 | Criterion | Status | Evidence / notes |
 |---|---|---|
 | 1.1.1 Non-text content | PASS | Icon is a favicon (no alt needed). Button has text content plus `aria-label="Evaluate"` (2.4.6). The graph SVG is `role="img"` with a `title` and an `aria-label` naming the plotted expression, and a visible caption (`y = <source>`) sits above it — the TUI pattern, ported (ADR-0009). |
-| 1.3.1 Info & relationships | PASS | Native `form`/`input`/`button`, `ul` history, `h1` (visually hidden: the app name). Keypad tabs are an APG tablist (`role="tab"`/`tabpanel`, `aria-selected`, `aria-controls`); each button's accessible name is its token label. The macOS-only "install the epher command" button (ADR-0011) is a native `button` after the status region; its outcome reports through the existing `role="status"` live region. |
-| 1.3.2 Meaningful sequence | PASS | One fixed screen (ADR-0016): answer → input → history → keypad, top to bottom; the graph pane follows in DOM order. |
+| 1.3.1 Info & relationships | PASS | Native `form`/`input`/`button`, `ul` history, `h1` (visually hidden: the app name). Keypad tabs are an APG tablist (`role="tab"`/`tabpanel`, `aria-selected`, `aria-controls`); each button's accessible name is its token label. The menu bar (ADR-0017) follows the APG menubar pattern: `role="menubar"`, top-level `role="menuitem"` buttons with `aria-haspopup="menu"`/`aria-expanded`, dropdowns as `role="menu"` with `menuitem`/`menuitemradio` items (`aria-checked` marks the active theme and language, with a non-color ✓ marker). The macOS-only "install the epher command" button (ADR-0011) is a native `button` after the status region; its outcome reports through the existing `role="status"` live region. |
+| 1.3.2 Meaningful sequence | PASS | One fixed screen (ADR-0016): top bar (menus) → input → answer → history → keypad, top to bottom; the graph pane follows in DOM order. |
 | 1.4.1 Use of color | PASS | No color-only information (result is text; errors are text). |
-| 1.4.3 Contrast (AA) | PASS | `--text` on `--bg` 17.0:1; result 17.0:1; input text on `--panel` 15.3:1; `--muted` history on `--bg` 6.6:1; button `#0b1512` on `--accent` 10.0:1; placeholder `#a1a1a6` on `--panel` 6.4:1. |
+| 1.4.3 Contrast (AA) | PASS | All three themes (ADR-0017) record their ratios in the CSS comments at each token. Dark: `--text` on `--bg` 17.0:1; `--muted` history on `--bg` 6.6:1; `--on-accent` on `--accent` 10.0:1. Light: text 15.9:1, muted 6.3:1, accent-as-text 4.5:1 on the canvas / 4.8:1 on the panel, `--on-accent` 4.8:1. Night: text 12.1:1, muted 7.6:1, accent 7.4:1 / 7.1:1, `--on-accent` 7.2:1. TUI night text 12.1:1, hints 7.6:1, selection 7.2:1; TUI light result 5.9:1. |
 | 1.4.4 Resize text 200% | PASS | Fixed viewport with internal scroll regions; `overflow-wrap: anywhere` on results. |
 | 1.4.10 Reflow | PASS | Below 880px the panes stack as swipeable full-width panes (scroll-snap + pane-switch buttons); no horizontal scroll at 320px; desktop column + graph side by side from 880px. |
-| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Border is now `--border: #6a6b70` — 3.5:1 vs `--bg`, 3.1:1 vs `--panel`. Focus indicators: see 2.4.7. Graph curve `--accent` on `--bg` is 9.9:1; the axes blend to ~5.4:1 at opacity 0.5 — both ≥ 3:1. Curve palette: accent 9.9:1, `#4da3ff` 7.0:1, `#ffb340` 10.3:1, `#c39dff` 8.4:1. |
+| 1.4.11 Non-text contrast | **FIXED** | Input boundary was 1.2:1 vs the page background (invisible field). Dark borders 3.5:1 vs `--bg`, 3.1:1 vs `--panel`; light borders 3.5:1; night borders 3.4:1 / 3.3:1. Focus indicators: see 2.4.7. Curves ≥3:1 in every theme — dark: accent 9.9:1, `#4da3ff` 7.0:1, `#ffb340` 10.3:1, `#c39dff` 8.4:1; light: accent 4.5:1, `#1e66c8` 5.2:1, `#9a5b00` 5.1:1, `#7a4bd6` 5.2:1; night: accent 7.4:1, `#ffb340` 11.6:1, `#ff9e8a` 10.3:1, `#e0483e` 5.1:1. |
 | 1.4.12 Text spacing | PASS | No fixed line-heights that would clip. |
 | 1.4.13 Content on hover | N/A | No hover-triggered content. |
 
@@ -30,16 +30,16 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 
 | Criterion | Status | Evidence / notes |
 |---|---|---|
-| 2.1.1 Keyboard | PASS | Native input + keypad buttons; Enter activates from the field; every keypad button is reachable and activatable; scrollable regions (history box, graph pane) carry `tabindex="0"` so their content is keyboard-scrollable; the TUI keypad opens with Tab, moves with arrows, inserts with Enter (ADR-0016). |
-| 2.1.2 No keyboard trap | PASS | Keypad buttons are ordinary tab stops; the TUI keypad closes with Tab/Esc. |
+| 2.1.1 Keyboard | PASS | Native input + keypad buttons; Enter activates from the field; every keypad and menu button is reachable and activatable; the menu bar closes on Escape and every item is an ordinary tab stop (ADR-0017); scrollable regions (history box, graph pane) carry `tabindex="0"` so their content is keyboard-scrollable; the TUI keypad opens with Tab, moves with arrows, inserts with Enter (ADR-0016); the TUI menus open with F10, move with arrows, activate with Enter, close with Escape. |
+| 2.1.2 No keyboard trap | PASS | Keypad buttons are ordinary tab stops; the TUI keypad closes with Tab/Esc; both menu systems close with Escape; dropdowns hold no focus. |
 | 2.4.1 Bypass blocks | N/A | Single screen; nothing to skip. |
 | 2.4.2 Page titled | PASS | `<title>epher</title>`. |
-| 2.4.3 Focus order | PASS | Document order: answer, input, history, keypad, graph pane; the mobile pane switch buttons precede the panes. |
+| 2.4.3 Focus order | PASS | Document order: menu bar → input → answer → history → keypad → graph pane; the mobile pane switch buttons follow the menus in the same top bar. |
 | 2.4.4 Link purpose | N/A | No links. |
 | 2.4.6 Headings & labels | **FIXED** | Input has `aria-label`; button's bare `=` name replaced with `aria-label="Evaluate"`. |
 | 2.4.7 Focus visible | **FIXED** | Was: no styles (browser-default ring on a dark theme, inconsistent). Now: `:focus-visible` accent outline (9.9:1 vs `--bg`, 8.9:1 vs `--panel`); the accent button gets an inset dark-teal ring (10.0:1 on the accent surface — an outer ring would not contrast). |
 | 2.4.11 Focus not obscured | PASS | No sticky/overlay content (AA; 2.4.12 AAA not targeted). |
-| 2.5.8 Target size (AA) | PASS | Keypad buttons ≥44×44px in a 5-column grid; tab buttons ≥44px wide; the install-cli button is ≥48px tall (padding `0.5rem 1rem` on `0.95rem` text — ~48px). |
+| 2.5.8 Target size (AA) | PASS | Keypad buttons ≥44×44px in a 5-column grid; tab buttons ≥44px wide; menu bar buttons ≥44px and menu items ≥40px tall; the install-cli button is ≥48px tall (padding `0.5rem 1rem` on `0.95rem` text — ~48px). |
 
 ### Understandable
 

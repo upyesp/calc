@@ -12,9 +12,64 @@ use epher_core::graph::{
 use epher_core::Session;
 use epher_i18n::Localizer;
 use epher_shell::{classify, plain, run_command};
-use epher_store::persist::{default_store_dir, load_language, load_session, save_history};
+use epher_store::persist::{
+    default_store_dir, load_language, load_session, load_theme, save_history, save_language,
+    save_theme,
+};
 use epher_store::{DocStore, FsStore};
 use unicode_width::UnicodeWidthStr;
+
+/// The TUI's color theme (ADR-0017): dark is the terminal's natural
+/// look; light forces a light canvas; night keeps long-wavelength reds on
+/// near-black for dark-adapted eyes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Theme {
+    #[default]
+    Dark,
+    Light,
+    Night,
+}
+
+impl Theme {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Theme::Dark => "dark",
+            Theme::Light => "light",
+            Theme::Night => "night",
+        }
+    }
+
+    pub fn from_str(name: &str) -> Option<Self> {
+        match name {
+            "light" => Some(Theme::Light),
+            "dark" => Some(Theme::Dark),
+            "night" => Some(Theme::Night),
+            _ => None,
+        }
+    }
+}
+
+/// What the file prompt under the menu bar is asking for (ADR-0017).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PromptKind {
+    Open,
+    SaveHistory,
+    SaveScript,
+}
+
+/// The outcome of activating a menu item; `run` executes it with access
+/// to the store and localizer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MenuAction {
+    OpenFile,
+    SaveHistory,
+    SaveScript,
+    Cut,
+    Copy,
+    Paste,
+    SetTheme(&'static str),
+    SetLanguage(&'static str),
+}
 
 /// An active parameter animation: `name` steps by `step` within `lo..=hi`,
 /// wrapping around (Desmos-style loop).
@@ -42,6 +97,13 @@ pub struct App {
     keypad: bool,
     kp_row: usize,
     kp_col: usize,
+    /// The color theme (ADR-0017).
+    theme: Theme,
+    /// The open menu bar item and the highlighted row inside it
+    /// (ADR-0017); `None` when the menus are closed.
+    menu: Option<(usize, usize)>,
+    /// An active file prompt: its kind and the path typed so far.
+    prompt: Option<(PromptKind, String)>,
 }
 
 /// The TUI keypad (ADR-0016): a condensed 4×5 grid of the most-used
@@ -92,6 +154,9 @@ impl App {
             keypad: false,
             kp_row: 0,
             kp_col: 0,
+            theme: Theme::default(),
+            menu: None,
+            prompt: None,
         }
     }
 
@@ -111,6 +176,7 @@ impl App {
 
     pub fn keypad_open(&mut self) {
         self.keypad = true;
+        self.menu = None;
     }
 
     pub fn keypad_close(&mut self) {
@@ -130,6 +196,149 @@ impl App {
     pub fn keypad_insert(&mut self) {
         let token = KEYPAD[self.kp_row][self.kp_col].1;
         self.input.push_str(token);
+    }
+
+    // --- theme, menu bar, and file prompts (ADR-0017) ---
+
+    pub fn theme(&self) -> Theme {
+        self.theme
+    }
+
+    pub fn set_theme(&mut self, theme: Theme) {
+        self.theme = theme;
+    }
+
+    /// The menu bar: three top-level menus (File, Edit, Settings).
+    pub const MENUS: [&'static str; 3] = ["file", "edit", "settings"];
+
+    /// How many items a menu has.
+    pub fn menu_len(menu: usize) -> usize {
+        match menu {
+            0 => 3,  // File: open, save history, save script
+            1 => 3,  // Edit: cut, copy, paste
+            2 => 11, // Settings: 3 themes + 8 languages
+            _ => 0,
+        }
+    }
+
+    pub fn menu_active(&self) -> Option<(usize, usize)> {
+        self.menu
+    }
+
+    pub fn menu_open(&mut self, menu: usize) {
+        self.menu = Some((menu.min(2), 0));
+        self.keypad = false;
+    }
+
+    pub fn menu_close(&mut self) {
+        self.menu = None;
+    }
+
+    /// Move the highlight: vertical motion wraps within the open menu,
+    /// horizontal motion switches menus (wrapping at the ends).
+    pub fn menu_move(&mut self, dh: isize, dv: isize) {
+        let Some((menu, item)) = self.menu else { return };
+        if dh != 0 {
+            let menus = Self::MENUS.len() as isize;
+            let next = (menu as isize + dh).rem_euclid(menus) as usize;
+            self.menu = Some((next, 0));
+            return;
+        }
+        let len = Self::menu_len(menu) as isize;
+        let next = (item as isize + dv).rem_euclid(len) as usize;
+        self.menu = Some((menu, next));
+    }
+
+    /// Activate the highlighted item, returning the action for the event
+    /// loop to execute (the loop owns the store and localizer).
+    pub fn menu_activate(&mut self) -> Option<MenuAction> {
+        let (menu, item) = self.menu?;
+        let action = match menu {
+            0 => match item {
+                0 => MenuAction::OpenFile,
+                1 => MenuAction::SaveHistory,
+                _ => MenuAction::SaveScript,
+            },
+            1 => match item {
+                0 => MenuAction::Cut,
+                1 => MenuAction::Copy,
+                _ => MenuAction::Paste,
+            },
+            _ => match item {
+                0 => MenuAction::SetTheme("light"),
+                1 => MenuAction::SetTheme("dark"),
+                2 => MenuAction::SetTheme("night"),
+                3 => MenuAction::SetLanguage("en"),
+                4 => MenuAction::SetLanguage("zh-CN"),
+                5 => MenuAction::SetLanguage("hi"),
+                6 => MenuAction::SetLanguage("es"),
+                7 => MenuAction::SetLanguage("fr"),
+                8 => MenuAction::SetLanguage("ar"),
+                9 => MenuAction::SetLanguage("de"),
+                _ => MenuAction::SetLanguage("pt"),
+            },
+        };
+        self.menu = None;
+        Some(action)
+    }
+
+    // --- file prompts ---
+
+    pub fn prompt_active(&self) -> Option<(PromptKind, &str)> {
+        self.prompt.as_ref().map(|(k, buf)| (*k, buf.as_str()))
+    }
+
+    pub fn prompt_start(&mut self, kind: PromptKind) {
+        self.prompt = Some((kind, String::new()));
+    }
+
+    pub fn prompt_cancel(&mut self) {
+        self.prompt = None;
+    }
+
+    pub fn prompt_push(&mut self, c: char) {
+        if let Some((_, buf)) = &mut self.prompt {
+            buf.push(c);
+        }
+    }
+
+    pub fn prompt_pop(&mut self) {
+        if let Some((_, buf)) = &mut self.prompt {
+            buf.pop();
+        }
+    }
+
+    /// Confirm the prompt: run the file operation and leave the prompt
+    /// open on failure (so the path can be fixed) or closed on success.
+    pub fn prompt_submit(&mut self) -> Option<PromptKind> {
+        let (kind, path) = self.prompt.take()?;
+        let outcome = match kind {
+            PromptKind::Open => std::fs::read_to_string(&path)
+                .map(|text| {
+                    self.input = text;
+                    self.result = String::new();
+                })
+                .map_err(|_| ()),
+            PromptKind::SaveHistory => std::fs::write(&path, self.history().join("\n"))
+                .map_err(|_| ()),
+            PromptKind::SaveScript => std::fs::write(&path, &self.input)
+                .map_err(|_| ()),
+        };
+        if outcome.is_ok() {
+            None
+        } else {
+            Some(kind)
+        }
+    }
+
+    pub fn set_result(&mut self, result: &str) {
+        self.result = result.to_string();
+    }
+
+    /// Re-open a prompt with its previously typed path (after a failed
+    /// operation, so the path can be corrected in place).
+    pub fn prompt_restore(&mut self, kind: PromptKind, path: &str) {
+        self.prompt = Some((kind, path.to_string()));
     }
 
     pub fn set_input(&mut self, input: &str) {
@@ -243,6 +452,14 @@ impl App {
             let handled = run_command(&cmd, &mut self.session, store, localizer);
             self.result = plain(handled.message);
             self.input.clear();
+            // The `theme` command persists through run_command (the shell
+            // kernel saved it); the App re-applies its palette right here,
+            // so the TUI needs no extra plumbing (ADR-0017).
+            if let Some(name) = handled.theme {
+                if let Some(theme) = Theme::from_str(&name) {
+                    self.theme = theme;
+                }
+            }
             return handled.language;
         }
         self.input = piece.to_string();
@@ -668,6 +885,12 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
     let detected: Vec<String> = sys_locale::get_locales().collect();
     let mut localizer = Localizer::resolve(preference.as_deref(), &detected);
     let mut app = App::with_session(session);
+    // The stored theme (ADR-0017) wins over the default dark palette.
+    if let Some(name) = load_theme(&store).unwrap_or(None) {
+        if let Some(theme) = Theme::from_str(&name) {
+            app.set_theme(theme);
+        }
+    }
     // One step per 120 ms while playing — the same rate as the web
     // sliders' play button (ADR-0015). The poll below wakes at 50 ms so
     // key presses stay responsive; the step itself is paced here.
@@ -706,6 +929,31 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         return Ok(());
                     }
+                    // File prompt mode (ADR-0017): almost every key goes to
+                    // the path buffer.
+                    KeyCode::Char(c) if app.prompt_active().is_some() && !is_enter => {
+                        app.prompt_push(c);
+                    }
+                    KeyCode::Backspace if app.prompt_active().is_some() => {
+                        app.prompt_pop();
+                    }
+                    KeyCode::Esc if app.prompt_active().is_some() => {
+                        app.prompt_cancel();
+                    }
+                    // Menu bar mode (ADR-0017): F10 opens/closes; arrows
+                    // move; Enter activates; Esc closes.
+                    KeyCode::F(10) if app.prompt_active().is_none() => {
+                        if app.menu_active().is_some() {
+                            app.menu_close();
+                        } else {
+                            app.menu_open(0);
+                        }
+                    }
+                    KeyCode::Left if app.menu_active().is_some() => app.menu_move(-1, 0),
+                    KeyCode::Right if app.menu_active().is_some() => app.menu_move(1, 0),
+                    KeyCode::Up if app.menu_active().is_some() => app.menu_move(0, -1),
+                    KeyCode::Down if app.menu_active().is_some() => app.menu_move(0, 1),
+                    KeyCode::Esc if app.menu_active().is_some() => app.menu_close(),
                     KeyCode::Char('l') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         app.clear_history();
                         let _ = save_history(&store, app.history());
@@ -741,13 +989,78 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     // is the other spelling of the same input.
                     KeyCode::Char(c) if !is_enter => {
                         app.keypad_close();
+                        app.menu_close();
                         app.push_char(c);
                     }
                     KeyCode::Backspace => app.pop_char(),
                     KeyCode::Esc => app.clear_input(),
                     _ => {}
                 }
-                if is_enter && !app.keypad_focused() {
+                if is_enter && app.prompt_active().is_some() {
+                    // Confirm the file prompt: execute, and either close
+                    // with a success message or reopen with the path kept.
+                    let kind = app.prompt_active().map(|(k, _)| k);
+                    let path = app
+                        .prompt_active()
+                        .map(|(_, buf)| buf.to_string())
+                        .unwrap_or_default();
+                    match app.prompt_submit() {
+                        Some(failed) => {
+                            app.prompt_restore(failed, &path);
+                            let msg = if failed == PromptKind::Open {
+                                localizer.lookup("tui-open-failed")
+                            } else {
+                                localizer.lookup("tui-save-failed")
+                            };
+                            app.set_result(&msg);
+                        }
+                        None => {
+                            let msg = match kind {
+                                Some(PromptKind::Open) => localizer.lookup("menu-loaded"),
+                                _ => localizer.lookup_args("saved", &[("name", &path)]),
+                            };
+                            app.set_result(&msg);
+                        }
+                    }
+                } else if is_enter && app.menu_active().is_some() {
+                    if let Some(action) = app.menu_activate() {
+                        match action {
+                            MenuAction::OpenFile => app.prompt_start(PromptKind::Open),
+                            MenuAction::SaveHistory => app.prompt_start(PromptKind::SaveHistory),
+                            MenuAction::SaveScript => app.prompt_start(PromptKind::SaveScript),
+                            MenuAction::Cut => {
+                                if !app.input().is_empty() {
+                                    osc52_copy(app.input());
+                                    app.clear_input();
+                                }
+                            }
+                            MenuAction::Copy => {
+                                let text = if app.result().is_empty() {
+                                    app.input().to_string()
+                                } else {
+                                    app.result().to_string()
+                                };
+                                if !text.is_empty() {
+                                    osc52_copy(&text);
+                                }
+                            }
+                            // Terminals have no read-side clipboard API:
+                            // paste stays with the terminal itself.
+                            MenuAction::Paste => {
+                                let hint = localizer.lookup("tui-paste-hint");
+                                app.set_result(&hint);
+                            }
+                            MenuAction::SetTheme(name) => {
+                                app.set_theme(Theme::from_str(name).unwrap_or(Theme::Dark));
+                                let _ = save_theme(&store, name);
+                            }
+                            MenuAction::SetLanguage(code) => {
+                                localizer = Localizer::resolve(Some(code), &[]);
+                                let _ = save_language(&store, code);
+                            }
+                        }
+                    }
+                } else if is_enter && !app.keypad_focused() {
                     let line = app.input().trim().to_string();
                     if let Some(code) = app.submit_line(&line, &store, &localizer) {
                         localizer = Localizer::resolve(Some(&code), &[]);
@@ -766,15 +1079,175 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
 }
 
 fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
-    use ratatui::layout::{Constraint, Layout, Position};
+    use ratatui::layout::{Constraint, Layout, Position, Rect};
     use ratatui::style::{Color, Modifier, Style};
-    use ratatui::text::Line;
-    use ratatui::widgets::{Block, Borders, Paragraph};
+    use ratatui::text::{Line, Span};
+    use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
-    // Keypad focus (ADR-0016) borrows six rows from the graph panel so
-    // the button grid fits without shrinking history.
-    let layout = if app.keypad_focused() {
-        Layout::vertical([
+    // The theme palette (ADR-0017): dark is the terminal's natural look,
+    // light forces a light canvas, night stays in long-wavelength reds on
+    // near-black. Contrasts: night text #ffb3a8 on #0d0000 = 12.1:1,
+    // hints #d98878 = 7.6:1, selection 7.2:1; light black on white
+    // 15.9:1, result #006e3c 5.9:1, selection white on #006e6e 4.9:1.
+    let (screen_bg, fg, result_style, hints_style, sel_bg, sel_fg, border_fg) = match app.theme() {
+        Theme::Light => (
+            Some(Color::White),
+            Color::Black,
+            Style::default().fg(Color::Rgb(0, 110, 60)).add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::DarkGray),
+            Color::Rgb(0, 110, 110),
+            Color::White,
+            Color::Black,
+        ),
+        Theme::Night => (
+            Some(Color::Rgb(13, 0, 0)),
+            Color::Rgb(255, 179, 168),
+            Style::default().fg(Color::Rgb(255, 110, 96)).add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::Rgb(217, 136, 120)),
+            Color::Rgb(255, 107, 90),
+            Color::Rgb(26, 0, 0),
+            Color::Rgb(170, 64, 51),
+        ),
+        Theme::Dark => (
+            None,
+            Color::Reset,
+            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+            Style::default().fg(Color::DarkGray),
+            Color::Cyan,
+            Color::Black,
+            Color::Reset,
+        ),
+    };
+    if let Some(bg) = screen_bg {
+        frame.render_widget(Block::default().style(Style::default().bg(bg)), frame.area());
+    }
+    let border_style = Style::default().fg(border_fg);
+    let block = |title: String| {
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(border_style)
+            .title_style(border_style)
+            .title(title)
+    };
+
+    // The menu bar row (ADR-0017): File | Edit | Settings.
+    let base = Layout::vertical([Constraint::Length(1), Constraint::Min(0)])
+        .split(frame.area());
+    let (menu_area, body) = (base[0], base[1]);
+
+    let menu_labels = [
+        localizer.lookup("menu-file"),
+        localizer.lookup("menu-edit"),
+        localizer.lookup("menu-settings"),
+    ];
+    let mut bar = Vec::new();
+    for (i, label) in menu_labels.iter().enumerate() {
+        let open = app.menu_active().map(|(m, _)| m) == Some(i);
+        let text = format!(" {} ", label);
+        let style = if open {
+            Style::default().bg(sel_bg).fg(sel_fg).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(fg)
+        };
+        bar.push(Span::styled(text, style));
+        bar.push(Span::raw(" "));
+    }
+    frame.render_widget(Paragraph::new(Line::from(bar)), menu_area);
+
+    // The open menu's items drop down below their title.
+    if let Some((menu, item)) = app.menu_active() {
+        let items: Vec<String> = match menu {
+            0 => vec![
+                localizer.lookup("menu-open"),
+                localizer.lookup("menu-save-history"),
+                localizer.lookup("menu-save-script"),
+            ],
+            1 => vec![
+                localizer.lookup("menu-cut"),
+                localizer.lookup("menu-copy"),
+                localizer.lookup("menu-paste"),
+            ],
+            _ => {
+                let mut v = vec![
+                    localizer.lookup("theme-light"),
+                    localizer.lookup("theme-dark"),
+                    localizer.lookup("theme-night"),
+                ];
+                for code in epher_i18n::SUPPORTED_LOCALES {
+                    v.push(native_language_name(code).to_string());
+                }
+                v
+            }
+        };
+        let checked_item = match menu {
+            2 => Some(item_checked(app)),
+            _ => None,
+        };
+        let lines: Vec<Line> = items
+            .iter()
+            .enumerate()
+            .map(|(i, label)| {
+                let mark = match checked_item {
+                    Some(ci) if ci == i => "\u{2713} ",
+                    _ => match menu {
+                        2 => "  ",
+                        _ => "",
+                    },
+                };
+                let text = format!("{mark}{label}");
+                if i == item {
+                    Line::from(Span::styled(text, Style::default().bg(sel_bg).fg(sel_fg)))
+                } else {
+                    Line::from(Span::styled(text, Style::default().fg(fg)))
+                }
+            })
+            .collect();
+        let x = 11 * menu as u16 + 1;
+        let w = 26u16.max(items.iter().map(|s| s.chars().count() as u16 + 3).max().unwrap_or(10));
+        let h = items.len() as u16 + 2;
+        let popup = Rect {
+            x: menu_area.x + x,
+            y: menu_area.y + 1,
+            width: w.min(frame.area().right().saturating_sub(menu_area.x + x)),
+            height: h.min(frame.area().bottom().saturating_sub(menu_area.y + 1)),
+        };
+        frame.render_widget(Clear, popup);
+        frame.render_widget(
+            Paragraph::new(lines).block(Block::default().borders(Borders::ALL).border_style(border_style)),
+            popup,
+        );
+    }
+
+    // Wide terminals get the desktop layout (ADR-0017): the calculator
+    // column on the left, the graph panel in its own section on the
+    // right. Narrow terminals keep the vertical stack from ADR-0016 —
+    // one split, no overlapping regions.
+    let wide = body.width >= 104;
+    let (input_area, result_area, history_area, graph_area, keypad_area, hints_area) = if wide {
+        let split = Layout::horizontal([Constraint::Length(46), Constraint::Min(0)]).split(body);
+        let (calc_col, graph_col) = (split[0], split[1]);
+        let calc_rows = if app.keypad_focused() {
+            Layout::vertical([
+                Constraint::Length(3),  // input
+                Constraint::Length(1),  // result
+                Constraint::Min(0),     // history
+                Constraint::Length(6),  // keypad
+                Constraint::Length(1),  // hints
+            ])
+        } else {
+            Layout::vertical([
+                Constraint::Length(3),  // input
+                Constraint::Length(1),  // result
+                Constraint::Min(0),     // history
+                Constraint::Length(1),  // hints
+            ])
+        }
+        .split(calc_col);
+        let keypad_area = if app.keypad_focused() { Some(calc_rows[3]) } else { None };
+        let hints_area = if app.keypad_focused() { calc_rows[4] } else { calc_rows[3] };
+        (calc_rows[0], calc_rows[1], calc_rows[2], graph_col, keypad_area, hints_area)
+    } else if app.keypad_focused() {
+        let rows = Layout::vertical([
             Constraint::Length(3),  // input
             Constraint::Length(1),  // result
             Constraint::Min(0),     // history
@@ -782,29 +1255,32 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             Constraint::Length(6),  // keypad
             Constraint::Length(1),  // hints
         ])
+        .split(body);
+        (rows[0], rows[1], rows[2], rows[3], Some(rows[4]), rows[5])
     } else {
-        Layout::vertical([
+        let rows = Layout::vertical([
             Constraint::Length(3),  // input
             Constraint::Length(1),  // result
             Constraint::Min(0),     // history
             Constraint::Length(20), // graph
             Constraint::Length(1),  // hints
         ])
-    }
-    .split(frame.area());
-    let (graph_area, keypad_area, hints_area) = if app.keypad_focused() {
-        (layout[3], Some(layout[4]), layout[5])
-    } else {
-        (layout[3], None, layout[4])
+        .split(body);
+        (rows[0], rows[1], rows[2], rows[3], None, rows[4])
     };
 
-    let input = Paragraph::new(app.input())
-        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-expression")));
-    frame.render_widget(input, layout[0]);
+    // The input row doubles as the file prompt (ADR-0017).
+    let (input_title, input_text) = match app.prompt_active() {
+        Some((PromptKind::Open, buf)) => (localizer.lookup("tui-open-prompt"), buf.to_string()),
+        Some((PromptKind::SaveHistory, buf)) => (localizer.lookup("tui-save-prompt"), buf.to_string()),
+        Some((PromptKind::SaveScript, buf)) => (localizer.lookup("tui-save-prompt"), buf.to_string()),
+        None => (localizer.lookup("tui-expression"), app.input().to_string()),
+    };
+    let input = Paragraph::new(input_text.clone()).style(Style::default().fg(fg)).block(block(input_title));
+    frame.render_widget(input, input_area);
 
-    let result = Paragraph::new(app.result())
-        .style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD));
-    frame.render_widget(result, layout[1]);
+    let result = Paragraph::new(app.result()).style(result_style);
+    frame.render_widget(result, result_area);
 
     let history_lines: Vec<Line> = app
         .history()
@@ -813,14 +1289,48 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
         .map(|h| Line::from(h.as_str()))
         .collect();
     let history = Paragraph::new(history_lines)
-        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-history")));
-    frame.render_widget(history, layout[2]);
+        .style(Style::default().fg(fg))
+        .block(block(localizer.lookup("tui-history")));
+    frame.render_widget(history, history_area);
+
+    // The keypad grid (ADR-0016): the highlighted cell inserts its token.
+    if let Some(kp_area) = keypad_area {
+        let rows: Vec<Line> = KEYPAD
+            .iter()
+            .enumerate()
+            .map(|(r, row)| {
+                let cells: Vec<Span> = row
+                    .iter()
+                    .enumerate()
+                    .map(|(c, (disp, _))| {
+                        let selected = r == app.keypad_row() && c == app.keypad_col();
+                        let style = if selected {
+                            Style::default()
+                                .bg(sel_bg)
+                                .fg(sel_fg)
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default().fg(fg)
+                        };
+                        Span::styled(format!(" {:<7}", disp), style)
+                    })
+                    .collect();
+                Line::from(cells)
+            })
+            .collect();
+        let keypad = Paragraph::new(rows)
+            .style(Style::default().fg(fg))
+            .block(block(localizer.lookup("tui-keypad")));
+        frame.render_widget(keypad, kp_area);
+    }
+
+    let hints = Paragraph::new(localizer.lookup("tui-hints")).style(hints_style);
+    frame.render_widget(hints, hints_area);
 
     // Legend + plot + points of interest, capped to the panel height.
     let mut graph_text = String::new();
     let curves = app.graph();
     if !app.surfaces().is_empty() {
-        // 3D: the text alternative names each surface, then the wireframe.
         let legend: Vec<String> = app
             .surfaces()
             .iter()
@@ -828,10 +1338,9 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             .collect();
         graph_text.push_str(&legend.join("   "));
         graph_text.push('\n');
-        graph_text.push_str(&render_ascii3d(app.surfaces(), app.view(), 60, 15));
+        let (w, h) = graph_dims(graph_area, wide, app.keypad_focused());
+        graph_text.push_str(&render_ascii3d(app.surfaces(), app.view(), w, h));
     } else if !curves.is_empty() {
-        // The visible text alternative: what is plotted (screen readers in
-        // terminals read this instead of raw ASCII art).
         let legend: Vec<String> = curves
             .iter()
             .enumerate()
@@ -846,8 +1355,8 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             .collect();
         graph_text.push_str(&legend.join("   "));
         graph_text.push('\n');
-        let plot = render_ascii(curves, 60, 15);
-        graph_text.push_str(&plot);
+        let (w, h) = graph_dims(graph_area, wide, app.keypad_focused());
+        graph_text.push_str(&render_ascii(curves, w, h));
         let poi_lines: Vec<String> = app
             .pois()
             .iter()
@@ -867,52 +1376,100 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
         }
     }
     let graph = Paragraph::new(graph_text)
-        .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-graph")));
+        .style(Style::default().fg(fg))
+        .block(block(localizer.lookup("tui-graph")));
     frame.render_widget(graph, graph_area);
-
-    // The keypad grid (ADR-0016): the highlighted cell inserts its token.
-    if let Some(kp_area) = keypad_area {
-        use ratatui::text::Span;
-        let rows: Vec<Line> = KEYPAD
-            .iter()
-            .enumerate()
-            .map(|(r, row)| {
-                let cells: Vec<Span> = row
-                    .iter()
-                    .enumerate()
-                    .map(|(c, (disp, _))| {
-                        let selected = r == app.keypad_row() && c == app.keypad_col();
-                        let style = if selected {
-                            Style::default()
-                                .bg(Color::Cyan)
-                                .fg(Color::Black)
-                                .add_modifier(Modifier::BOLD)
-                        } else {
-                            Style::default()
-                        };
-                        Span::styled(format!(" {:<7}", disp), style)
-                    })
-                    .collect();
-                Line::from(cells)
-            })
-            .collect();
-        let keypad = Paragraph::new(rows)
-            .block(Block::default().borders(Borders::ALL).title(localizer.lookup("tui-keypad")));
-        frame.render_widget(keypad, kp_area);
-    }
-
-    let hints = Paragraph::new(localizer.lookup("tui-hints"))
-        .style(Style::default().fg(Color::DarkGray));
-    frame.render_widget(hints, hints_area);
 
     // Focus visible: the terminal cursor must sit at the end of the input
     // text, not wherever the shell left it.
-    let input_area = layout[0];
-    let text_width = UnicodeWidthStr::width(app.input());
+    let text_width = UnicodeWidthStr::width(input_text.as_str());
     let x = input_area
         .x
         .saturating_add(1)
         .saturating_add(text_width as u16)
         .min(input_area.right().saturating_sub(2));
     frame.set_cursor_position(Position::new(x, input_area.y + 1));
+}
+
+/// The ASCII plot size for the graph panel: on wide terminals the
+/// right-hand section's own dimensions (the renderer scales to them); on
+/// narrow ones the fixed bottom panel sizes from ADR-0016.
+fn graph_dims(graph_area: ratatui::layout::Rect, wide: bool, keypad: bool) -> (usize, usize) {
+    if wide {
+        let w = graph_area.width.saturating_sub(2) as usize;
+        let h = graph_area.height.saturating_sub(4) as usize;
+        return (w.max(20), h.max(3));
+    }
+    (60, if keypad { 11 } else { 16 })
+}
+
+/// Which Settings radio is checked: the theme item index (0 light,
+/// 1 dark, 2 night); languages are items 3..10 and map through
+/// SUPPORTED_LOCALES.
+fn item_checked(app: &App) -> usize {
+    match app.theme() {
+        Theme::Light => 0,
+        Theme::Dark => 1,
+        Theme::Night => 2,
+    }
+}
+
+/// The name of a language in itself — the TUI menu lists languages the
+/// way their speakers write them, independent of the UI language.
+fn native_language_name(code: &str) -> &str {
+    match code {
+        "en" => "English",
+        "zh-CN" => "\u{7b80}\u{4f53}\u{4e2d}\u{6587}",
+        "hi" => "\u{939}\u{93f}\u{928}\u{94d}\u{926}\u{940}",
+        "es" => "Espa\u{f1}ol",
+        "fr" => "Fran\u{e7}ais",
+        "ar" => "\u{627}\u{644}\u{639}\u{631}\u{628}\u{64a}\u{629}",
+        "de" => "Deutsch",
+        "pt" => "Portugu\u{ea}s",
+        _ => code,
+    }
+}
+
+
+/// Copy text to the terminal's clipboard via OSC 52 (ADR-0017): the
+/// escape sequence every mainstream terminal honors, remote sessions
+/// included. Written raw between ratatui frames.
+fn osc52_copy(text: &str) {
+    use std::io::Write;
+    let encoded = base64(text.as_bytes());
+    print!("\x1b]52;c;{encoded}\x07");
+    let _ = std::io::stdout().flush();
+}
+
+/// Minimal RFC 4648 base64 encoder (with padding): OSC 52 payloads must
+/// be base64, and this avoids a dependency for twenty lines of math.
+fn base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            chunk.get(1).copied().unwrap_or(0),
+            chunk.get(2).copied().unwrap_or(0),
+        ];
+        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
+        out.push(TABLE[(n >> 18) as usize & 63] as char);
+        out.push(TABLE[(n >> 12) as usize & 63] as char);
+        out.push(if chunk.len() > 1 {
+            TABLE[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[n as usize & 63] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
+/// The base64 payload for an OSC 52 copy (ADR-0017) — public for tests.
+pub fn base64_for_osc52(bytes: &[u8]) -> String {
+    base64(bytes)
 }

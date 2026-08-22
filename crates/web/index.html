@@ -10,9 +10,12 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <style>
     /* The html element carries the dark background directly so the very
-       first painted frame is dark — no white flash on desktop launch. */
+       first painted frame is dark — no white flash on desktop launch.
+       data-theme (set by the app once loaded) switches the token set:
+       dark (default), light, night. Every token's contrast is recorded
+       at its definition (WCAG 1.4.3 text 4.5:1, 1.4.11 non-text 3:1). */
     html { background: #141416; }
-    :root {
+    :root, :root[data-theme="dark"] {
       --bg: #141416;
       --panel: #1d1f22;
       /* field boundary: 3.5:1 vs --bg, 3.1:1 vs --panel (WCAG 1.4.11) */
@@ -21,6 +24,28 @@
       --accent: #2dd4bf;
       /* history text: 6.6:1 vs --bg (WCAG 1.4.3) */
       --muted: #9a9ba2;
+      /* text on accent-filled controls: 10.0:1 on --accent */
+      --on-accent: #0b1512;
+    }
+    :root[data-theme="light"] {
+      --bg: #f7f8f8;
+      --panel: #ffffff;
+      --border: #80858a; /* 3.5:1 vs --bg */
+      --text: #1b1d1f;   /* 15.9:1 vs --bg */
+      --accent: #0e8074; /* 4.5:1 vs --bg, 4.8:1 vs --panel */
+      --muted: #565d63;  /* 6.3:1 vs --bg */
+      --on-accent: #ffffff; /* 4.8:1 on --accent */
+    }
+    /* Night: long-wavelength reds on near-black, for dark-adapted eyes.
+       The curve palette stays inside warm hues so no blue light leaks in. */
+    :root[data-theme="night"] {
+      --bg: #0d0000;
+      --panel: #170404;
+      --border: #aa4033; /* 3.4:1 vs --bg, 3.3:1 vs --panel */
+      --text: #ffb3a8;   /* 12.1:1 vs --bg */
+      --accent: #ff6b5a; /* 7.4:1 vs --bg, 7.1:1 vs --panel */
+      --muted: #d98878;  /* 7.6:1 vs --bg */
+      --on-accent: #1a0000; /* 7.2:1 on --accent */
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     /* Fixed viewport, no page scrolling (ADR-0016): the app is one screen —
@@ -47,12 +72,97 @@
       flex-direction: column;
     }
     h1 { font-size: 1.5rem; font-weight: 600; }
+    /* --- the top bar: menu bar (ADR-0017) + mobile pane switch -------- */
+    .topbar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.75rem 0;
+      min-height: 48px;
+    }
+    .menubar {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .menu {
+      position: relative;
+    }
+    .menu-top {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0.35rem 0.8rem;
+      border: none;
+      background: none;
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .menu-top.open {
+      background: var(--panel);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .menu-drop {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 10;
+      min-width: 190px;
+      max-height: calc(100dvh - 110px);
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.3rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .menu-item {
+      min-height: 40px;
+      padding: 0.3rem 0.75rem;
+      border: none;
+      background: none;
+      color: var(--text);
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .menu-item:hover {
+      color: var(--accent);
+    }
+    .menu-item[aria-checked="true"] {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .menu-check {
+      width: 1.1em;
+      display: inline-block;
+      text-align: center;
+      flex: none;
+    }
+    .menu-group {
+      padding: 0.45rem 0.75rem 0.15rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .menu-sep {
+      border-top: 1px solid var(--border);
+      margin: 0.25rem 0.5rem;
+    }
     /* --- pane switching (mobile: the graph is one swipe away) ---------- */
     .pane-switch {
       display: flex;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.5rem 0 0;
+      margin-left: auto;
       flex: none;
     }
     .pane-switch button {
@@ -91,9 +201,11 @@
          does */
       overflow-y: auto;
     }
-    /* --- calculator pane: answer / input / history / keypad ------------ */
+    /* --- calculator pane: input / answer / history / keypad -----------
+       The top padding keeps the input from sitting flush against the
+       top bar. */
     #calc-pane {
-      padding: 0 0.75rem 0.5rem;
+      padding: 0.6rem 0.75rem 0.5rem;
       gap: 0.5rem;
     }
     /* the answer panel: fixed height, always visible (ADR-0016); it sits
@@ -145,7 +257,7 @@
     }
     /* placeholder: 6.4:1 on --panel (WCAG 1.4.3); it is a hint, the label
        is the aria-label on the input (WCAG 3.3.2) */
-    input::placeholder, textarea::placeholder { color: #a1a1a6; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
     /* Keyboard focus indicators (WCAG 2.4.7, 1.4.11): accent ring 9.9:1 vs
        the page background; the button gets an inset dark-teal ring —
        10.0:1 on the accent surface — since an outer ring would blend into
@@ -154,7 +266,7 @@
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     button:focus-visible {
       outline: none;
-      box-shadow: inset 0 0 0 3px #0b1512;
+      box-shadow: inset 0 0 0 3px var(--on-accent);
     }
     /* No animations exist today; guard any future motion (WCAG 2.3.3). */
     @media (prefers-reduced-motion: reduce) {
@@ -287,7 +399,7 @@
       font-weight: 700;
       font-size: 1.15rem;
     }
-    .keypad-btn.eq:hover { color: #0b1512; border-color: var(--accent); }
+    .keypad-btn.eq:hover { color: var(--on-accent); border-color: var(--accent); }
     .keypad-btn.act { color: var(--muted); }
     /* --- graph pane ----------------------------------------------------- */
     #graph-pane {
@@ -348,11 +460,18 @@
     /* Curve palette (ADR-0014): every color is >= 3:1 on --bg (WCAG
        1.4.11) — accent 9.9:1, #4da3ff 7.0:1, #ffb340 10.3:1, #c39dff
        8.4:1 — and every curve after the first also gets a distinct dash
-       pattern so the plots stay distinguishable without color (1.4.1). */
+       pattern so the plots stay distinguishable without color (1.4.1).
+       Light and night palettes below carry their own recorded ratios. */
     .curve-0 { --curve: var(--accent); }
     .curve-1 { --curve: #4da3ff; }
     .curve-2 { --curve: #ffb340; }
     .curve-3 { --curve: #c39dff; }
+    :root[data-theme="light"] .curve-1 { --curve: #1e66c8; } /* 5.2:1 */
+    :root[data-theme="light"] .curve-2 { --curve: #9a5b00; } /* 5.1:1 */
+    :root[data-theme="light"] .curve-3 { --curve: #7a4bd6; } /* 5.2:1 */
+    :root[data-theme="night"] .curve-1 { --curve: #ffb340; } /* 11.6:1 */
+    :root[data-theme="night"] .curve-2 { --curve: #ff9e8a; } /* 10.3:1 */
+    :root[data-theme="night"] .curve-3 { --curve: #e0483e; } /* 5.1:1 */
     svg .curve {
       stroke: var(--curve, var(--accent));
       stroke-width: 2;

@@ -456,3 +456,109 @@ fn keypad_has_the_graph_commands() {
     app.keypad_insert();
     assert_eq!(app.input(), "graph ");
 }
+
+// ===== menus, themes, and file prompts (ADR-0017) =====
+
+#[test]
+fn theme_command_sets_and_persists_the_theme() {
+    let mut app = App::with_session(epher_core::Session::new());
+    let (store, _keep) = scratch_store();
+    let localizer = epher_i18n::Localizer::resolve(Some("en"), &[]);
+    app.submit_line("theme night", &store, &localizer);
+    assert_eq!(app.theme(), epher_tui::Theme::Night);
+    assert_eq!(epher_store::persist::load_theme(&store).unwrap().as_deref(), Some("night"));
+    app.submit_line("theme bogus", &store, &localizer);
+    assert_eq!(app.theme(), epher_tui::Theme::Night, "bad theme must not change the palette");
+}
+
+#[test]
+fn menu_navigation_and_actions() {
+    let mut app = App::with_session(epher_core::Session::new());
+    app.menu_open(0);
+    assert_eq!(app.menu_active(), Some((0, 0)));
+    app.menu_move(0, 1);
+    assert_eq!(app.menu_active(), Some((0, 1)));
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SaveHistory));
+    assert_eq!(app.menu_active(), None);
+
+    // Right arrow from the last menu wraps to the first.
+    app.menu_open(2);
+    app.menu_move(1, 0);
+    assert_eq!(app.menu_active(), Some((0, 0)));
+    // Settings: theme radios first, then languages.
+    app.menu_open(2);
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetTheme("light")));
+    app.menu_open(2);
+    for _ in 0..4 {
+        app.menu_move(0, 1);
+    }
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetLanguage("zh-CN")));
+
+    // Typing a character dismisses the menu (the event loop calls
+    // menu_close before push_char; here we check the state transitions
+    // the loop relies on).
+    app.menu_open(0);
+    app.menu_close();
+    assert_eq!(app.menu_active(), None);
+}
+
+#[test]
+fn file_prompt_saves_and_opens() {
+    let mut app = App::with_session(epher_core::Session::new());
+    app.set_input("1+1");
+    let dir = std::env::temp_dir().join(format!("epher-tui-menu-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("script.epher");
+
+    app.prompt_start(epher_tui::PromptKind::SaveScript);
+    for c in path.to_string_lossy().chars() {
+        app.prompt_push(c);
+    }
+    assert_eq!(app.prompt_submit(), None, "save must succeed and close the prompt");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "1+1");
+
+    // Opening loads the file into the input.
+    app.set_input("");
+    app.prompt_start(epher_tui::PromptKind::Open);
+    for c in path.to_string_lossy().chars() {
+        app.prompt_push(c);
+    }
+    assert_eq!(app.prompt_submit(), None);
+    assert_eq!(app.input(), "1+1");
+
+    // A missing path fails and keeps the prompt (with its text) open.
+    app.prompt_start(epher_tui::PromptKind::Open);
+    for c in "/nonexistent/nope.epher".chars() {
+        app.prompt_push(c);
+    }
+    assert_eq!(app.prompt_submit(), Some(epher_tui::PromptKind::Open));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn osc52_copy_frames_base64() {
+    let encoded = epher_tui::base64_for_osc52(b"graph x ^ 2");
+    // RFC 4648 of that payload, sanity-checked against the known value.
+    assert_eq!(encoded, "Z3JhcGggeCBeIDI=");
+}
+
+#[test]
+fn save_history_writes_the_session_history() {
+    let mut app = App::with_session(epher_core::Session::new());
+    let (store, _keep) = scratch_store();
+    let localizer = epher_i18n::Localizer::resolve(Some("en"), &[]);
+    app.submit_line("1+1", &store, &localizer);
+    app.submit_line("graph x", &store, &localizer);
+    let dir = std::env::temp_dir().join(format!("epher-tui-hist-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join("history.epher");
+    app.prompt_start(epher_tui::PromptKind::SaveHistory);
+    for c in path.to_string_lossy().chars() {
+        app.prompt_push(c);
+    }
+    assert_eq!(app.prompt_submit(), None);
+    let saved = std::fs::read_to_string(&path).unwrap();
+    assert!(saved.contains("1+1  = 2"), "history file: {saved:?}");
+    assert!(saved.contains("graph x"), "history file: {saved:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

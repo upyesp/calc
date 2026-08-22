@@ -105,3 +105,18 @@ pub fn load_language<S: Storage>(store: &DocStore<S>) -> StoreResult<Option<Stri
 pub fn save_language<S: Storage>(store: &DocStore<S>, language: &str) -> StoreResult<()> {
     store.set_setting(LANGUAGE_SETTING, serde_json::json!(language))
 }
+
+/// The user's theme override (ADR-0017): light, dark, or night. Detection
+/// (dark) is the default; the setting wins when present.
+pub const THEME_SETTING: &str = "theme";
+
+pub fn load_theme<S: Storage>(store: &DocStore<S>) -> StoreResult<Option<String>> {
+    match store.get_setting(THEME_SETTING)? {
+        Some(value) => Ok(value.as_str().map(String::from)),
+        None => Ok(None),
+    }
+}
+
+pub fn save_theme<S: Storage>(store: &DocStore<S>, theme: &str) -> StoreResult<()> {
+    store.set_setting(THEME_SETTING, serde_json::json!(theme))
+}
