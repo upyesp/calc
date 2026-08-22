@@ -120,3 +120,19 @@ pub fn load_theme<S: Storage>(store: &DocStore<S>) -> StoreResult<Option<String>
 pub fn save_theme<S: Storage>(store: &DocStore<S>, theme: &str) -> StoreResult<()> {
     store.set_setting(THEME_SETTING, serde_json::json!(theme))
 }
+
+/// Whether the graph panel lists the points of interest (default yes).
+/// A display toggle owned by the Settings menu — the analysis itself
+/// always runs, so switching back is instant.
+pub const POIS_SETTING: &str = "pois";
+
+pub fn load_pois<S: Storage>(store: &DocStore<S>) -> StoreResult<Option<bool>> {
+    match store.get_setting(POIS_SETTING)? {
+        Some(value) => Ok(value.as_bool()),
+        None => Ok(None),
+    }
+}
+
+pub fn save_pois<S: Storage>(store: &DocStore<S>, pois: bool) -> StoreResult<()> {
+    store.set_setting(POIS_SETTING, serde_json::json!(pois))
+}

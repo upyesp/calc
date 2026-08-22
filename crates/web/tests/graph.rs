@@ -34,14 +34,14 @@ fn samples_of(ys: &[f64]) -> Vec<Sample> {
 
 #[test]
 fn empty_curves_render_nothing() {
-    assert_eq!(graph_svg(&[], &[], None), "");
+    assert_eq!(graph_svg(&[], &[], None, true), "");
 }
 
 #[test]
 fn a_line_maps_the_domain_onto_the_plot_area() {
     // y = x sampled from -10 to 10: with 6% y padding the curve still runs
     // corner to corner (the padding lifts it 6% off the plot edges).
-    let svg = graph_svg(&[curve("x")], &[], None);
+    let svg = graph_svg(&[curve("x")], &[], None, true);
     assert!(svg.contains("viewBox=\"0 0 640 400\""));
     assert!(svg.contains("48.0,348.9"), "{svg}");
     assert!(svg.contains("632.0,31.1"), "{svg}");
@@ -95,14 +95,14 @@ fn ticks_land_on_nice_steps_and_snap_zero() {
 
 #[test]
 fn fills_emit_polygons_closed_against_the_plot_edge() {
-    let svg = graph_svg(&[curve("y < x ^ 2 from -2 to 2")], &[], None);
+    let svg = graph_svg(&[curve("y < x ^ 2 from -2 to 2")], &[], None, true);
     assert!(svg.contains("<polygon class=\"fill curve-0\""), "{svg}");
     assert!(svg.contains("368.0"), "closed against the bottom edge");
 }
 
 #[test]
 fn curves_get_distinct_classes_for_color_and_dash() {
-    let svg = graph_svg(&[curve("x"), curve("x ^ 2")], &[], None);
+    let svg = graph_svg(&[curve("x"), curve("x ^ 2")], &[], None, true);
     assert!(svg.contains("class=\"curve curve-0\""), "{svg}");
     assert!(svg.contains("class=\"curve curve-1\""), "{svg}");
 }
@@ -115,9 +115,23 @@ fn points_of_interest_render_with_labels() {
         x: 1.0,
         y: 0.0,
     }];
-    let svg = graph_svg(&[curve("x ^ 2 - 1")], &pois, None);
+    let svg = graph_svg(&[curve("x ^ 2 - 1")], &pois, None, true);
     assert!(svg.contains("class=\"poi\""), "{svg}");
     assert!(svg.contains("root (1, 0)"), "{svg}");
+}
+
+#[test]
+fn points_of_interest_hide_when_markers_are_off() {
+    let pois = vec![Poi {
+        kind: InterestKind::Root,
+        label: "root".to_string(),
+        x: 1.0,
+        y: 0.0,
+    }];
+    let svg = graph_svg(&[curve("x ^ 2 - 1")], &pois, None, false);
+    assert!(!svg.contains("class=\"poi\""), "{svg}");
+    assert!(!svg.contains("poi-label"), "{svg}");
+    assert!(svg.contains("class=\"curve\""), "the plot itself stays");
 }
 
 #[test]
@@ -145,13 +159,13 @@ fn trace_render_includes_the_cursor() {
         x: 0.0,
         y: 0.0,
     };
-    let svg = graph_svg(&[curve("x")], &[], Some(t));
+    let svg = graph_svg(&[curve("x")], &[], Some(t), true);
     assert!(svg.contains("class=\"trace\""), "{svg}");
 }
 
 #[test]
 fn parametric_and_polar_curves_share_the_plot() {
-    let svg = graph_svg(&[curve("param t, t ^ 2"), curve("polar 2")], &[], None);
+    let svg = graph_svg(&[curve("param t, t ^ 2"), curve("polar 2")], &[], None, true);
     assert!(svg.contains("class=\"curve curve-0\""), "{svg}");
     assert!(svg.contains("class=\"curve curve-1\""), "{svg}");
 }

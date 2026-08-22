@@ -701,6 +701,9 @@ the plot — and a **Clear graph** button at the top of the graph pane does
 the same for curves and 3D surfaces together. The TUI keeps the command in
 its **Graph** menu.
 
+Under **Settings → Graph** you can hide the list of points of interest,
+and the highlighted points drawn on the plot itself.
+
 ```epher
 graph x ^ 2
 graph x ^ 3
@@ -1140,7 +1143,13 @@ The screen is divided into panels:
 | **Arrow keys** | rotate the 3D view (when the input is empty) |
 | **Space** | start/stop the animation (when the input is empty) |
 | **F10** | open the menus (File, Edit, Graph, Settings, Help) |
+| **Tab** | open the function keypad; switch its banks (**Esc** closes) |
 | **Ctrl+L** | clear the history |
+
+The keypad's banks hold every function, constant, and command the
+language supports: **trig**, **fn**, **num**, and **var**. Arrow keys
+move the highlight, **Enter** inserts the token, and **Tab** cycles
+the banks.
 
 ### 5.3 Graphing
 
@@ -1155,7 +1164,8 @@ plot in the Graph panel; the legend above the plot names what is plotted.
 
 `graph clear` empties the plot, and the **Graph** menu does the same; the
 **Help** menu opens this guide inside the TUI (arrow keys scroll, **Esc**
-closes).
+closes). The **Settings** menu can hide the points of
+interest listed under the plot.
 
 You can graph any expression, including your own functions — first define
 one, then graph it:

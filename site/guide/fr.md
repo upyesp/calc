@@ -715,6 +715,9 @@ nomme. `graph clear` vide le tracé — et un bouton **Clear graph** en haut
 du panneau graphique fait la même chose pour les courbes et les surfaces 3D
 à la fois. La TUI conserve la commande dans son menu **Graph**.
 
+Dans **Settings → Graph** vous pouvez masquer la liste des points
+d'intérêt et les points mis en évidence sur le tracé lui-même.
+
 ```epher
 graph x ^ 2
 graph x ^ 3
@@ -1178,7 +1181,13 @@ L'écran est divisé en panneaux :
 | **Touches fléchées** | faire pivoter la vue 3D (quand la saisie est vide) |
 | **Espace** | démarrer/arrêter l'animation (quand la saisie est vide) |
 | **F10** | ouvrir les menus (Fichier, Édition, Graphique, Paramètres, Aide) |
+| **Tab** | ouvrir le clavier ; changer de groupe (**Esc** ferme) |
 | **Ctrl+L** | effacer l'historique |
+
+Les groupes du clavier couvrent toutes les fonctions, constantes et
+commandes du langage : **trig**, **fn**, **num** et **var**. Les flèches
+déplacent la sélection, **Entrée** insère le token et **Tab** change de
+groupe.
 
 ### 5.3 Les graphiques
 
@@ -1194,7 +1203,8 @@ tracé nomme ce qui est tracé.
 
 `graph clear` vide le tracé, et le menu **Graph** fait de même ; le menu
 **Help** ouvre ce guide dans la TUI (les touches fléchées font défiler,
-**Esc** ferme).
+**Esc** ferme). Le menu **Settings** peut masquer les points d'intérêt
+listés sous le tracé.
 
 Vous pouvez tracer n'importe quelle expression, y compris vos propres
 fonctions — définissez-en d'abord une, puis tracez-la :

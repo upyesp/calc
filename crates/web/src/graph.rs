@@ -328,7 +328,7 @@ fn layers_svg(geom: &Geometry, x_axis: bool) -> String {
 /// Render curves, points of interest, and the trace cursor as an inline SVG
 /// string (tests and the copy button; the app renders [`graph_html`]).
 /// Nothing to draw renders the empty string.
-pub fn graph_svg(curves: &[SampledCurve], pois: &[Poi], trace: Option<TracePoint>) -> String {
+pub fn graph_svg(curves: &[SampledCurve], pois: &[Poi], trace: Option<TracePoint>, markers: bool) -> String {
     let Some(geom) = geometry(curves) else {
         return String::new();
     };
@@ -361,17 +361,19 @@ pub fn graph_svg(curves: &[SampledCurve], pois: &[Poi], trace: Option<TracePoint
         }
     }
 
-    for p in pois {
-        let (x, y) = (geom.sx(p.x), geom.sy(p.y));
-        svg.push_str(&format!(
-            "<circle class=\"poi\" cx=\"{x:.1}\" cy=\"{y:.1}\" r=\"4\" />"
-        ));
-        svg.push_str(&format!(
-            "<text class=\"poi-label\" x=\"{:.1}\" y=\"{:.1}\">{}</text>",
-            x + 7.0,
-            y - 7.0,
-            escape(&format!("{} ({}, {})", p.label, label(p.x), label(p.y)))
-        ));
+    if markers {
+        for p in pois {
+            let (x, y) = (geom.sx(p.x), geom.sy(p.y));
+            svg.push_str(&format!(
+                "<circle class=\"poi\" cx=\"{x:.1}\" cy=\"{y:.1}\" r=\"4\" />"
+            ));
+            svg.push_str(&format!(
+                "<text class=\"poi-label\" x=\"{:.1}\" y=\"{:.1}\">{}</text>",
+                x + 7.0,
+                y - 7.0,
+                escape(&format!("{} ({}, {})", p.label, label(p.x), label(p.y)))
+            ));
+        }
     }
 
     if let Some(t) = trace {
@@ -412,6 +414,9 @@ pub struct GraphProps {
     pub curves: Vec<SampledCurve>,
     pub pois: Vec<Poi>,
     pub trace: Option<TracePoint>,
+    /// Settings → Graph (ADR-0019): draw the highlighted points on the
+    /// plot itself. The list below the plot is a separate toggle.
+    pub markers: bool,
     /// Mouse move/tap over the plot: viewBox coordinates.
     pub on_trace: Callback<(f64, f64)>,
     /// Keyboard input while the plot has focus (arrow-key tracing).
@@ -565,15 +570,17 @@ pub fn graph_html(props: &GraphProps) -> Html {
     }
 
     let mut poi_nodes = Vec::new();
-    for p in &props.pois {
-        let (x, y) = (geom.sx(p.x), geom.sy(p.y));
-        let text = format!("{} ({}, {})", p.label, label(p.x), label(p.y));
-        poi_nodes.push(html! {
-            <circle class="poi" cx={x.to_string()} cy={y.to_string()} r="4" />
-        });
-        poi_nodes.push(html! {
-            <text class="poi-label" x={(x + 7.0).to_string()} y={(y - 7.0).to_string()}>{ text }</text>
-        });
+    if props.markers {
+        for p in &props.pois {
+            let (x, y) = (geom.sx(p.x), geom.sy(p.y));
+            let text = format!("{} ({}, {})", p.label, label(p.x), label(p.y));
+            poi_nodes.push(html! {
+                <circle class="poi" cx={x.to_string()} cy={y.to_string()} r="4" />
+            });
+            poi_nodes.push(html! {
+                <text class="poi-label" x={(x + 7.0).to_string()} y={(y - 7.0).to_string()}>{ text }</text>
+            });
+        }
     }
 
     let trace_node = props.trace.map(|t| {

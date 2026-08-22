@@ -707,6 +707,9 @@ a sua cor e o seu padrão de traço, e uma legenda dá-lhes nome.
 do painel do gráfico faz o mesmo para curvas e superfícies 3D em
 conjunto. A TUI mantém o comando no seu menu **Graph**.
 
+Em **Settings → Graph** pode ocultar a lista de pontos de interesse e os
+pontos destacados desenhados no próprio gráfico.
+
 ```epher
 graph x ^ 2
 graph x ^ 3
@@ -1164,7 +1167,12 @@ O ecrã está dividido em painéis:
 | **Arrow keys** | rodar a vista 3D (quando a entrada está vazia) |
 | **Space** | iniciar/parar a animação (quando a entrada está vazia) |
 | **F10** | abrir os menus (Ficheiro, Editar, Gráfico, Definições, Ajuda) |
+| **Tab** | abrir o teclado; trocar de grupo (**Esc** fecha) |
 | **Ctrl+L** | limpar o histórico |
+
+Os grupos do teclado cobrem todas as funções, constantes e comandos que
+a linguagem suporta: **trig**, **fn**, **num** e **var**. As setas movem
+o realce, **Enter** insere o token e a **Tab** troca de grupo.
 
 ### 5.3 Gráficos
 
@@ -1180,7 +1188,8 @@ traçado.
 
 `graph clear` esvazia o gráfico, e o menu **Graph** faz o mesmo; o
 menu **Help** abre este guia dentro da TUI (as setas fazem rolar,
-**Esc** fecha).
+**Esc** fecha). O menu **Settings** pode ocultar os pontos de interesse
+listados sob o gráfico.
 
 Pode desenhar o gráfico de qualquer expressão, incluindo as suas próprias
 funções — primeiro defina uma, depois desenhe o gráfico:

@@ -433,10 +433,28 @@ fn keypad_move_wraps_around_edges() {
     app.keypad_open();
     app.keypad_move(0, -1); // from col 0 → col 4
     assert_eq!(app.keypad_col(), 4);
-    app.keypad_move(-1, 0); // from row 0 → row 3
-    assert_eq!(app.keypad_row(), 3);
+    app.keypad_move(-1, 0); // from row 0 → the trig bank's last row
+    assert_eq!(app.keypad_row(), 2);
+    assert_eq!(app.keypad_col(), 4, "clamped to the ragged row's length");
     app.keypad_move(1, 0); // wraps back to row 0
     assert_eq!(app.keypad_row(), 0);
+}
+
+#[test]
+fn keypad_banks_cycle_and_reset_the_highlight() {
+    let mut app = App::default();
+    app.keypad_open();
+    assert_eq!(app.keypad_bank(), "trig");
+    app.keypad_move(2, 4); // somewhere inside
+    app.keypad_cycle(1);
+    assert_eq!(app.keypad_bank(), "fn");
+    assert_eq!((app.keypad_row(), app.keypad_col()), (0, 0));
+    app.keypad_cycle(-1); // back to trig, wrapping through the front
+    assert_eq!(app.keypad_bank(), "trig");
+    app.keypad_cycle(-1); // …and on to the last bank
+    assert_eq!(app.keypad_bank(), "var");
+    app.keypad_insert(); // (0,0) of var = pi
+    assert_eq!(app.input(), "pi");
 }
 
 #[test]
@@ -452,12 +470,54 @@ fn keypad_close_clears_focus_state() {
 fn keypad_has_the_graph_commands() {
     let mut app = App::default();
     app.keypad_open();
-    app.keypad_move(3, 1); // graph
+    for _ in 0..3 {
+        app.keypad_cycle(1); // trig → fn → num → var
+    }
+    app.keypad_move(1, 2); // row 1, col 2 of the var bank
     app.keypad_insert();
     assert_eq!(app.input(), "graph ");
 }
 
+#[test]
+fn keypad_covers_every_function_that_was_missing() {
+    // The banks grew to the full language (ADR-0019): every function,
+    // constant, and command from the guide's reference must be
+    // reachable from the keypad.
+    let mut tokens = Vec::new();
+    for bank in epher_tui::banks() {
+        for row in bank.1 {
+            for (disp, token) in *row {
+                let _ = disp;
+                tokens.push(token.trim_end_matches('(').trim());
+            }
+        }
+    }
+    for name in [
+        "asin", "acos", "atan", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "deg",
+        "rad", "atan2", "exp", "log2", "logb", "cbrt", "root", "hypot", "trunc", "sign",
+        "min", "max", "gcd", "lcm", "mod", "fact", "ncr", "npr", "sum", "product", "mean",
+        "median", "variance", "stdev", "frac", "dec", "big", "phi", "x", "t", "ans",
+        "graph", "graph3d", "table", "clear", "history", "sin", "cos", "tan", "ln", "log",
+        "sqrt", "abs", "floor", "ceil", "round", "pi", "e", "tau",
+    ] {
+        assert!(tokens.contains(&name), "the keypad is missing {name}");
+    }
+}
+
 // ===== menus, themes, and file prompts (ADR-0017) =====
+
+#[test]
+fn poi_list_setting_toggles_and_persists() {
+    let mut app = App::with_session(epher_core::Session::new());
+    let (store, _keep) = scratch_store();
+    assert!(app.poi_list(), "shown by default");
+    app.toggle_pois();
+    assert!(!app.poi_list());
+    epher_store::persist::save_pois(&store, app.poi_list()).unwrap();
+    assert_eq!(epher_store::persist::load_pois(&store).unwrap(), Some(false));
+    app.set_pois(true);
+    assert!(app.poi_list());
+}
 
 #[test]
 fn theme_command_sets_and_persists_the_theme() {
@@ -489,12 +549,16 @@ fn menu_navigation_and_actions() {
     app.menu_open(2);
     assert_eq!(epher_tui::App::menu_len(2), 1);
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::ClearGraph));
-    // Settings moved to slot 3: theme radios first, then languages.
+    // Settings moved to slot 3: the POI-list checkbox (ADR-0019), then
+    // theme radios, then languages.
     app.menu_open(3);
-    assert_eq!(epher_tui::App::menu_len(3), 11);
+    assert_eq!(epher_tui::App::menu_len(3), 12);
+    assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::TogglePois));
+    app.menu_open(3);
+    app.menu_move(0, 1);
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetTheme("light")));
     app.menu_open(3);
-    for _ in 0..4 {
+    for _ in 0..5 {
         app.menu_move(0, 1);
     }
     assert_eq!(app.menu_activate(), Some(epher_tui::MenuAction::SetLanguage("zh-CN")));

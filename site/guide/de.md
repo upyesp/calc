@@ -713,6 +713,9 @@ eigener Farbe und eigenem Strichmuster, und eine Legende benennt sie.
 Graph-Panel macht dasselbe für Kurven und 3D-Flächen zusammen. Die TUI
 behält den Befehl in ihrem **Graph**-Menü.
 
+Unter **Settings → Graph** kannst du die Liste der besonderen Punkte und
+die hervorgehobenen Punkte im Plot selbst ausblenden.
+
 ```epher
 graph x ^ 2
 graph x ^ 3
@@ -1172,7 +1175,13 @@ Der Bildschirm ist in Panels unterteilt:
 | **Arrow keys** | die 3D-Ansicht drehen (wenn die Eingabe leer ist) |
 | **Space** | die Animation starten/stoppen (wenn die Eingabe leer ist) |
 | **F10** | die Menüs öffnen (Datei, Bearbeiten, Graph, Einstellungen, Hilfe) |
+| **Tab** | das Tastenfeld öffnen; zwischen seinen Gruppen wechseln (**Esc** schließt) |
 | **Ctrl+L** | den Verlauf leeren |
+
+Die Gruppen des Tastenfelds enthalten jede Funktion, jede Konstante und
+jeden Befehl der Sprache: **trig**, **fn**, **num** und **var**. Die
+Pfeiltasten bewegen die Markierung, **Enter** fügt das Token ein, und
+**Tab** wechselt die Gruppen.
 
 ### 5.3 Graphen zeichnen
 
@@ -1188,7 +1197,8 @@ gezeichnet wird.
 
 `graph clear` leert den Plot, und das **Graph**-Menü macht dasselbe; das
 **Help**-Menü öffnet dieses Handbuch in der TUI (Pfeiltasten scrollen,
-**Esc** schließt).
+**Esc** schließt). Das **Settings**-Menü kann die besonderen Punkte unter
+dem Plot ausblenden.
 
 Du kannst jeden Ausdruck zeichnen, auch deine eigenen Funktionen —
 definiere zuerst eine und zeichne sie dann:

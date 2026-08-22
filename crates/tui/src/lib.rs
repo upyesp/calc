@@ -13,8 +13,8 @@ use epher_core::Session;
 use epher_i18n::Localizer;
 use epher_shell::{classify, plain, run_command};
 use epher_store::persist::{
-    default_store_dir, load_language, load_session, load_theme, save_history, save_language,
-    save_theme,
+    default_store_dir, load_language, load_pois, load_session, load_theme, save_history,
+    save_language, save_pois, save_theme,
 };
 use epher_store::{DocStore, FsStore};
 use unicode_width::UnicodeWidthStr;
@@ -69,6 +69,9 @@ pub enum MenuAction {
     Paste,
     SetTheme(&'static str),
     SetLanguage(&'static str),
+    /// Show or hide the points-of-interest list in the graph panel
+    /// (ADR-0019); the loop persists the choice.
+    TogglePois,
     /// Empty the graph pane (curves, points of interest, 3D surfaces).
     ClearGraph,
     /// Open the in-app user guide (ADR-0018).
@@ -96,13 +99,17 @@ pub struct App {
     surface: Vec<Surface>,
     view: View3D,
     play: Option<Play>,
-    /// Keypad focus mode (ADR-0016): Tab opens the button grid, arrows
-    /// move the highlight, Enter appends the token, Esc/Tab closes.
+    /// Keypad focus mode (ADR-0016): Tab opens the button grid and
+    /// switches its banks, arrows move the highlight, Enter appends
+    /// the token, Esc closes.
     keypad: bool,
+    kp_bank: usize,
     kp_row: usize,
     kp_col: usize,
     /// The color theme (ADR-0017).
     theme: Theme,
+    /// Whether the graph panel lists the points of interest (ADR-0019).
+    poi_list: bool,
     /// The open menu bar item and the highlighted row inside it
     /// (ADR-0017); `None` when the menus are closed.
     menu: Option<(usize, usize)>,
@@ -116,36 +123,52 @@ pub struct App {
 /// The TUI keypad (ADR-0016): a condensed 4×5 grid of the most-used
 /// tokens — the full set lives on the web keypad; the terminal stays
 /// compact. (display, insert-at-end).
-const KEYPAD: &[&[(&str, &str)]] = &[
-    &[
-        ("sin", "sin("),
-        ("cos", "cos("),
-        ("tan", "tan("),
-        ("ln", "ln("),
-        ("log", "log("),
-    ],
-    &[
-        ("sqrt", "sqrt("),
-        ("abs", "abs("),
-        ("floor", "floor("),
-        ("ceil", "ceil("),
-        ("round", "round("),
-    ],
-    &[
-        ("pi", "pi"),
-        ("e", "e"),
-        ("tau", "tau"),
-        ("frac", "frac("),
-        ("dec", "dec("),
-    ],
-    &[
-        ("big", "big("),
-        ("graph", "graph "),
-        ("graph3d", "graph3d "),
-        ("table", "table "),
-        ("clear", "clear "),
-    ],
+/// The keypad's banks (ADR-0016): every function, constant, and command
+/// the language supports, mirroring the web keypad's tabs (minus the
+/// digits bank — a terminal already has number keys). Labels are the
+/// language tokens themselves (ADR-0007 — the language is never
+/// localized). Rows may be ragged; the widest row fixes the grid width.
+const BANKS: &[(&str, &[&[(&str, &str)]])] = &[
+    (
+        "trig",
+        &[
+            &[("sin", "sin("), ("cos", "cos("), ("tan", "tan("), ("asin", "asin("), ("acos", "acos(")],
+            &[("atan", "atan("), ("sinh", "sinh("), ("cosh", "cosh("), ("tanh", "tanh("), ("asinh", "asinh(")],
+            &[("acosh", "acosh("), ("atanh", "atanh("), ("deg", "deg("), ("rad", "rad("), ("atan2", "atan2(")],
+        ],
+    ),
+    (
+        "fn",
+        &[
+            &[("ln", "ln("), ("log", "log("), ("log2", "log2("), ("logb", "logb("), ("exp", "exp(")],
+            &[("sqrt", "sqrt("), ("cbrt", "cbrt("), ("root", "root("), ("hypot", "hypot("), ("abs", "abs(")],
+            &[("floor", "floor("), ("ceil", "ceil("), ("round", "round("), ("trunc", "trunc("), ("sign", "sign(")],
+            &[("min", "min("), ("max", "max(")],
+        ],
+    ),
+    (
+        "num",
+        &[
+            &[("gcd", "gcd("), ("lcm", "lcm("), ("mod", "mod("), ("fact", "fact(")],
+            &[("ncr", "ncr("), ("npr", "npr("), ("sum", "sum("), ("product", "product(")],
+            &[("mean", "mean("), ("median", "median("), ("variance", "variance("), ("stdev", "stdev(")],
+            &[("frac", "frac("), ("dec", "dec("), ("big", "big(")],
+        ],
+    ),
+    (
+        "var",
+        &[
+            &[("pi", "pi"), ("e", "e"), ("tau", "tau"), ("phi", "phi"), ("x", "x")],
+            &[("t", "t"), ("ans", "ans"), ("graph", "graph "), ("graph3d", "graph3d "), ("table", "table ")],
+            &[("clear", "clear "), ("history", "history ")],
+        ],
+    ),
 ];
+
+/// The keypad banks, for tests and callers that need the grid.
+pub fn banks() -> &'static [(&'static str, &'static [&'static [(&'static str, &'static str)]])] {
+    BANKS
+}
 
 impl App {
     pub fn with_session(session: Session) -> Self {
@@ -161,7 +184,9 @@ impl App {
             keypad: false,
             kp_row: 0,
             kp_col: 0,
+            kp_bank: 0,
             theme: Theme::default(),
+            poi_list: true,
             menu: None,
             prompt: None,
             guide: None,
@@ -184,6 +209,9 @@ impl App {
 
     pub fn keypad_open(&mut self) {
         self.keypad = true;
+        self.kp_bank = 0;
+        self.kp_row = 0;
+        self.kp_col = 0;
         self.menu = None;
     }
 
@@ -191,18 +219,45 @@ impl App {
         self.keypad = false;
     }
 
-    /// Move the highlight, wrapping around the grid edges.
+    /// The highlighted bank's label.
+    pub fn keypad_bank(&self) -> &'static str {
+        BANKS[self.kp_bank].0
+    }
+
+    /// The highlighted bank's index.
+    pub fn keypad_bank_index(&self) -> usize {
+        self.kp_bank
+    }
+
+    /// Switch to the next (or previous) bank, wrapping.
+    pub fn keypad_cycle(&mut self, dir: isize) {
+        let banks = BANKS.len() as isize;
+        self.kp_bank = (self.kp_bank as isize + dir).rem_euclid(banks) as usize;
+        self.kp_row = 0;
+        self.kp_col = 0;
+    }
+
+    /// Move the highlight, wrapping around the grid edges. Rows may be
+    /// ragged, so vertical motion clamps the column to the new row.
     pub fn keypad_move(&mut self, dr: isize, dc: isize) {
-        let rows = KEYPAD.len() as isize;
-        let cols = KEYPAD.first().map(|r| r.len() as isize).unwrap_or(1);
+        let rows = BANKS[self.kp_bank].1.len() as isize;
+        let cols = BANKS[self.kp_bank]
+            .1
+            .iter()
+            .map(|r| r.len())
+            .max()
+            .unwrap_or(1) as isize;
         self.kp_row = (self.kp_row as isize + dr).rem_euclid(rows) as usize;
         self.kp_col = (self.kp_col as isize + dc).rem_euclid(cols) as usize;
+        let len = BANKS[self.kp_bank].1[self.kp_row].len();
+        self.kp_col = self.kp_col.min(len.saturating_sub(1));
     }
 
     /// Append the highlighted token to the end of the input (the terminal
     /// cursor already lives there).
     pub fn keypad_insert(&mut self) {
-        let token = KEYPAD[self.kp_row][self.kp_col].1;
+        let row = &BANKS[self.kp_bank].1[self.kp_row];
+        let token = row[self.kp_col.min(row.len() - 1)].1;
         self.input.push_str(token);
     }
 
@@ -216,6 +271,19 @@ impl App {
         self.theme = theme;
     }
 
+    /// Settings → Graph: the points-of-interest list toggle (ADR-0019).
+    pub fn poi_list(&self) -> bool {
+        self.poi_list
+    }
+
+    pub fn toggle_pois(&mut self) {
+        self.poi_list = !self.poi_list;
+    }
+
+    pub fn set_pois(&mut self, pois: bool) {
+        self.poi_list = pois;
+    }
+
     /// The menu bar: File, Edit, Graph, Settings, Help.
     pub const MENUS: [&'static str; 5] = ["file", "edit", "graph", "settings", "help"];
 
@@ -225,7 +293,7 @@ impl App {
             0 => 3,  // File: open, save history, save script
             1 => 3,  // Edit: cut, copy, paste
             2 => 1,  // Graph: clear graph
-            3 => 11, // Settings: 3 themes + 8 languages
+            3 => 12, // Settings: POI toggle, 3 themes, 8 languages
             4 => 1,  // Help: user guide
             _ => 0,
         }
@@ -277,16 +345,17 @@ impl App {
             2 => MenuAction::ClearGraph,
             4 => MenuAction::OpenGuide,
             _ => match item {
-                0 => MenuAction::SetTheme("light"),
-                1 => MenuAction::SetTheme("dark"),
-                2 => MenuAction::SetTheme("night"),
-                3 => MenuAction::SetLanguage("en"),
-                4 => MenuAction::SetLanguage("zh-CN"),
-                5 => MenuAction::SetLanguage("hi"),
-                6 => MenuAction::SetLanguage("es"),
-                7 => MenuAction::SetLanguage("fr"),
-                8 => MenuAction::SetLanguage("ar"),
-                9 => MenuAction::SetLanguage("de"),
+                0 => MenuAction::TogglePois,
+                1 => MenuAction::SetTheme("light"),
+                2 => MenuAction::SetTheme("dark"),
+                3 => MenuAction::SetTheme("night"),
+                4 => MenuAction::SetLanguage("en"),
+                5 => MenuAction::SetLanguage("zh-CN"),
+                6 => MenuAction::SetLanguage("hi"),
+                7 => MenuAction::SetLanguage("es"),
+                8 => MenuAction::SetLanguage("fr"),
+                9 => MenuAction::SetLanguage("ar"),
+                10 => MenuAction::SetLanguage("de"),
                 _ => MenuAction::SetLanguage("pt"),
             },
         };
@@ -936,11 +1005,15 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
     let detected: Vec<String> = sys_locale::get_locales().collect();
     let mut localizer = Localizer::resolve(preference.as_deref(), &detected);
     let mut app = App::with_session(session);
-    // The stored theme (ADR-0017) wins over the default dark palette.
+    // The stored theme (ADR-0017) wins over the default dark palette;
+    // the stored points-of-interest choice (ADR-0019) over "shown".
     if let Some(name) = load_theme(&store).unwrap_or(None) {
         if let Some(theme) = Theme::from_str(&name) {
             app.set_theme(theme);
         }
+    }
+    if let Some(pois) = load_pois(&store).unwrap_or(None) {
+        app.set_pois(pois);
     }
     // One step per 120 ms while playing — the same rate as the web
     // sliders' play button (ADR-0015). The poll below wakes at 50 ms so
@@ -1030,13 +1103,19 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                     KeyCode::Char('q') if app.input().is_empty() && !app.keypad_focused() => {
                         return Ok(());
                     }
-                    // Keypad mode (ADR-0016): Tab opens/closes the button
-                    // grid; inside it, arrows move and Enter inserts.
+                    // Keypad mode (ADR-0016): Tab opens the button grid
+                    // and cycles its banks (Shift+Tab cycles back);
+                    // inside it, arrows move, Enter inserts, Esc closes.
                     KeyCode::Tab => {
                         if app.keypad_focused() {
-                            app.keypad_close();
+                            app.keypad_cycle(1);
                         } else {
                             app.keypad_open();
+                        }
+                    }
+                    KeyCode::BackTab => {
+                        if app.keypad_focused() {
+                            app.keypad_cycle(-1);
                         }
                     }
                     KeyCode::Left if app.keypad_focused() => app.keypad_move(0, -1),
@@ -1126,6 +1205,10 @@ fn run_loop(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                             MenuAction::SetLanguage(code) => {
                                 localizer = Localizer::resolve(Some(code), &[]);
                                 let _ = save_language(&store, code);
+                            }
+                            MenuAction::TogglePois => {
+                                app.toggle_pois();
+                                let _ = save_pois(&store, app.poi_list());
                             }
                             MenuAction::ClearGraph => {
                                 app.clear_graph();
@@ -1309,31 +1392,25 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
             2 => vec![localizer.lookup("graph-clear")],
             4 => vec![localizer.lookup("menu-guide")],
             _ => {
-                let mut v = vec![
-                    localizer.lookup("theme-light"),
-                    localizer.lookup("theme-dark"),
-                    localizer.lookup("theme-night"),
-                ];
+                let mut v = vec![localizer.lookup("graph-points")];
+                v.push(localizer.lookup("theme-light"));
+                v.push(localizer.lookup("theme-dark"));
+                v.push(localizer.lookup("theme-night"));
                 for code in epher_i18n::SUPPORTED_LOCALES {
                     v.push(native_language_name(code).to_string());
                 }
                 v
             }
         };
-        let checked_item = match menu {
-            3 => Some(item_checked(app)),
-            _ => None,
-        };
         let lines: Vec<Line> = items
             .iter()
             .enumerate()
             .map(|(i, label)| {
-                let mark = match checked_item {
-                    Some(ci) if ci == i => "\u{2713} ",
-                    _ => match menu {
-                        3 => "  ",
-                        _ => "",
-                    },
+                let checked = menu == 3 && item_checked(app, i, localizer.locale());
+                let mark = match (checked, menu) {
+                    (true, _) => "\u{2713} ",
+                    (false, 3) => "  ",
+                    _ => "",
                 };
                 let text = format!("{mark}{label}");
                 if i == item {
@@ -1361,39 +1438,44 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
 
     // Wide terminals get the desktop layout (ADR-0017): the calculator
     // column on the left, the graph panel in its own section on the
-    // right. Narrow terminals keep the vertical stack from ADR-0016 —
-    // one split, no overlapping regions.
+    // right, and the key hints spanning the full width underneath both
+    // (ADR-0019) — the panel used to run down over the hints row and
+    // clip the key guide at the column edge. Narrow terminals keep the
+    // vertical stack from ADR-0016 — one split, no overlapping regions.
     let wide = body.width >= 104;
     let (input_area, result_area, history_area, graph_area, keypad_area, hints_area) = if wide {
-        let split = Layout::horizontal([Constraint::Length(46), Constraint::Min(0)]).split(body);
+        let split =
+            Layout::vertical([Constraint::Min(0), Constraint::Length(1)])
+                .split(body);
+        let (content, hints) = (split[0], split[1]);
+        let split =
+            Layout::horizontal([Constraint::Length(46), Constraint::Min(0)])
+                .split(content);
         let (calc_col, graph_col) = (split[0], split[1]);
         let calc_rows = if app.keypad_focused() {
             Layout::vertical([
                 Constraint::Length(3),  // input
                 Constraint::Length(1),  // result
                 Constraint::Min(0),     // history
-                Constraint::Length(6),  // keypad
-                Constraint::Length(1),  // hints
+                Constraint::Length(7),  // keypad (bank row + 4 key rows)
             ])
         } else {
             Layout::vertical([
                 Constraint::Length(3),  // input
                 Constraint::Length(1),  // result
                 Constraint::Min(0),     // history
-                Constraint::Length(1),  // hints
             ])
         }
         .split(calc_col);
         let keypad_area = if app.keypad_focused() { Some(calc_rows[3]) } else { None };
-        let hints_area = if app.keypad_focused() { calc_rows[4] } else { calc_rows[3] };
-        (calc_rows[0], calc_rows[1], calc_rows[2], graph_col, keypad_area, hints_area)
+        (calc_rows[0], calc_rows[1], calc_rows[2], graph_col, keypad_area, hints)
     } else if app.keypad_focused() {
         let rows = Layout::vertical([
             Constraint::Length(3),  // input
             Constraint::Length(1),  // result
             Constraint::Min(0),     // history
             Constraint::Length(14), // graph (shrunk while keypad is open)
-            Constraint::Length(6),  // keypad
+            Constraint::Length(7),  // keypad (bank row + 4 key rows)
             Constraint::Length(1),  // hints
         ])
         .split(body);
@@ -1434,9 +1516,34 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
         .block(block(localizer.lookup("tui-history")));
     frame.render_widget(history, history_area);
 
-    // The keypad grid (ADR-0016): the highlighted cell inserts its token.
+    // The keypad grid (ADR-0016): bank tabs on the first row — Tab
+    // cycles them — and the highlighted cell inserts its token.
     if let Some(kp_area) = keypad_area {
-        let rows: Vec<Line> = KEYPAD
+        let bank = &BANKS[app.keypad_bank_index()].1;
+        let cols = bank.iter().map(|r| r.len()).max().unwrap_or(1);
+        // Cell width from the widest grid that fits the 46-column calc
+        // pane (44 usable): 5 columns → 8-wide cells, 4 → 11 (enough for
+        // `variance`).
+        let cell = (44 / cols).max(8);
+        let bank_line = Line::from(
+            BANKS
+                .iter()
+                .enumerate()
+                .map(|(b, (label, _))| {
+                    let selected = b == app.keypad_bank_index();
+                    let style = if selected {
+                        Style::default()
+                            .bg(sel_bg)
+                            .fg(sel_fg)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(fg)
+                    };
+                    Span::styled(format!(" {label} "), style)
+                })
+                .collect::<Vec<Span>>(),
+        );
+        let rows: Vec<Line> = bank
             .iter()
             .enumerate()
             .map(|(r, row)| {
@@ -1453,13 +1560,15 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
                         } else {
                             Style::default().fg(fg)
                         };
-                        Span::styled(format!(" {:<7}", disp), style)
+                        Span::styled(format!(" {:<width$}", disp, width = cell - 1), style)
                     })
                     .collect();
                 Line::from(cells)
             })
             .collect();
-        let keypad = Paragraph::new(rows)
+        let mut grid = vec![bank_line];
+        grid.extend(rows);
+        let keypad = Paragraph::new(Text::from(grid))
             .style(Style::default().fg(fg))
             .block(block(localizer.lookup("tui-keypad")));
         frame.render_widget(keypad, kp_area);
@@ -1511,7 +1620,7 @@ fn draw(frame: &mut ratatui::Frame, app: &App, localizer: &Localizer) {
                 )
             })
             .collect();
-        if !poi_lines.is_empty() {
+        if !poi_lines.is_empty() && app.poi_list() {
             graph_text.push('\n');
             graph_text.push_str(&poi_lines.join("   "));
         }
@@ -1547,11 +1656,24 @@ fn graph_dims(graph_area: ratatui::layout::Rect, wide: bool, keypad: bool) -> (u
 /// Which Settings radio is checked: the theme item index (0 light,
 /// 1 dark, 2 night); languages are items 3..10 and map through
 /// SUPPORTED_LOCALES.
-fn item_checked(app: &App) -> usize {
-    match app.theme() {
-        Theme::Light => 0,
-        Theme::Dark => 1,
-        Theme::Night => 2,
+/// Which Settings item is checked, if any: item 0 is the POI-list
+/// checkbox (ADR-0019), items 1–3 the theme radios, items 4–11 the
+/// language radios.
+fn item_checked(app: &App, item: usize, locale: &str) -> bool {
+    match item {
+        0 => app.poi_list(),
+        1..=3 => match app.theme() {
+            Theme::Light => item == 1,
+            Theme::Dark => item == 2,
+            Theme::Night => item == 3,
+        },
+        _ => {
+            let index = item - 4; // SUPPORTED_LOCALES order, as in menu_activate
+            epher_i18n::SUPPORTED_LOCALES
+                .get(index)
+                .map(|code| *code == locale)
+                .unwrap_or(false)
+        }
     }
 }
 

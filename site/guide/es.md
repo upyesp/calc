@@ -705,6 +705,9 @@ propio color y patrón de trazos, y una leyenda que las nombra.
 superior del panel de la gráfica hace lo mismo para curvas y superficies 3D
 a la vez. La TUI mantiene el comando en su menú **Graph**.
 
+En **Settings → Graph** puedes ocultar la lista de puntos de interés y los
+puntos destacados que se dibujan en la propia gráfica.
+
 ```epher
 graph x ^ 2
 graph x ^ 3
@@ -1161,7 +1164,13 @@ La pantalla está dividida en paneles:
 | **Teclas de flecha** | girar la vista 3D (cuando la entrada está vacía) |
 | **Espacio** | iniciar/detener la animación (cuando la entrada está vacía) |
 | **F10** | abrir los menús (File, Edit, Graph, Settings, Help) |
+| **Tab** | abrir el teclado; cambiar de grupo (**Esc** cierra) |
 | **Ctrl+L** | borrar el historial |
+
+Los grupos del teclado contienen todas las funciones, constantes y
+comandos que admite el lenguaje: **trig**, **fn**, **num** y **var**.
+Las flechas mueven el resaltado, **Intro** inserta el token y **Tab**
+cambia de grupo.
 
 ### 5.3 Gráficas
 
@@ -1177,7 +1186,8 @@ representa.
 
 `graph clear` vacía la gráfica, y el menú **Graph** hace lo mismo; el menú
 **Help** abre esta guía dentro de la TUI (las teclas de flecha desplazan,
-**Esc** cierra).
+**Esc** cierra). El menú **Settings** puede ocultar los puntos de interés
+que se listan bajo la gráfica.
 
 Puedes graficar cualquier expresión, incluidas tus propias funciones —
 primero define una y luego grafícala:
