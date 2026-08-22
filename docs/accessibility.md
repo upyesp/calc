@@ -30,7 +30,7 @@ checks use 4.5:1, non-text (UI component boundaries, focus indicators) 3:1.
 
 | Criterion | Status | Evidence / notes |
 |---|---|---|
-| 2.1.1 Keyboard | PASS | Native input + keypad buttons; Enter activates from the field; every keypad and menu button is reachable and activatable; the menu bar closes on Escape and every item is an ordinary tab stop (ADR-0017); scrollable regions (history box, graph pane) carry `tabindex="0"` so their content is keyboard-scrollable; the TUI keypad opens with Tab, moves with arrows, inserts with Enter (ADR-0016); the TUI menus open with F10, move with arrows, activate with Enter, close with Escape. |
+| 2.1.1 Keyboard | PASS | Native input + keypad buttons; Enter activates from the field; every keypad and menu button is reachable and activatable; the menu bar closes on Escape and every item is an ordinary tab stop (ADR-0017); scrollable regions (result box, history box, graph pane, mobile menu panel) carry `tabindex="0"` so their content is keyboard-scrollable; the TUI keypad opens with Tab, moves with arrows, inserts with Enter (ADR-0016); the TUI menus open with F10, move with arrows, activate with Enter, close with Escape. |
 | 2.1.2 No keyboard trap | PASS | Keypad buttons are ordinary tab stops; the TUI keypad closes with Tab/Esc; both menu systems close with Escape; dropdowns hold no focus. |
 | 2.4.1 Bypass blocks | N/A | Single screen; nothing to skip. |
 | 2.4.2 Page titled | PASS | `<title>epher</title>`. |

@@ -41,6 +41,7 @@ evaluate = Evaluate
 clear-entry = Clear entry
 delete-entry = Delete
 tui-keypad = Keypad — arrows move, Enter inserts, Tab/Esc returns
+menu = Menu
 menu-file = File
 menu-edit = Edit
 menu-settings = Settings

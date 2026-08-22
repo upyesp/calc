@@ -42,6 +42,7 @@ evaluate = मूल्यांकन करें
 clear-entry = प्रविष्टि साफ़ करें
 delete-entry = हटाएँ
 tui-keypad = कीपैड — तीर घुमाएँ · Enter डालें · Tab/Esc वापस लौटें
+menu = मेन्यू
 menu-file = फ़ाइल
 menu-edit = संपादन
 menu-settings = सेटिंग्स

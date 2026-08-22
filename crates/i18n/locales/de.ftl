@@ -42,6 +42,7 @@ evaluate = Auswerten
 clear-entry = Eingabe leeren
 delete-entry = Löschen
 tui-keypad = Tastenfeld — Pfeile bewegen, Enter fügt ein, Tab/Esc kehrt zurück
+menu = Menü
 menu-file = Datei
 menu-edit = Bearbeiten
 menu-settings = Einstellungen

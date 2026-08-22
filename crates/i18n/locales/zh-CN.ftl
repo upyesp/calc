@@ -41,6 +41,7 @@ evaluate = 计算
 clear-entry = 清除输入
 delete-entry = 删除
 tui-keypad = 键盘——方向键移动，Enter 插入，Tab/Esc 返回
+menu = 菜单
 menu-file = 文件
 menu-edit = 编辑
 menu-settings = 设置

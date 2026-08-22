@@ -91,6 +91,15 @@ uses the area it is given.
 - The web app's fixed viewport budget gained a menu bar row; the entry
   field also sits slightly below the top bar instead of flush against
   it.
+- **Amendment (v0.4.5):** on mobile (<880px) the inline menu bar folds
+  into a hamburger button whose panel lists the same three menus as
+  labeled groups (one `role="menu"` containing File, Edit, Theme, and
+  Language groups, radio items included); the inline bar stays on
+  desktop. The first release shipped the File→Open file input without
+  its hiding rule, so the native picker button rendered in the top bar
+  on phones — the input is now `display: none` (programmatic `click()`
+  still opens the picker) and the result region carries `tabindex="0"`
+  so its overflow scroll stays keyboard-reachable.
 - A latent Fluent bug surfaced during translation: `{name}` is a
   message reference, not a variable — `theme-set` uses `{ $name }` in
   all eight catalogs.

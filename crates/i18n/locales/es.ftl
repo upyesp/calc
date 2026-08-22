@@ -41,6 +41,7 @@ evaluate = Evaluar
 clear-entry = Borrar entrada
 delete-entry = Eliminar
 tui-keypad = Teclado: flechas mover, Intro insertar, Tab/Esc volver
+menu = Menú
 menu-file = Archivo
 menu-edit = Edición
 menu-settings = Ajustes

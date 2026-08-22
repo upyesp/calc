@@ -74,6 +74,7 @@
     h1 { font-size: 1.5rem; font-weight: 600; }
     /* --- the top bar: menu bar (ADR-0017) + mobile pane switch -------- */
     .topbar {
+      position: relative;
       flex: none;
       display: flex;
       align-items: center;
@@ -156,6 +157,48 @@
     .menu-sep {
       border-top: 1px solid var(--border);
       margin: 0.25rem 0.5rem;
+    }
+    /* The File→Open picker must never render as a visible button — on
+       mobile it would crowd the top bar (ADR-0017). display:none still
+       answers a programmatic click() with the picker in every browser. */
+    .visually-hidden-file {
+      display: none;
+    }
+    /* --- mobile hamburger (ADR-0017): the menu bar folds into one
+       button below the desktop breakpoint ------------------------------- */
+    .hamburger-btn {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 0.7rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .hamburger-btn[aria-expanded="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .mobile-menu {
+      position: absolute;
+      top: calc(100% - 0.25rem);
+      left: 0.5rem;
+      right: 0.5rem;
+      z-index: 20;
+      max-height: min(70vh, calc(100dvh - 60px));
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.3rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
     }
     /* --- pane switching (mobile: the graph is one swipe away) ---------- */
     .pane-switch {
@@ -620,8 +663,14 @@
       margin-bottom: 0.75rem;
     }
 
+    /* --- mobile: the menu bar folds into the hamburger (ADR-0017) ------ */
+    @media (max-width: 879.98px) {
+      .menubar { display: none; }
+    }
     /* --- desktop: the graph pane sits beside the calculator (ADR-0016) - */
     @media (min-width: 880px) {
+      .hamburger-btn { display: none; }
+      .mobile-menu { display: none; }
       .pane-switch { display: none; }
       .panes {
         overflow: visible;

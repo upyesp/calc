@@ -42,6 +42,7 @@ evaluate = Évaluer
 clear-entry = Effacer la saisie
 delete-entry = Supprimer
 tui-keypad = Clavier — flèches se déplacer, Entrée insérer, Tab/Échap revenir
+menu = Menu
 menu-file = Fichier
 menu-edit = Édition
 menu-settings = Paramètres

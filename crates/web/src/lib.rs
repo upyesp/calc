@@ -373,6 +373,7 @@ fn epher_app() -> Html {
     // bar item (File/Edit/Settings) drives the dropdown (ADR-0017).
     let theme = use_state(|| "dark".to_string());
     let menu_open = use_state(|| Option::<&'static str>::None);
+    let hamburger_open = use_state(|| false);
     let file_ref = use_node_ref();
     let bridge = Bridge::detect();
 
@@ -1414,6 +1415,25 @@ fn epher_app() -> Html {
         })
         .collect();
 
+    // ADR-0017: on mobile the menu bar folds into a hamburger whose panel
+    // lists the same three menus as labeled groups. Items share the
+    // desktop handlers and close the panel when activated.
+    let close_hamburger = {
+        let hamburger_open = hamburger_open.clone();
+        let menu_open = menu_open.clone();
+        Callback::from(move |_| {
+            hamburger_open.set(false);
+            menu_open.set(None);
+        })
+    };
+    let mobile_item = |action: Callback<web_sys::MouseEvent>| {
+        let close = close_hamburger.clone();
+        Callback::from(move |e: web_sys::MouseEvent| {
+            action.emit(e);
+            close.emit(());
+        })
+    };
+
     html! {
         <main class="epher">
             <h1 class="visually-hidden">{ localizer.lookup("app-name") }</h1>
@@ -1605,6 +1625,111 @@ fn epher_app() -> Html {
                         { localizer.lookup("graph-pane") }
                     </button>
                 </nav>
+                <button
+                    type="button"
+                    class="hamburger-btn"
+                    aria-label={localizer.lookup("menu")}
+                    aria-haspopup="menu"
+                    aria-controls="mobile-menu"
+                    aria-expanded={hamburger_open.to_string()}
+                    onclick={{
+                        let hamburger_open = hamburger_open.clone();
+                        Callback::from(move |_| hamburger_open.set(!*hamburger_open))
+                    }}
+                >
+                    {"\u{2630}"}
+                </button>
+                {
+                    if *hamburger_open {
+                        html! {
+                            <div
+                                id="mobile-menu"
+                                class="mobile-menu"
+                                role="menu"
+                                aria-label={localizer.lookup("menu")}
+                                tabindex="0"
+                                onkeydown={{
+                                    let hamburger_open = hamburger_open.clone();
+                                    Callback::from(move |e: web_sys::KeyboardEvent| {
+                                        if e.key() == "Escape" {
+                                            hamburger_open.set(false);
+                                        }
+                                    })
+                                }}
+                            >
+                                <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-file") }</p>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(Callback::from({
+                                    let on_open = on_open.clone();
+                                    move |_: web_sys::MouseEvent| on_open.emit(())
+                                }))}>
+                                    { localizer.lookup("menu-open") }
+                                </button>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(on_save_history.clone())}>
+                                    { localizer.lookup("menu-save-history") }
+                                </button>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(on_save_script.clone())}>
+                                    { localizer.lookup("menu-save-script") }
+                                </button>
+                                <div class="menu-sep" role="separator"></div>
+                                <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-edit") }</p>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(on_cut.clone())}>
+                                    { localizer.lookup("menu-cut") }
+                                </button>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(on_copy.clone())}>
+                                    { localizer.lookup("menu-copy") }
+                                </button>
+                                <button type="button" role="menuitem" class="menu-item" onclick={mobile_item(on_paste.clone())}>
+                                    { localizer.lookup("menu-paste") }
+                                </button>
+                                <div class="menu-sep" role="separator"></div>
+                                <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-theme") }</p>
+                                { for ["light", "dark", "night"].map(|name| {
+                                    let label = match name {
+                                        "light" => localizer.lookup("theme-light"),
+                                        "night" => localizer.lookup("theme-night"),
+                                        _ => localizer.lookup("theme-dark"),
+                                    };
+                                    let checked = *theme == name;
+                                    html! {
+                                        <button type="button" role="menuitemradio" class="menu-item"
+                                            aria-checked={checked.to_string()}
+                                            onclick={Callback::from({
+                                                let on_set_theme = on_set_theme.clone();
+                                                let close = close_hamburger.clone();
+                                                let name = name.to_string();
+                                                move |_| { on_set_theme.emit(name.clone()); close.emit(()); }
+                                            })}
+                                        >
+                                            <span class="menu-check" aria-hidden="true">{ if checked { "\u{2713}" } else { "" } }</span>
+                                            { label }
+                                        </button>
+                                    }
+                                }) }
+                                <div class="menu-sep" role="separator"></div>
+                                <p class="menu-group" aria-hidden="true">{ localizer.lookup("menu-language") }</p>
+                                { for epher_i18n::SUPPORTED_LOCALES.iter().map(|code| {
+                                    let checked = localizer.locale() == *code;
+                                    html! {
+                                        <button type="button" role="menuitemradio" class="menu-item"
+                                            aria-checked={checked.to_string()}
+                                            onclick={Callback::from({
+                                                let on_set_language = on_set_language.clone();
+                                                let close = close_hamburger.clone();
+                                                let code = code.to_string();
+                                                move |_| { on_set_language.emit(code.clone()); close.emit(()); }
+                                            })}
+                                        >
+                                            <span class="menu-check" aria-hidden="true">{ if checked { "\u{2713}" } else { "" } }</span>
+                                            { native_language_name(code) }
+                                        </button>
+                                    }
+                                }) }
+                            </div>
+                        }
+                    } else {
+                        html! {}
+                    }
+                }
             </header>
             <div class="panes" id="panes" onscroll={on_panes_scroll}>
                 <section class="pane" id="calc-pane">
@@ -1647,6 +1772,7 @@ fn epher_app() -> Html {
                             role="status"
                             aria-live="polite"
                             aria-labelledby="answer-label"
+                            tabindex="0"
                         >
                             { (*result).clone() }
                         </div>

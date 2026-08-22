@@ -41,6 +41,7 @@ evaluate = تقييم
 clear-entry = مسح الإدخال
 delete-entry = حذف
 tui-keypad = لوحة المفاتيح — الأسهم للتنقل، Enter للإدراج، Tab/Esc للعودة
+menu = القائمة
 menu-file = ملف
 menu-edit = تحرير
 menu-settings = الإعدادات
