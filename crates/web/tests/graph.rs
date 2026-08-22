@@ -164,3 +164,15 @@ fn legend_captions_keep_the_y_prefix_for_cartesian() {
     assert_eq!(epher_web::graph::curve_caption(&p), "polar 2");
     assert!(matches!(p.kind, CurveKind::Polar(_)));
 }
+
+#[test]
+fn trace_at_center_of_sin_finds_the_zero_crossing() {
+    let c = curve("sin(x)");
+    let geom = geometry(&[c.clone()]).unwrap();
+    // The viewBox is 640x400; sin(0)=0 passes exactly through the center.
+    let found = trace_nearest(&[c], &geom, 320.0, 200.0);
+    assert!(found.is_some(), "center of sin(x) must trace");
+    let t = found.unwrap();
+    assert!(t.x.abs() < 0.1, "x = {}", t.x);
+    assert!(t.y.abs() < 0.1, "y = {}", t.y);
+}

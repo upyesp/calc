@@ -226,10 +226,16 @@ impl App {
         localizer: &Localizer,
     ) -> Option<String> {
         if let Some(source) = piece.strip_prefix("graph ") {
+            // The command joins the session history like every other
+            // submitted line; the plot is the output.
+            self.session.record(piece);
+            let _ = save_history(store, self.history());
             let _ = self.submit_graph(source);
             return None;
         }
         if let Some(source) = piece.strip_prefix("graph3d ") {
+            self.session.record(piece);
+            let _ = save_history(store, self.history());
             let _ = self.submit_surface(source);
             return None;
         }

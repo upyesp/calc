@@ -446,7 +446,16 @@ pub fn graph_html(props: &GraphProps) -> Html {
                         let Some(me) = e.dyn_ref::<web_sys::PointerEvent>() else {
                             return;
                         };
-                        let (px, py) = to_viewbox(&el_closure, me.offset_x() as f64, me.offset_y() as f64);
+                        // offsetX/Y are relative to the event TARGET — a
+                        // path or axis line when the pointer is over a
+                        // curve, not the SVG. Use clientX/Y minus the
+                        // SVG's rect: element-local regardless of target.
+                        let r = el_closure.get_bounding_client_rect();
+                        let (px, py) = to_viewbox(
+                            &el_closure,
+                            me.client_x() as f64 - r.left(),
+                            me.client_y() as f64 - r.top(),
+                        );
                         on_trace.emit((px, py));
                     },
                 ));
@@ -458,7 +467,12 @@ pub fn graph_html(props: &GraphProps) -> Html {
                     let Some(me) = e.dyn_ref::<web_sys::MouseEvent>() else {
                         return;
                     };
-                    let (px, py) = to_viewbox(&el_closure, me.offset_x() as f64, me.offset_y() as f64);
+                    let r = el_closure.get_bounding_client_rect();
+                    let (px, py) = to_viewbox(
+                        &el_closure,
+                        me.client_x() as f64 - r.left(),
+                        me.client_y() as f64 - r.top(),
+                    );
                     on_trace.emit((px, py));
                 }));
             }

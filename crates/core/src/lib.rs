@@ -1621,6 +1621,17 @@ impl Session {
         &self.history
     }
 
+    /// Record a submitted line in the history without evaluating it, for
+    /// frontend-dispatched commands (`graph x^2`, `graph3d …`, and their
+    /// `clear`) whose output is rendered rather than computed here. The
+    /// command belongs in the same history as every other submitted line.
+    pub fn record(&mut self, line: &str) {
+        let line = line.trim().to_string();
+        if !line.is_empty() {
+            self.history.push(line);
+        }
+    }
+
     /// Empty the history list (the clear-history control in every frontend).
     /// The environment keeps its definitions and constants.
     pub fn clear_history(&mut self) {

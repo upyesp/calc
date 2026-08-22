@@ -96,13 +96,14 @@
       padding: 0 0.75rem 0.5rem;
       gap: 0.5rem;
     }
-    /* the answer panel: fixed height, always visible (ADR-0016) */
+    /* the answer panel: fixed height, always visible (ADR-0016); it sits
+       directly under the input — typed entry first, outcome second */
     .answer {
       flex: none;
       min-height: 3.4rem;
       display: flex;
       align-items: center;
-      padding: 0.25rem 0.25rem 0;
+      padding: 0 0.25rem;
     }
     .result {
       font-size: 1.6rem;
@@ -300,12 +301,6 @@
       gap: 0.25rem;
       flex: 1;
       min-height: 0;
-    }
-    .graph-empty {
-      color: var(--muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.95rem;
-      padding: 1rem 0;
     }
     /* The visible text alternative for the plot (WCAG 1.1.1): what is
        plotted, readable by everyone. --muted is 6.6:1 on --bg (1.4.3). */

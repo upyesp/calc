@@ -267,7 +267,8 @@ fn submit_line_keeps_graph_special_case() {
     app.submit_line("graph x ^ 2", &store, &Localizer::resolve(Some("en"), &[]));
     assert_eq!(app.result(), "graph: x ^ 2");
     assert_eq!(app.graph().len(), 1);
-    assert!(app.history().is_empty());
+    // Graph commands join the history list like every submitted line.
+    assert_eq!(app.history(), ["graph x ^ 2".to_string()]);
 }
 
 // ===== 3D surfaces and animation (ADR-0015) =====
@@ -285,7 +286,7 @@ fn graph3d_samples_and_clears() {
     app.submit_line("graph3d x ^ 2 + y ^ 2", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));
     assert_eq!(app.result(), "graph3d: x ^ 2 + y ^ 2");
     assert_eq!(app.surfaces().len(), 1);
-    assert!(app.history().is_empty());
+    assert_eq!(app.history(), ["graph3d x ^ 2 + y ^ 2".to_string()]);
 
     // A second surface overlays.
     app.submit_line("graph3d x - y", &store, &epher_i18n::Localizer::resolve(Some("en"), &[]));

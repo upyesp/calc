@@ -22,9 +22,12 @@ scrolling.
 (`100dvh`, `overflow: hidden` on `body`). The calculator column is, top to
 bottom:
 
-1. **Answer panel** (fixed height, `aria-live`) — the result of the last
+1. **Input** (fixed height) — the existing textarea. First, so the user's
+   entry point leads; the outcome follows (amended 2026-08-22: user
+   feedback — the original answer-first order hid the input below the
+   result panel).
+2. **Answer panel** (fixed height, `aria-live`) — the result of the last
    evaluation, always visible.
-2. **Input** (fixed height) — the existing textarea.
 3. **History** (flex-1, `overflow-y: auto`, `tabindex="0"`) — fixed size
    because its neighbors are fixed; scrolls internally.
 4. **Keypad** (fixed height, ~5 rows) — tabbed buttons.

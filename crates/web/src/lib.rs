@@ -497,9 +497,11 @@ fn epher_app() -> Html {
                 }
 
                 // Graphing (ADR-0006/0014: the core samples, the frontend renders).
-                // Each `graph` line overlays one more curve; history is untouched.
+                // Each `graph` line overlays one more curve; the command
+                // itself joins the history list like every submitted line.
                 if let Some(source) = line.strip_prefix("graph ") {
                     let source = source.trim();
+                    s.record(&line);
                     if source == "clear" {
                         curves.clear();
                         continue;
@@ -523,9 +525,11 @@ fn epher_app() -> Html {
                 }
 
                 // 3D surfaces (ADR-0015): z = f(x, y) over a square
-                // domain, overlaid like curves. History is untouched.
+                // domain, overlaid like curves. The command joins the
+                // history list like every submitted line.
                 if let Some(source) = line.strip_prefix("graph3d ") {
                     let source = source.trim();
+                    s.record(&line);
                     if source == "clear" {
                         surfaces.clear();
                         continue;
@@ -1135,20 +1139,6 @@ fn epher_app() -> Html {
                             html! {}
                         }
                     }
-                    <div class="answer">
-                        <span class="visually-hidden" id="answer-label">
-                            { localizer.lookup("answer") }
-                        </span>
-                        <div
-                            id="epher-result"
-                            class="result"
-                            role="status"
-                            aria-live="polite"
-                            aria-labelledby="answer-label"
-                        >
-                            { (*result).clone() }
-                        </div>
-                    </div>
                     <form ref={form_ref.clone()} onsubmit={on_submit}>
                         <textarea
                             ref={input_ref.clone()}
@@ -1163,6 +1153,20 @@ fn epher_app() -> Html {
                             aria-describedby={if is_error { "epher-result" } else { "" }}
                         />
                     </form>
+                    <div class="answer">
+                        <span class="visually-hidden" id="answer-label">
+                            { localizer.lookup("answer") }
+                        </span>
+                        <div
+                            id="epher-result"
+                            class="result"
+                            role="status"
+                            aria-live="polite"
+                            aria-labelledby="answer-label"
+                        >
+                            { (*result).clone() }
+                        </div>
+                    </div>
                     <section class="history-box" tabindex="0" aria-label={localizer.lookup("history")}>
                         <div class="history-head">
                             <h2>{ localizer.lookup("history") }</h2>
@@ -1312,17 +1316,6 @@ fn epher_app() -> Html {
                                 }
                             } else {
                                 html! {}
-                            }
-                        } else {
-                            html! {}
-                        }
-                    }
-                    {
-                        if (*graph).is_empty() && (*surface).is_empty() {
-                            html! {
-                                <p class="graph-empty">
-                                    { "graph sin(x)   ·   graph3d x ^ 2 - y ^ 2" }
-                                </p>
                             }
                         } else {
                             html! {}
