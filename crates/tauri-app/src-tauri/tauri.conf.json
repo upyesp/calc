@@ -50,14 +50,14 @@
           "/usr/share/man/man1/epher.1": "../../../packaging/man/epher.1",
           "/usr/share/icons/hicolor/scalable/apps/epher.svg": "../../../site/icon.svg"
         },
-        "post-install-script": "../../../packaging/postinst.sh"
+        "postInstallScript": "../../../packaging/postinst.sh"
       },
       "rpm": {
         "files": {
           "/usr/share/man/man1/epher.1": "../../../packaging/man/epher.1",
           "/usr/share/icons/hicolor/scalable/apps/epher.svg": "../../../site/icon.svg"
         },
-        "post-install-script": "../../../packaging/postinst.sh"
+        "postInstallScript": "../../../packaging/postinst.sh"
       }
     },
     "windows": {
